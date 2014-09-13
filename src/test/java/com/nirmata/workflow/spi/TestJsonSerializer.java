@@ -1,6 +1,7 @@
 package com.nirmata.workflow.spi;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.*;
@@ -58,7 +59,7 @@ public class TestJsonSerializer
                 metaData.put(Integer.toString(i), "" + random.nextInt());
             }
         }
-        return new TaskModel(new TaskId(), "test" + random.nextDouble(), "xyzpdq" + random.nextDouble(), metaData);
+        return new TaskModel(new TaskId(), "test" + random.nextDouble(), "xyzpdq" + random.nextDouble(), random.nextBoolean(), metaData);
     }
 
     @Test
@@ -82,15 +83,15 @@ public class TestJsonSerializer
     @Test
     public void testTaskSet()
     {
-        TaskSet taskSet = makeTaskSet();
+        TaskSets taskSets = makeTaskSet();
 
         ObjectNode node = newNode();
-        addTaskSet(node, taskSet);
+        addTaskSet(node, taskSets);
         String str = JsonSerializer.toString(node);
         System.out.println(str);
 
-        TaskSet unTaskSet = getTaskSet(fromString(str));
-        Assert.assertEquals(taskSet, unTaskSet);
+        TaskSets unTaskSets = getTaskSet(fromString(str));
+        Assert.assertEquals(taskSets, unTaskSets);
     }
 
     @Test
@@ -135,9 +136,12 @@ public class TestJsonSerializer
         Assert.assertEquals(scheduleExecution, unScheduleExecution);
     }
 
-    private TaskSet makeTaskSet()
+    private TaskSets makeTaskSet()
     {
-        List<TaskId> ids = Arrays.asList(new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId());
-        return new TaskSet(ids);
+        List<TaskId> ids1 = Arrays.asList(new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId());
+        List<TaskId> ids2 = Arrays.asList(new TaskId(), new TaskId(), new TaskId(), new TaskId());
+        List<TaskId> ids3 = Arrays.asList(new TaskId());
+        List<List<TaskId>> tasks = ImmutableList.of(ids1, ids2, ids3);
+        return new TaskSets(tasks);
     }
 }

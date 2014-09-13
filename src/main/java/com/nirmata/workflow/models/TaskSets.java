@@ -5,18 +5,23 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 
-public class TaskSet implements Iterable<TaskId>
+public class TaskSets implements Iterable<List<TaskId>>
 {
-    private final List<TaskId> tasks;
+    private final List<List<TaskId>> tasks;
 
-    public TaskSet(List<TaskId> tasks)
+    public TaskSets(List<List<TaskId>> tasks)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
-        this.tasks = ImmutableList.copyOf(tasks);
+        ImmutableList.Builder<List<TaskId>> builder = ImmutableList.builder();
+        for ( List<TaskId> l : tasks )
+        {
+            builder.add(ImmutableList.copyOf(l));
+        }
+        this.tasks = builder.build();
     }
 
     @Override
-    public Iterator<TaskId> iterator()
+    public Iterator<List<TaskId>> iterator()
     {
         return tasks.iterator();
     }
@@ -26,7 +31,7 @@ public class TaskSet implements Iterable<TaskId>
         return tasks.size();
     }
 
-    public TaskId get(int n)
+    public List<TaskId> get(int n)
     {
         return tasks.get(n);
     }
@@ -43,7 +48,7 @@ public class TaskSet implements Iterable<TaskId>
             return false;
         }
 
-        TaskSet taskIds = (TaskSet)o;
+        TaskSets taskIds = (TaskSets)o;
 
         //noinspection RedundantIfStatement
         if ( !tasks.equals(taskIds.tasks) )
@@ -58,5 +63,13 @@ public class TaskSet implements Iterable<TaskId>
     public int hashCode()
     {
         return tasks.hashCode();
+    }
+
+    @Override
+    public String toString()
+    {
+        return "TaskSet{" +
+            "tasks=" + tasks +
+            '}';
     }
 }

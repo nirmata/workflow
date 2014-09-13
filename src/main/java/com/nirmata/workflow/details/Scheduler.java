@@ -1,6 +1,7 @@
 package com.nirmata.workflow.details;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.base.Preconditions;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
@@ -11,17 +12,25 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
-import org.apache.curator.utils.CloseableUtils;
 import java.io.Closeable;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Scheduler implements Closeable
 {
     private final WorkflowManager workflowManager;
     private final LeaderSelector leaderSelector;
+    private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
+
+    private enum State
+    {
+        LATENT,
+        STARTED,
+        CLOSED
+    }
 
     public Scheduler(WorkflowManager workflowManager)
     {
-        this.workflowManager = workflowManager;
+        this.workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
         LeaderSelectorListener listener = new LeaderSelectorListenerAdapter()
         {
             @Override
@@ -36,13 +45,17 @@ public class Scheduler implements Closeable
 
     public void start()
     {
+        Preconditions.checkState(state.compareAndSet(State.LATENT, State.STARTED), "Already started");
         leaderSelector.start();
     }
 
     @Override
     public void close()
     {
-        leaderSelector.close();
+        if ( state.compareAndSet(State.STARTED, State.CLOSED) )
+        {
+            leaderSelector.close();
+        }
     }
 
     private void monitorRunningTasks()

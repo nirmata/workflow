@@ -11,19 +11,21 @@ public class TaskModel
     private final String name;
     private final Map<String, String> metaData;
     private final String taskExecutionCode;
+    private final boolean isIdempotent;
 
-    public TaskModel(TaskId taskId, String name, String taskExecutionCode)
+    public TaskModel(TaskId taskId, String name, String taskExecutionCode, boolean isIdempotent)
     {
-        this(taskId, name, taskExecutionCode, Maps.<String, String>newHashMap());
+        this(taskId, name, taskExecutionCode, isIdempotent, Maps.<String, String>newHashMap());
     }
 
-    public TaskModel(TaskId taskId, String name, String taskExecutionCode, Map<String, String> metaData)
+    public TaskModel(TaskId taskId, String name, String taskExecutionCode, boolean isIdempotent, Map<String, String> metaData)
     {
         this.taskExecutionCode = Preconditions.checkNotNull(taskExecutionCode, "taskExecutionCode cannot be null");
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
         this.metaData = ImmutableMap.copyOf(metaData);
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
+        this.isIdempotent = isIdempotent;
     }
 
     public TaskId getTaskId()
@@ -46,6 +48,11 @@ public class TaskModel
         return taskExecutionCode;
     }
 
+    public boolean isIdempotent()
+    {
+        return isIdempotent;
+    }
+
     @Override
     public boolean equals(Object o)
     {
@@ -60,6 +67,10 @@ public class TaskModel
 
         TaskModel taskModel = (TaskModel)o;
 
+        if ( isIdempotent != taskModel.isIdempotent )
+        {
+            return false;
+        }
         if ( !metaData.equals(taskModel.metaData) )
         {
             return false;
@@ -88,6 +99,19 @@ public class TaskModel
         result = 31 * result + name.hashCode();
         result = 31 * result + metaData.hashCode();
         result = 31 * result + taskExecutionCode.hashCode();
+        result = 31 * result + (isIdempotent ? 1 : 0);
         return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "TaskModel{" +
+            "taskId=" + taskId +
+            ", name='" + name + '\'' +
+            ", metaData=" + metaData +
+            ", taskExecutionCode='" + taskExecutionCode + '\'' +
+            ", isIdempotent=" + isIdempotent +
+            '}';
     }
 }

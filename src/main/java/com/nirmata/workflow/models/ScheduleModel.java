@@ -44,9 +44,9 @@ public class ScheduleModel
             return false;
         }
 
-        Date previousDate = (repetition.getType() == RepetitionModel.Type.ABSOLUTE) ? scheduleExecution.getLastExecutionStart() : scheduleExecution.getLastExecutionEnd();
-        Date nextDate = new Date(repetition.getDuration().toMillis() + previousDate.getTime());
-        return Clock.nowUtc().getTime() > nextDate.getTime();
+        Date previousDateUtc = (repetition.getType() == RepetitionModel.Type.ABSOLUTE) ? scheduleExecution.getLastExecutionStartUtc() : scheduleExecution.getLastExecutionEndUtc();
+        Date nextDateUtc = new Date(repetition.getDuration().toMillis() + previousDateUtc.getTime());
+        return Clock.nowUtc().getTime() > nextDateUtc.getTime();
     }
 
     @Override
@@ -87,5 +87,15 @@ public class ScheduleModel
         result = 31 * result + scheduleId.hashCode();
         result = 31 * result + workflowId.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ScheduleModel{" +
+            "repetition=" + repetition +
+            ", scheduleId=" + scheduleId +
+            ", workflowId=" + workflowId +
+            '}';
     }
 }

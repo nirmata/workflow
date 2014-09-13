@@ -82,6 +82,16 @@ public class RepetitionModel
         return result;
     }
 
+    @Override
+    public String toString()
+    {
+        return "RepetitionModel{" +
+            "duration=" + duration +
+            ", type=" + type +
+            ", qty=" + qty +
+            '}';
+    }
+
     private RepetitionModel()
     {
         duration = new Duration(0, TimeUnit.MILLISECONDS);

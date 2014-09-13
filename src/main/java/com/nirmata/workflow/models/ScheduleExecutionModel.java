@@ -6,15 +6,15 @@ import java.util.Date;
 public class ScheduleExecutionModel
 {
     private final ScheduleId scheduleId;
-    private final Date lastExecutionStart;
-    private final Date lastExecutionEnd;
+    private final Date lastExecutionStartUtc;
+    private final Date lastExecutionEndUtc;
     private final int executionQty;
 
-    public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecutionStart, Date lastExecutionEnd, int executionQty)
+    public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecutionStartUtc, Date lastExecutionEndUtc, int executionQty)
     {
         this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");
-        this.lastExecutionStart = Preconditions.checkNotNull(lastExecutionStart, "lastExecution cannot be null");
-        this.lastExecutionEnd = Preconditions.checkNotNull(lastExecutionEnd, "lastExecutionEnd cannot be null");
+        this.lastExecutionStartUtc = Preconditions.checkNotNull(lastExecutionStartUtc, "lastExecution cannot be null");
+        this.lastExecutionEndUtc = Preconditions.checkNotNull(lastExecutionEndUtc, "lastExecutionEnd cannot be null");
         this.executionQty = executionQty;
     }
 
@@ -23,14 +23,14 @@ public class ScheduleExecutionModel
         return scheduleId;
     }
 
-    public Date getLastExecutionStart()
+    public Date getLastExecutionStartUtc()
     {
-        return lastExecutionStart;
+        return lastExecutionStartUtc;
     }
 
-    public Date getLastExecutionEnd()
+    public Date getLastExecutionEndUtc()
     {
-        return lastExecutionEnd;
+        return lastExecutionEndUtc;
     }
 
     public int getExecutionQty()
@@ -56,11 +56,11 @@ public class ScheduleExecutionModel
         {
             return false;
         }
-        if ( !lastExecutionEnd.equals(that.lastExecutionEnd) )
+        if ( !lastExecutionEndUtc.equals(that.lastExecutionEndUtc) )
         {
             return false;
         }
-        if ( !lastExecutionStart.equals(that.lastExecutionStart) )
+        if ( !lastExecutionStartUtc.equals(that.lastExecutionStartUtc) )
         {
             return false;
         }
@@ -77,9 +77,20 @@ public class ScheduleExecutionModel
     public int hashCode()
     {
         int result = scheduleId.hashCode();
-        result = 31 * result + lastExecutionStart.hashCode();
-        result = 31 * result + lastExecutionEnd.hashCode();
+        result = 31 * result + lastExecutionStartUtc.hashCode();
+        result = 31 * result + lastExecutionEndUtc.hashCode();
         result = 31 * result + executionQty;
         return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ScheduleExecutionModel{" +
+            "scheduleId=" + scheduleId +
+            ", lastExecutionStart=" + lastExecutionStartUtc +
+            ", lastExecutionEnd=" + lastExecutionEndUtc +
+            ", executionQty=" + executionQty +
+            '}';
     }
 }

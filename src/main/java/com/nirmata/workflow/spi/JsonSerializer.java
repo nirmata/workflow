@@ -64,8 +64,8 @@ public class JsonSerializer
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecutionStart", toString(scheduleExecution.getLastExecutionStart()));
-        scheduleExecutionNode.put("lastExecutionEnd", toString(scheduleExecution.getLastExecutionEnd()));
+        scheduleExecutionNode.put("lastExecutionStartUtc", toString(scheduleExecution.getLastExecutionStartUtc()));
+        scheduleExecutionNode.put("lastExecutionEndUtc", toString(scheduleExecution.getLastExecutionEndUtc()));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
     }
@@ -76,8 +76,8 @@ public class JsonSerializer
         return new ScheduleExecutionModel
         (
             new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
-            dateFromString(scheduleExecutionNode.get("lastExecutionStart").asText()),
-            dateFromString(scheduleExecutionNode.get("lastExecutionEnd").asText()),
+            dateFromString(scheduleExecutionNode.get("lastExecutionStartUtc").asText()),
+            dateFromString(scheduleExecutionNode.get("lastExecutionEndUtc").asText()),
             scheduleExecutionNode.get("executionQty").asInt()
         );
     }
@@ -121,29 +121,39 @@ public class JsonSerializer
         );
     }
 
-    public static void addTaskSet(ObjectNode node, TaskSet taskSet)
+    public static void addTaskSet(ObjectNode node, TaskSets taskSets)
     {
         ArrayNode tab = newArrayNode();
-        for ( TaskId id : taskSet )
+        for ( List<TaskId> tasks : taskSets )
         {
-            ObjectNode idNode = newNode();
-            addId(idNode, id);
-            tab.add(idNode);
+            ArrayNode tasksTab = newArrayNode();
+            for ( TaskId taskId : tasks )
+            {
+                ObjectNode idNode = newNode();
+                addId(idNode, taskId);
+                tasksTab.add(idNode);
+            }
+            tab.add(tasksTab);
         }
         node.set("taskSet", tab);
     }
 
-    public static TaskSet getTaskSet(JsonNode node)
+    public static TaskSets getTaskSet(JsonNode node)
     {
-        List<TaskId> tasks = Lists.newArrayList();
+        List<List<TaskId>> tasks = Lists.newArrayList();
         JsonNode tab = node.get("taskSet");
         Iterator<JsonNode> elements = tab.elements();
         while ( elements.hasNext() )
         {
             JsonNode next = elements.next();
-            tasks.add(new TaskId(getId(next)));
+            List<TaskId> thisSet = Lists.newArrayList();
+            for ( JsonNode idNode : next )
+            {
+                thisSet.add(new TaskId(getId(idNode)));
+            }
+            tasks.add(thisSet);
         }
-        return new TaskSet(tasks);
+        return new TaskSets(tasks);
     }
 
     public static void addTasks(ObjectNode node, Collection<TaskModel> tasks)
@@ -177,6 +187,7 @@ public class JsonSerializer
         addId(taskNode, task.getTaskId());
         taskNode.put("name", task.getName());
         taskNode.put("code", task.getTaskExecutionCode());
+        taskNode.put("isIdempotent", task.isIdempotent());
         taskNode.putPOJO("meta", task.getMetaData());
         node.set("task", taskNode);
     }
@@ -189,6 +200,7 @@ public class JsonSerializer
             new TaskId(getId(taskNode)),
             taskNode.get("name").asText(),
             taskNode.get("code").asText(),
+            taskNode.get("isIdempotent").asBoolean(),
             getMap(taskNode.get("meta"))
         );
     }

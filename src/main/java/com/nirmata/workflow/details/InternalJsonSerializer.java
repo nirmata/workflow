@@ -1,5 +1,6 @@
 package com.nirmata.workflow.details;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.models.TaskId;
@@ -19,14 +20,18 @@ public class InternalJsonSerializer
             // TODO
         }
         List<TaskModel> tasks = Lists.newArrayList();
-        for ( TaskId taskId : workflow.getTasks() )
+        for ( List<TaskId> thisSet : workflow.getTasks() )
         {
-            TaskModel task = cache.getTasks().get(taskId);
-            if ( task == null )
+            ArrayNode tab = JsonSerializer.newArrayNode();
+            for ( TaskId taskId : thisSet )
             {
-                // TODO
+                TaskModel task = cache.getTasks().get(taskId);
+                if ( task == null )
+                {
+                    // TODO
+                }
+                tasks.add(task);
             }
-            tasks.add(task);
         }
 
         node.put("workflowId", workflowId.getId());

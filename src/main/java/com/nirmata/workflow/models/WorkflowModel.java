@@ -6,9 +6,9 @@ public class WorkflowModel
 {
     private final WorkflowId workflowId;
     private final String name;
-    private final TaskSet tasks;
+    private final TaskSets tasks;
 
-    public WorkflowModel(WorkflowId workflowId, String name, TaskSet tasks)
+    public WorkflowModel(WorkflowId workflowId, String name, TaskSets tasks)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         this.tasks = tasks;
@@ -26,7 +26,7 @@ public class WorkflowModel
         return name;
     }
 
-    public TaskSet getTasks()
+    public TaskSets getTasks()
     {
         return tasks;
     }
@@ -69,5 +69,15 @@ public class WorkflowModel
         result = 31 * result + name.hashCode();
         result = 31 * result + tasks.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "WorkflowModel{" +
+            "workflowId=" + workflowId +
+            ", name='" + name + '\'' +
+            ", tasks=" + tasks +
+            '}';
     }
 }

@@ -9,4 +9,6 @@ public interface WorkflowManagerConfiguration
     public int getMaxTaskRunners();
 
     public int getSchedulerSleepMs();
+
+    public int getTaskRunnerSleepMs();
 }
