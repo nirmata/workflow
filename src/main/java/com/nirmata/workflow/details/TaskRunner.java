@@ -93,10 +93,7 @@ public class TaskRunner implements Closeable
         String path = ZooKeeperConstants.getCompletedTaskKey(scheduleId, task.getTaskId());
         try
         {
-            if ( task.isIdempotent() )
-            {
-                workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
-            }
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
 
             TaskExecution taskExecution = workflowManager.getTaskExecutor().newTaskExecution(task);
             // TODO

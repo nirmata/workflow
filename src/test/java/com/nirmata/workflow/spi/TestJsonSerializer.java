@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.nirmata.workflow.details.Clock;
+import com.nirmata.workflow.details.StateCache;
+import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
+import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
@@ -15,6 +19,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import static com.nirmata.workflow.details.InternalJsonSerializer.*;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class TestJsonSerializer
@@ -50,6 +55,11 @@ public class TestJsonSerializer
 
     public TaskModel makeTask()
     {
+        return makeTask(new TaskId());
+    }
+
+    public TaskModel makeTask(TaskId taskId)
+    {
         Map<String, String> metaData = Maps.newHashMap();
         if ( random.nextBoolean() )
         {
@@ -59,7 +69,7 @@ public class TestJsonSerializer
                 metaData.put(Integer.toString(i), "" + random.nextInt());
             }
         }
-        return new TaskModel(new TaskId(), "test" + random.nextDouble(), "xyzpdq" + random.nextDouble(), random.nextBoolean(), metaData);
+        return new TaskModel(taskId, "test" + random.nextDouble(), "xyzpdq" + random.nextDouble(), random.nextBoolean(), metaData);
     }
 
     @Test
@@ -134,6 +144,61 @@ public class TestJsonSerializer
 
         ScheduleExecutionModel unScheduleExecution = getScheduleExecution(fromString(str));
         Assert.assertEquals(scheduleExecution, unScheduleExecution);
+    }
+
+    @Test
+    public void testDenormalizedWorkflow()
+    {
+        WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
+        List<ScheduleModel> schedules = Lists.newArrayList();
+        List<ScheduleExecutionModel> scheduleExecutions = Lists.newArrayList();
+        List<TaskModel> tasks = Lists.newArrayList();
+        List<WorkflowModel> workflows = Lists.newArrayList(workflow);
+
+        for ( List<TaskId> taskSet : workflow.getTasks() )
+        {
+            for ( TaskId taskId : taskSet )
+            {
+                tasks.add(makeTask(taskId));
+            }
+        }
+
+        StateCache cache = new StateCache(schedules, scheduleExecutions, tasks, workflows);
+
+        Date nowUtc = Clock.nowUtc();
+        ObjectNode node = newNode();
+        addDenormalizedWorkflow(node, cache, workflow.getWorkflowId(), nowUtc);
+        String str = JsonSerializer.toString(node);
+        System.out.println(str);
+
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), nowUtc);
+        DenormalizedWorkflowModel unDenormalizedWorkflow = getDenormalizedWorkflow(fromString(str));
+        Assert.assertEquals(denormalizedWorkflowModel, unDenormalizedWorkflow);
+    }
+
+    @Test
+    public void testCompletedTask()
+    {
+        CompletedTaskModel completedTask = new CompletedTaskModel();
+        ObjectNode node = newNode();
+        addCompletedTask(node, completedTask);
+        String str = JsonSerializer.toString(node);
+        System.out.println(str);
+
+        CompletedTaskModel unCompletedTask = getCompletedTask(fromString(str));
+        Assert.assertEquals(completedTask, unCompletedTask);
+
+        Map<String, String> resultData = Maps.newHashMap();
+        resultData.put("one", "1");
+        resultData.put("two", "2");
+        completedTask = new CompletedTaskModel(true, resultData);
+        node = newNode();
+        addCompletedTask(node, completedTask);
+        str = JsonSerializer.toString(node);
+        System.out.println(str);
+
+        unCompletedTask = getCompletedTask(fromString(str));
+        Assert.assertEquals(completedTask, unCompletedTask);
     }
 
     private TaskSets makeTaskSet()

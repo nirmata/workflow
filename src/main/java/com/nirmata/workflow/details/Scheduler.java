@@ -98,7 +98,7 @@ public class Scheduler implements Closeable
     private void startWorkflow(ScheduleModel schedule, StateCache stateCache)
     {
         ObjectNode node = JsonSerializer.newNode();
-        InternalJsonSerializer.addDenormalizedWorkflow(node, stateCache, schedule.getWorkflowId());
+        InternalJsonSerializer.addDenormalizedWorkflow(node, stateCache, schedule.getWorkflowId(), Clock.nowUtc());
         String json = JsonSerializer.toString(node);
         if ( json.length() > ZooKeeperConstants.MAX_PAYLOAD )
         {

@@ -34,6 +34,11 @@ public class JsonSerializer
         return mapper.createArrayNode();
     }
 
+    public static ObjectMapper getMapper()
+    {
+        return mapper;
+    }
+
     public static String toString(ObjectNode node)
     {
         try
@@ -259,7 +264,7 @@ public class JsonSerializer
         return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     }
 
-    private static Map<String, String> getMap(JsonNode node)
+    public static Map<String, String> getMap(JsonNode node)
     {
         Map<String, String> map = Maps.newHashMap();
         Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
