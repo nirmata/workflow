@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.TaskRunner;
+import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
@@ -89,6 +90,7 @@ public class WorkflowManager implements AutoCloseable
         List<ScheduleModel> scheduleModels = storageBridge.getScheduleModels();
         List<TaskModel> taskModels = storageBridge.getTaskModels();
         List<WorkflowModel> workflowModels = storageBridge.getWorkflowModels();
-        stateCache.set(new StateCache(scheduleModels, taskModels, workflowModels));
+        List<ScheduleExecutionModel> scheduleExecutions = storageBridge.getScheduleExecutions();
+        stateCache.set(new StateCache(scheduleModels, scheduleExecutions, taskModels, workflowModels));
     }
 }

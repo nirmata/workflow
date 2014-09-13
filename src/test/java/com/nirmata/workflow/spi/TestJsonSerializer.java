@@ -3,15 +3,7 @@ package com.nirmata.workflow.spi;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.models.Id;
-import com.nirmata.workflow.models.Repetition;
-import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.ScheduleModel;
-import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.TaskSet;
-import com.nirmata.workflow.models.WorkflowId;
-import com.nirmata.workflow.models.WorkflowModel;
+import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -104,7 +96,7 @@ public class TestJsonSerializer
     @Test
     public void testSchedule()
     {
-        ScheduleModel schedule = new ScheduleModel(new ScheduleId(), new WorkflowId(), new Date(), new Repetition(new Duration(10064, TimeUnit.MINUTES), Repetition.Type.ABSOLUTE));
+        ScheduleModel schedule = new ScheduleModel(new ScheduleId(), new WorkflowId(), new Repetition(new Duration(10064, TimeUnit.MINUTES), Repetition.Type.ABSOLUTE, random.nextInt()));
 
         ObjectNode node = newNode();
         addSchedule(node, schedule);
@@ -127,6 +119,20 @@ public class TestJsonSerializer
 
         WorkflowModel unWorkflow = getWorkflow(fromString(str));
         Assert.assertEquals(workflow, unWorkflow);
+    }
+
+    @Test
+    public void testScheduleExecution()
+    {
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), new Date(), random.nextInt());
+
+        ObjectNode node = newNode();
+        addScheduleExecution(node, scheduleExecution);
+        String str = JsonSerializer.toString(node);
+        System.out.println(str);
+
+        ScheduleExecutionModel unScheduleExecution = getScheduleExecution(fromString(str));
+        Assert.assertEquals(scheduleExecution, unScheduleExecution);
     }
 
     private TaskSet makeTaskSet()

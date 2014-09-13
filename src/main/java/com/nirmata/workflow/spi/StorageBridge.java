@@ -1,10 +1,9 @@
 package com.nirmata.workflow.spi;
 
-import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
-import java.util.Date;
 import java.util.List;
 
 public interface StorageBridge
@@ -15,5 +14,7 @@ public interface StorageBridge
 
     public List<TaskModel> getTaskModels();
 
-    public void updateScheduleLastExecution(ScheduleId scheduleId, Date lastExecution);
+    public List<ScheduleExecutionModel> getScheduleExecutions();
+
+    public void updateScheduleExecution(ScheduleExecutionModel scheduleExecution);
 }

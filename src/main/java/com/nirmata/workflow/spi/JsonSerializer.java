@@ -8,21 +8,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.models.Id;
-import com.nirmata.workflow.models.Repetition;
-import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.ScheduleModel;
-import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.TaskSet;
-import com.nirmata.workflow.models.WorkflowId;
-import com.nirmata.workflow.models.WorkflowModel;
+import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +60,26 @@ public class JsonSerializer
         }
     }
 
+    public static void addScheduleExecution(ObjectNode node, ScheduleExecutionModel scheduleExecution)
+    {
+        ObjectNode scheduleExecutionNode = newNode();
+        scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
+        scheduleExecutionNode.put("lastExecution", toString(scheduleExecution.getLastExecution()));
+        scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
+        node.set("scheduleExecution", scheduleExecutionNode);
+    }
+
+    public static ScheduleExecutionModel getScheduleExecution(JsonNode node)
+    {
+        JsonNode scheduleExecutionNode = node.get("scheduleExecution");
+        return new ScheduleExecutionModel
+        (
+            new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
+            dateFromString(scheduleExecutionNode.get("lastExecution").asText()),
+            scheduleExecutionNode.get("executionQty").asInt()
+        );
+    }
+
     public static void addWorkflow(ObjectNode node, WorkflowModel workflow)
     {
         ObjectNode workflowNode = newNode();
@@ -92,29 +105,18 @@ public class JsonSerializer
         ObjectNode scheduleNode = newNode();
         addRepetition(scheduleNode, schedule.getRepetition());
         addId(scheduleNode, schedule.getScheduleId());
-        scheduleNode.put("workflowid", schedule.getWorkflowId().getId());
-        scheduleNode.put("lastdate", newIsoDateFormatter().format(schedule.getLastExecution()));
+        scheduleNode.put("workflowId", schedule.getWorkflowId().getId());
         node.set("schedule", scheduleNode);
     }
 
     public static ScheduleModel getSchedule(JsonNode node)
     {
         JsonNode scheduleNode = node.get("schedule");
-        try
-        {
-            return new ScheduleModel
-            (
-                new ScheduleId(getId(scheduleNode)),
-                new WorkflowId(scheduleNode.get("workflowid").asText()),
-                newIsoDateFormatter().parse(scheduleNode.get("lastdate").asText()),
-                getRepetition(scheduleNode)
-            );
-        }
-        catch ( ParseException e )
-        {
-            // TODO - add logging
-            throw new RuntimeException(e);
-        }
+        return new ScheduleModel
+        (
+            new ScheduleId(getId(scheduleNode)),
+            new WorkflowId(scheduleNode.get("workflowId").asText()), getRepetition(scheduleNode)
+        );
     }
 
     public static void addTaskSet(ObjectNode node, TaskSet taskSet)
@@ -126,13 +128,13 @@ public class JsonSerializer
             addId(idNode, id);
             tab.add(idNode);
         }
-        node.set("taskset", tab);
+        node.set("taskSet", tab);
     }
 
     public static TaskSet getTaskSet(JsonNode node)
     {
         List<TaskId> tasks = Lists.newArrayList();
-        JsonNode tab = node.get("taskset");
+        JsonNode tab = node.get("taskSet");
         Iterator<JsonNode> elements = tab.elements();
         while ( elements.hasNext() )
         {
@@ -194,15 +196,19 @@ public class JsonSerializer
         ObjectNode repetitionNode = newNode();
         repetitionNode.put("duration", repetition.getDuration().toString());
         repetitionNode.put("type", repetition.getType().name());
+        repetitionNode.put("qty", repetition.getQty());
         node.set("repetition", repetitionNode);
     }
 
     public static Repetition getRepetition(JsonNode node)
     {
         JsonNode repetitionNode = node.get("repetition");
-        String durationStr = repetitionNode.get("duration").asText();
-        String typeStr = repetitionNode.get("type").asText();
-        return new Repetition(Duration.valueOf(durationStr), Repetition.Type.valueOf(typeStr));
+        return new Repetition
+        (
+            Duration.valueOf(repetitionNode.get("duration").asText()),
+            Repetition.Type.valueOf(repetitionNode.get("type").asText()),
+            repetitionNode.get("qty").asInt()
+        );
     }
 
     public static void addId(ObjectNode node, Id id)
@@ -215,7 +221,25 @@ public class JsonSerializer
         return node.get("id").asText();
     }
 
-    public static DateFormat newIsoDateFormatter()
+    public static String toString(Date date)
+    {
+        return newIsoDateFormatter().format(date);
+    }
+
+    public static Date dateFromString(String str)
+    {
+        try
+        {
+            return newIsoDateFormatter().parse(str);
+        }
+        catch ( ParseException e )
+        {
+            // TODO log
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static DateFormat newIsoDateFormatter()
     {
         // per http://stackoverflow.com/questions/2201925/converting-iso-8601-compliant-string-to-java-util-date
         return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");

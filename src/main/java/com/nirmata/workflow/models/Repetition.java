@@ -9,6 +9,7 @@ public class Repetition
 {
     private final Duration duration;
     private final Type type;
+    private final int qty;
 
     public enum Type
     {
@@ -16,10 +17,13 @@ public class Repetition
         ABSOLUTE
     }
 
+    public static final int UNLIMITED = -1;
+
     public static final Repetition NONE = new Repetition();
 
-    public Repetition(Duration duration, Type type)
+    public Repetition(Duration duration, Type type, int qty)
     {
+        this.qty = qty;
         this.duration = Preconditions.checkNotNull(duration, "duration cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
     }
@@ -49,6 +53,11 @@ public class Repetition
         return type;
     }
 
+    public int getQty()
+    {
+        return qty;
+    }
+
     @Override
     public boolean equals(Object o)
     {
@@ -63,6 +72,10 @@ public class Repetition
 
         Repetition that = (Repetition)o;
 
+        if ( qty != that.qty )
+        {
+            return false;
+        }
         if ( !duration.equals(that.duration) )
         {
             return false;
@@ -81,6 +94,7 @@ public class Repetition
     {
         int result = duration.hashCode();
         result = 31 * result + type.hashCode();
+        result = 31 * result + qty;
         return result;
     }
 
@@ -88,5 +102,6 @@ public class Repetition
     {
         duration = new Duration(0, TimeUnit.MILLISECONDS);
         type = Type.ABSOLUTE;
+        qty = 1;
     }
 }
