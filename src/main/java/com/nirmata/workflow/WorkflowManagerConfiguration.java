@@ -7,4 +7,6 @@ public interface WorkflowManagerConfiguration
     public boolean canBeScheduler();
 
     public int getMaxTaskRunners();
+
+    public int getSchedulerSleepMs();
 }

@@ -96,7 +96,7 @@ public class TestJsonSerializer
     @Test
     public void testSchedule()
     {
-        ScheduleModel schedule = new ScheduleModel(new ScheduleId(), new WorkflowId(), new Repetition(new Duration(10064, TimeUnit.MINUTES), Repetition.Type.ABSOLUTE, random.nextInt()));
+        ScheduleModel schedule = new ScheduleModel(new ScheduleId(), new WorkflowId(), new RepetitionModel(new Duration(10064, TimeUnit.MINUTES), RepetitionModel.Type.ABSOLUTE, random.nextInt()));
 
         ObjectNode node = newNode();
         addSchedule(node, schedule);
@@ -124,7 +124,7 @@ public class TestJsonSerializer
     @Test
     public void testScheduleExecution()
     {
-        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), new Date(), random.nextInt());
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), new Date(), new Date(), random.nextInt());
 
         ObjectNode node = newNode();
         addScheduleExecution(node, scheduleExecution);

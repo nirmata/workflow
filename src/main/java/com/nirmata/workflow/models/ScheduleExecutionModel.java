@@ -6,13 +6,15 @@ import java.util.Date;
 public class ScheduleExecutionModel
 {
     private final ScheduleId scheduleId;
-    private final Date lastExecution;
+    private final Date lastExecutionStart;
+    private final Date lastExecutionEnd;
     private final int executionQty;
 
-    public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecution, int executionQty)
+    public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecutionStart, Date lastExecutionEnd, int executionQty)
     {
         this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");
-        this.lastExecution = Preconditions.checkNotNull(lastExecution, "lastExecution cannot be null");
+        this.lastExecutionStart = Preconditions.checkNotNull(lastExecutionStart, "lastExecution cannot be null");
+        this.lastExecutionEnd = Preconditions.checkNotNull(lastExecutionEnd, "lastExecutionEnd cannot be null");
         this.executionQty = executionQty;
     }
 
@@ -21,9 +23,14 @@ public class ScheduleExecutionModel
         return scheduleId;
     }
 
-    public Date getLastExecution()
+    public Date getLastExecutionStart()
     {
-        return lastExecution;
+        return lastExecutionStart;
+    }
+
+    public Date getLastExecutionEnd()
+    {
+        return lastExecutionEnd;
     }
 
     public int getExecutionQty()
@@ -49,7 +56,11 @@ public class ScheduleExecutionModel
         {
             return false;
         }
-        if ( !lastExecution.equals(that.lastExecution) )
+        if ( !lastExecutionEnd.equals(that.lastExecutionEnd) )
+        {
+            return false;
+        }
+        if ( !lastExecutionStart.equals(that.lastExecutionStart) )
         {
             return false;
         }
@@ -66,7 +77,8 @@ public class ScheduleExecutionModel
     public int hashCode()
     {
         int result = scheduleId.hashCode();
-        result = 31 * result + lastExecution.hashCode();
+        result = 31 * result + lastExecutionStart.hashCode();
+        result = 31 * result + lastExecutionEnd.hashCode();
         result = 31 * result + executionQty;
         return result;
     }

@@ -1,26 +1,28 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
+import com.nirmata.workflow.details.Clock;
+import java.util.Date;
 
 public class ScheduleModel
 {
-    private final Repetition repetition;
+    private final RepetitionModel repetition;
     private final ScheduleId scheduleId;
     private final WorkflowId workflowId;
 
     public ScheduleModel(ScheduleId scheduleId, WorkflowId workflowId)
     {
-        this(scheduleId, workflowId, Repetition.NONE);
+        this(scheduleId, workflowId, RepetitionModel.ONCE);
     }
 
-    public ScheduleModel(ScheduleId scheduleId, WorkflowId workflowId, Repetition repetition)
+    public ScheduleModel(ScheduleId scheduleId, WorkflowId workflowId, RepetitionModel repetition)
     {
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");
         this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");
         this.repetition = Preconditions.checkNotNull(repetition, "repetition cannot be null");
     }
 
-    public Repetition getRepetition()
+    public RepetitionModel getRepetition()
     {
         return repetition;
     }
@@ -33,6 +35,18 @@ public class ScheduleModel
     public WorkflowId getWorkflowId()
     {
         return workflowId;
+    }
+
+    public boolean shouldExecuteNow(ScheduleExecutionModel scheduleExecution)
+    {
+        if ( (scheduleExecution.getExecutionQty() + 1) > repetition.getQty() )
+        {
+            return false;
+        }
+
+        Date previousDate = (repetition.getType() == RepetitionModel.Type.ABSOLUTE) ? scheduleExecution.getLastExecutionStart() : scheduleExecution.getLastExecutionEnd();
+        Date nextDate = new Date(repetition.getDuration().toMillis() + previousDate.getTime());
+        return Clock.nowUtc().getTime() > nextDate.getTime();
     }
 
     @Override

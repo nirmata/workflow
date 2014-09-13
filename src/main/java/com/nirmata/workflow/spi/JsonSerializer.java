@@ -64,7 +64,8 @@ public class JsonSerializer
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecution", toString(scheduleExecution.getLastExecution()));
+        scheduleExecutionNode.put("lastExecutionStart", toString(scheduleExecution.getLastExecutionStart()));
+        scheduleExecutionNode.put("lastExecutionEnd", toString(scheduleExecution.getLastExecutionEnd()));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
     }
@@ -75,7 +76,8 @@ public class JsonSerializer
         return new ScheduleExecutionModel
         (
             new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
-            dateFromString(scheduleExecutionNode.get("lastExecution").asText()),
+            dateFromString(scheduleExecutionNode.get("lastExecutionStart").asText()),
+            dateFromString(scheduleExecutionNode.get("lastExecutionEnd").asText()),
             scheduleExecutionNode.get("executionQty").asInt()
         );
     }
@@ -191,7 +193,7 @@ public class JsonSerializer
         );
     }
 
-    public static void addRepetition(ObjectNode node, Repetition repetition)
+    public static void addRepetition(ObjectNode node, RepetitionModel repetition)
     {
         ObjectNode repetitionNode = newNode();
         repetitionNode.put("duration", repetition.getDuration().toString());
@@ -200,13 +202,13 @@ public class JsonSerializer
         node.set("repetition", repetitionNode);
     }
 
-    public static Repetition getRepetition(JsonNode node)
+    public static RepetitionModel getRepetition(JsonNode node)
     {
         JsonNode repetitionNode = node.get("repetition");
-        return new Repetition
+        return new RepetitionModel
         (
             Duration.valueOf(repetitionNode.get("duration").asText()),
-            Repetition.Type.valueOf(repetitionNode.get("type").asText()),
+            RepetitionModel.Type.valueOf(repetitionNode.get("type").asText()),
             repetitionNode.get("qty").asInt()
         );
     }
@@ -239,7 +241,7 @@ public class JsonSerializer
         }
     }
 
-    private static DateFormat newIsoDateFormatter()
+    public static DateFormat newIsoDateFormatter()
     {
         // per http://stackoverflow.com/questions/2201925/converting-iso-8601-compliant-string-to-java-util-date
         return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");

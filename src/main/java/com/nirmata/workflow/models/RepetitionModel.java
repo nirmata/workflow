@@ -2,10 +2,9 @@ package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 import io.airlift.units.Duration;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-public class Repetition
+public class RepetitionModel
 {
     private final Duration duration;
     private final Type type;
@@ -19,28 +18,13 @@ public class Repetition
 
     public static final int UNLIMITED = -1;
 
-    public static final Repetition NONE = new Repetition();
+    public static final RepetitionModel ONCE = new RepetitionModel();
 
-    public Repetition(Duration duration, Type type, int qty)
+    public RepetitionModel(Duration duration, Type type, int qty)
     {
         this.qty = qty;
         this.duration = Preconditions.checkNotNull(duration, "duration cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
-    }
-
-    public Date getNextDate(Date previousDate)
-    {
-        if ( duration.getValue() == 0 )
-        {
-            return null;
-        }
-
-        if ( type == Type.RELATIVE )
-        {
-            previousDate = new Date();
-        }
-
-        return new Date(duration.toMillis() + previousDate.getTime());
     }
 
     public Duration getDuration()
@@ -70,7 +54,7 @@ public class Repetition
             return false;
         }
 
-        Repetition that = (Repetition)o;
+        RepetitionModel that = (RepetitionModel)o;
 
         if ( qty != that.qty )
         {
@@ -98,7 +82,7 @@ public class Repetition
         return result;
     }
 
-    private Repetition()
+    private RepetitionModel()
     {
         duration = new Duration(0, TimeUnit.MILLISECONDS);
         type = Type.ABSOLUTE;
