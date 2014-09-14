@@ -39,6 +39,11 @@ public class JsonSerializer
         return mapper;
     }
 
+    public static byte[] toBytes(ObjectNode node)
+    {
+        return toString(node).getBytes();
+    }
+
     public static String toString(ObjectNode node)
     {
         try
@@ -50,6 +55,11 @@ public class JsonSerializer
             // TODO log
             throw new RuntimeException(e);
         }
+    }
+
+    public static JsonNode fromBytes(byte[] bytes)
+    {
+        return fromString(new String(bytes));
     }
 
     public static JsonNode fromString(String str)
@@ -65,7 +75,7 @@ public class JsonSerializer
         }
     }
 
-    public static void addScheduleExecution(ObjectNode node, ScheduleExecutionModel scheduleExecution)
+    public static ObjectNode addScheduleExecution(ObjectNode node, ScheduleExecutionModel scheduleExecution)
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
@@ -73,6 +83,7 @@ public class JsonSerializer
         scheduleExecutionNode.put("lastExecutionEndUtc", toString(scheduleExecution.getLastExecutionEndUtc()));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
+        return node;
     }
 
     public static ScheduleExecutionModel getScheduleExecution(JsonNode node)
@@ -87,13 +98,14 @@ public class JsonSerializer
         );
     }
 
-    public static void addWorkflow(ObjectNode node, WorkflowModel workflow)
+    public static ObjectNode addWorkflow(ObjectNode node, WorkflowModel workflow)
     {
         ObjectNode workflowNode = newNode();
         addId(workflowNode, workflow.getWorkflowId());
         workflowNode.put("name", workflow.getName());
         addTaskSet(workflowNode, workflow.getTasks());
         node.set("workflow", workflowNode);
+        return node;
     }
 
     public static WorkflowModel getWorkflow(JsonNode node)
@@ -107,13 +119,14 @@ public class JsonSerializer
         );
     }
 
-    public static void addSchedule(ObjectNode node, ScheduleModel schedule)
+    public static ObjectNode addSchedule(ObjectNode node, ScheduleModel schedule)
     {
         ObjectNode scheduleNode = newNode();
         addRepetition(scheduleNode, schedule.getRepetition());
         addId(scheduleNode, schedule.getScheduleId());
         scheduleNode.put("workflowId", schedule.getWorkflowId().getId());
         node.set("schedule", scheduleNode);
+        return node;
     }
 
     public static ScheduleModel getSchedule(JsonNode node)
@@ -126,7 +139,7 @@ public class JsonSerializer
         );
     }
 
-    public static void addTaskSet(ObjectNode node, TaskSets taskSets)
+    public static ObjectNode addTaskSet(ObjectNode node, TaskSets taskSets)
     {
         ArrayNode tab = newArrayNode();
         for ( List<TaskId> tasks : taskSets )
@@ -141,6 +154,7 @@ public class JsonSerializer
             tab.add(tasksTab);
         }
         node.set("taskSet", tab);
+        return node;
     }
 
     public static TaskSets getTaskSet(JsonNode node)
@@ -161,7 +175,7 @@ public class JsonSerializer
         return new TaskSets(tasks);
     }
 
-    public static void addTasks(ObjectNode node, Collection<TaskModel> tasks)
+    public static ObjectNode addTasks(ObjectNode node, Collection<TaskModel> tasks)
     {
         ArrayNode tab = newArrayNode();
         for ( TaskModel task : tasks )
@@ -171,6 +185,7 @@ public class JsonSerializer
             tab.add(taskNode);
         }
         node.set("tasks", tab);
+        return node;
     }
 
     public static List<TaskModel> getTasks(JsonNode node)
@@ -186,7 +201,7 @@ public class JsonSerializer
         return builder.build();
     }
 
-    public static void addTask(ObjectNode node, TaskModel task)
+    public static ObjectNode addTask(ObjectNode node, TaskModel task)
     {
         ObjectNode taskNode = newNode();
         addId(taskNode, task.getTaskId());
@@ -195,6 +210,7 @@ public class JsonSerializer
         taskNode.put("isIdempotent", task.isIdempotent());
         taskNode.putPOJO("meta", task.getMetaData());
         node.set("task", taskNode);
+        return node;
     }
 
     public static TaskModel getTask(JsonNode node)
@@ -210,13 +226,14 @@ public class JsonSerializer
         );
     }
 
-    public static void addRepetition(ObjectNode node, RepetitionModel repetition)
+    public static ObjectNode addRepetition(ObjectNode node, RepetitionModel repetition)
     {
         ObjectNode repetitionNode = newNode();
         repetitionNode.put("duration", repetition.getDuration().toString());
         repetitionNode.put("type", repetition.getType().name());
         repetitionNode.put("qty", repetition.getQty());
         node.set("repetition", repetitionNode);
+        return node;
     }
 
     public static RepetitionModel getRepetition(JsonNode node)

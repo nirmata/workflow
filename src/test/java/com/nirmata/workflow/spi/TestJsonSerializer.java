@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.Clock;
-import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
@@ -151,10 +150,7 @@ public class TestJsonSerializer
     public void testDenormalizedWorkflow()
     {
         WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
-        List<ScheduleModel> schedules = Lists.newArrayList();
-        List<ScheduleExecutionModel> scheduleExecutions = Lists.newArrayList();
         List<TaskModel> tasks = Lists.newArrayList();
-        List<WorkflowModel> workflows = Lists.newArrayList(workflow);
 
         for ( List<TaskId> taskSet : workflow.getTasks() )
         {
@@ -164,15 +160,13 @@ public class TestJsonSerializer
             }
         }
 
-        StateCache cache = new StateCache(schedules, scheduleExecutions, tasks, workflows);
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new ScheduleId(), workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
 
-        Date nowUtc = Clock.nowUtc();
         ObjectNode node = newNode();
-        addDenormalizedWorkflow(node, cache, workflow.getWorkflowId(), nowUtc);
+        addDenormalizedWorkflow(node, denormalizedWorkflowModel);
         String str = JsonSerializer.toString(node);
         System.out.println(str);
 
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), nowUtc);
         DenormalizedWorkflowModel unDenormalizedWorkflow = getDenormalizedWorkflow(fromString(str));
         Assert.assertEquals(denormalizedWorkflowModel, unDenormalizedWorkflow);
     }

@@ -12,9 +12,11 @@ public class TaskSets implements Iterable<List<TaskId>>
     public TaskSets(List<List<TaskId>> tasks)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
+        Preconditions.checkArgument(tasks.size() > 0, "tasks cannot be empty");
         ImmutableList.Builder<List<TaskId>> builder = ImmutableList.builder();
         for ( List<TaskId> l : tasks )
         {
+            Preconditions.checkArgument(l.size() > 0, "task sets cannot be empty");
             builder.add(ImmutableList.copyOf(l));
         }
         this.tasks = builder.build();

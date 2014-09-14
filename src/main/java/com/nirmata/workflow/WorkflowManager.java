@@ -2,11 +2,10 @@ package com.nirmata.workflow;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.nirmata.workflow.details.InternalJsonSerializer;
+import com.nirmata.workflow.details.ExecutableTaskRunner;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.ZooKeeperConstants;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
@@ -15,10 +14,7 @@ import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
-import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.StorageBridge;
-import com.nirmata.workflow.spi.TaskExecution;
-import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -39,11 +35,11 @@ public class WorkflowManager implements AutoCloseable
     private final AtomicReference<StateCache> stateCache = new AtomicReference<StateCache>(new StateCache());
     private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
     private final Scheduler scheduler;
-    private final PathChildrenCache schedulesCache;
     private final PathChildrenCache completedTasksCache;
     private final Queue idempotentTaskQueue;
     private final Queue nonIdempotentTaskQueue;
     private final List<QueueConsumer> taskConsumers;
+    private final ExecutableTaskRunner executableTaskRunner = new ExecutableTaskRunner(this);
 
     private enum State
     {
@@ -61,7 +57,6 @@ public class WorkflowManager implements AutoCloseable
 
         scheduler = new Scheduler(this);
 
-        schedulesCache = new PathChildrenCache(curator, ZooKeeperConstants.SCHEDULES_PATH, true);
         completedTasksCache = new PathChildrenCache(curator, ZooKeeperConstants.COMPLETED_TASKS_PATH, true);
 
         idempotentTaskQueue = queueFactory.createIdempotentQueue();
@@ -75,7 +70,6 @@ public class WorkflowManager implements AutoCloseable
 
         try
         {
-            schedulesCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             idempotentTaskQueue.start();
             nonIdempotentTaskQueue.start();
@@ -114,7 +108,6 @@ public class WorkflowManager implements AutoCloseable
             {
                 CloseableUtils.closeQuietly(queueConsumer);
             }
-            CloseableUtils.closeQuietly(schedulesCache);
             CloseableUtils.closeQuietly(completedTasksCache);
             CloseableUtils.closeQuietly(scheduler);
             scheduledExecutorService.shutdownNow();
@@ -141,11 +134,6 @@ public class WorkflowManager implements AutoCloseable
         return taskExecutor;
     }
 
-    public PathChildrenCache getSchedulesCache()
-    {
-        return schedulesCache;
-    }
-
     public PathChildrenCache getCompletedTasksCache()
     {
         return completedTasksCache;
@@ -153,20 +141,7 @@ public class WorkflowManager implements AutoCloseable
 
     public void executeTask(ExecutableTaskModel executableTask)
     {
-        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
-        TaskExecutionResult result = taskExecution.execute();
-        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());
-        String json = JsonSerializer.toString(InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), completedTask));
-        String path = ZooKeeperConstants.getCompletedTaskKey(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
-        try
-        {
-            curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
-        }
-        catch ( Exception e )
-        {
-            // TODO log
-            throw new RuntimeException(e);
-        }
+        executableTaskRunner.executeTask(executableTask);
     }
 
     private void updateState()

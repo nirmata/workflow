@@ -37,7 +37,7 @@ public class StateCache
             return scheduleExecution.getScheduleId();
         }
     };
-    private static final Function<? super TaskModel, TaskId> taskIdFunction = new Function<TaskModel, TaskId>()
+    public static final Function<? super TaskModel, TaskId> taskIdFunction = new Function<TaskModel, TaskId>()
     {
         @Override
         public TaskId apply(TaskModel taskModel)

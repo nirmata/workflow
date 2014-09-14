@@ -14,13 +14,13 @@ public class TaskQueueSerializer implements QueueSerializer<ExecutableTaskModel>
     {
         ObjectNode node = JsonSerializer.newNode();
         InternalJsonSerializer.addExecutableTask(node, executableTask);
-        return JsonSerializer.toString(node).getBytes();
+        return JsonSerializer.toBytes(node);
     }
 
     @Override
     public ExecutableTaskModel deserialize(byte[] bytes)
     {
-        JsonNode node = JsonSerializer.fromString(new String(bytes));
+        JsonNode node = JsonSerializer.fromBytes(bytes);
         return InternalJsonSerializer.getExecutableTask(node);
     }
 }
