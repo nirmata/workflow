@@ -1,15 +1,24 @@
 package com.nirmata.workflow;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.nirmata.workflow.details.InternalJsonSerializer;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
-import com.nirmata.workflow.details.TaskRunner;
 import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
+import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
+import com.nirmata.workflow.queue.Queue;
+import com.nirmata.workflow.queue.QueueConsumer;
+import com.nirmata.workflow.queue.QueueFactory;
+import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.StorageBridge;
+import com.nirmata.workflow.spi.TaskExecution;
+import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -30,8 +39,11 @@ public class WorkflowManager implements AutoCloseable
     private final AtomicReference<StateCache> stateCache = new AtomicReference<StateCache>(new StateCache());
     private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
     private final Scheduler scheduler;
-    private final TaskRunner taskRunner;
     private final PathChildrenCache schedulesCache;
+    private final PathChildrenCache completedTasksCache;
+    private final Queue idempotentTaskQueue;
+    private final Queue nonIdempotentTaskQueue;
+    private final List<QueueConsumer> taskConsumers;
 
     private enum State
     {
@@ -40,17 +52,21 @@ public class WorkflowManager implements AutoCloseable
         CLOSED
     }
 
-    public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge)
+    public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge, QueueFactory queueFactory)
     {
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         this.configuration = Preconditions.checkNotNull(configuration, "configuration cannot be null");
         this.storageBridge = Preconditions.checkNotNull(storageBridge, "storageBridge cannot be null");
         this.taskExecutor = Preconditions.checkNotNull(taskExecutor, "taskExecutor cannot be null");
 
-        taskRunner = (configuration.getMaxTaskRunners() > 0) ? new TaskRunner(this) : null;
-        scheduler = configuration.canBeScheduler() ? new Scheduler(this) : null;
+        scheduler = new Scheduler(this);
 
         schedulesCache = new PathChildrenCache(curator, ZooKeeperConstants.SCHEDULES_PATH, true);
+        completedTasksCache = new PathChildrenCache(curator, ZooKeeperConstants.COMPLETED_TASKS_PATH, true);
+
+        idempotentTaskQueue = queueFactory.createIdempotentQueue();
+        nonIdempotentTaskQueue = queueFactory.createNonIdempotentQueue();
+        taskConsumers = makeTaskConsumers(queueFactory, configuration);
     }
 
     public void start()
@@ -60,6 +76,13 @@ public class WorkflowManager implements AutoCloseable
         try
         {
             schedulesCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            idempotentTaskQueue.start();
+            nonIdempotentTaskQueue.start();
+            for ( QueueConsumer queueConsumer : taskConsumers )
+            {
+                queueConsumer.start();
+            }
         }
         catch ( Exception e )
         {
@@ -77,15 +100,7 @@ public class WorkflowManager implements AutoCloseable
         };
         scheduledExecutorService.scheduleWithFixedDelay(stateUpdater, configuration.getStorageRefreshMs(), configuration.getStorageRefreshMs(), TimeUnit.MILLISECONDS);
 
-        if ( scheduler != null )
-        {
-            scheduler.start();
-        }
-
-        if ( taskRunner != null )
-        {
-            taskRunner.start();
-        }
+        scheduler.start();
     }
 
     @Override
@@ -93,9 +108,15 @@ public class WorkflowManager implements AutoCloseable
     {
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
+            CloseableUtils.closeQuietly(idempotentTaskQueue);
+            CloseableUtils.closeQuietly(nonIdempotentTaskQueue);
+            for ( QueueConsumer queueConsumer : taskConsumers )
+            {
+                CloseableUtils.closeQuietly(queueConsumer);
+            }
             CloseableUtils.closeQuietly(schedulesCache);
+            CloseableUtils.closeQuietly(completedTasksCache);
             CloseableUtils.closeQuietly(scheduler);
-            CloseableUtils.closeQuietly(taskRunner);
             scheduledExecutorService.shutdownNow();
         }
     }
@@ -125,6 +146,29 @@ public class WorkflowManager implements AutoCloseable
         return schedulesCache;
     }
 
+    public PathChildrenCache getCompletedTasksCache()
+    {
+        return completedTasksCache;
+    }
+
+    public void executeTask(ExecutableTaskModel executableTask)
+    {
+        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
+        TaskExecutionResult result = taskExecution.execute();
+        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());
+        String json = JsonSerializer.toString(InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), completedTask));
+        String path = ZooKeeperConstants.getCompletedTaskKey(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
+        try
+        {
+            curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
+        }
+        catch ( Exception e )
+        {
+            // TODO log
+            throw new RuntimeException(e);
+        }
+    }
+
     private void updateState()
     {
         List<ScheduleModel> scheduleModels = storageBridge.getScheduleModels();
@@ -132,5 +176,19 @@ public class WorkflowManager implements AutoCloseable
         List<WorkflowModel> workflowModels = storageBridge.getWorkflowModels();
         List<ScheduleExecutionModel> scheduleExecutions = storageBridge.getScheduleExecutions();
         stateCache.set(new StateCache(scheduleModels, scheduleExecutions, taskModels, workflowModels));
+    }
+
+    private List<QueueConsumer> makeTaskConsumers(QueueFactory queueFactory, WorkflowManagerConfiguration configuration)
+    {
+        ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
+        for ( int i = 0; i < configuration.getIdempotentTaskQty(); ++i )
+        {
+            builder.add(queueFactory.createIdempotentQueueConsumer());
+        }
+        for ( int i = 0; i < configuration.getNonIdempotentTaskQty(); ++i )
+        {
+            builder.add(queueFactory.createNonIdempotentQueueConsumer());
+        }
+        return builder.build();
     }
 }

@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowId;
@@ -16,10 +18,26 @@ import java.util.List;
 
 public class InternalJsonSerializer
 {
-    public static void addCompletedTask(ObjectNode node, CompletedTaskModel completedTask)
+    public static ObjectNode addCompletedTask(ObjectNode node, CompletedTaskModel completedTask)
     {
         node.put("isComplete", completedTask.isComplete());
         node.putPOJO("resultData", completedTask.getResultData());
+        return node;
+    }
+
+    public static void addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
+    {
+        node.put("scheduleId", executableTask.getScheduleId().getId());
+        JsonSerializer.addTask(node, executableTask.getTask());
+    }
+
+    public static ExecutableTaskModel getExecutableTask(JsonNode node)
+    {
+        return new ExecutableTaskModel
+        (
+            new ScheduleId(node.get("scheduleId").asText()),
+            JsonSerializer.getTask(node)
+        );
     }
 
     public static CompletedTaskModel getCompletedTask(JsonNode node)

@@ -8,6 +8,7 @@ import com.nirmata.workflow.details.Clock;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
@@ -199,6 +200,20 @@ public class TestJsonSerializer
 
         unCompletedTask = getCompletedTask(fromString(str));
         Assert.assertEquals(completedTask, unCompletedTask);
+    }
+
+    @Test
+    public void testExecutableTask()
+    {
+        ExecutableTaskModel executableTask = new ExecutableTaskModel(new ScheduleId(), makeTask());
+
+        ObjectNode node = newNode();
+        addExecutableTask(node, executableTask);
+        String str = JsonSerializer.toString(node);
+        System.out.println(str);
+
+        ExecutableTaskModel unExecutableTask = getExecutableTask(fromString(str));
+        Assert.assertEquals(executableTask, unExecutableTask);
     }
 
     private TaskSets makeTaskSet()

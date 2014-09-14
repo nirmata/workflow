@@ -1,163 +1,38 @@
 package com.nirmata.workflow.details;
 
-import com.google.common.base.Preconditions;
 import com.nirmata.workflow.WorkflowManager;
-import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.TaskModel;
+import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
+import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.TaskExecution;
-import org.apache.curator.framework.recipes.cache.ChildData;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.utils.CloseableUtils;
-import org.apache.curator.utils.ThreadUtils;
-import org.apache.curator.utils.ZKPaths;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import java.io.Closeable;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicReference;
+import com.nirmata.workflow.spi.TaskExecutionResult;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.queue.QueueConsumer;
+import org.apache.curator.framework.state.ConnectionState;
 
-public class TaskRunner implements Closeable
+public class TaskRunner implements QueueConsumer<ExecutableTaskModel>
 {
     private final WorkflowManager workflowManager;
-    private final ExecutorService executorService;
-    private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
-    private final PathChildrenCache completedTasksCache;
-
-    private enum State
-    {
-        LATENT,
-        STARTED,
-        CLOSED
-    }
 
     public TaskRunner(WorkflowManager workflowManager)
     {
-        this.workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
-        executorService = ThreadUtils.newFixedThreadPool(workflowManager.getConfiguration().getMaxTaskRunners() + 1, "TaskRunner");
-        completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.COMPLETED_TASKS_PATH, false);
-    }
-
-    public void start()
-    {
-        Preconditions.checkState(state.compareAndSet(State.LATENT, State.STARTED), "Already started");
-        try
-        {
-            completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
-        }
-        catch ( Exception e )
-        {
-            // TODO
-        }
-        Runnable runner = new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                try
-                {
-                    while ( !Thread.currentThread().isInterrupted() )
-                    {
-                        Thread.sleep(workflowManager.getConfiguration().getTaskRunnerSleepMs());
-                    }
-                }
-                catch ( InterruptedException dummy )
-                {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        };
-        executorService.submit(runner);
+        this.workflowManager = workflowManager;
     }
 
     @Override
-    public void close()
+    public void consumeMessage(ExecutableTaskModel executableTask) throws Exception
     {
-        if ( state.compareAndSet(State.STARTED, State.CLOSED) )
-        {
-            CloseableUtils.closeQuietly(completedTasksCache);
-            executorService.shutdownNow();
-        }
+        TaskExecution taskExecution = workflowManager.getTaskExecutor().newTaskExecution(executableTask.getTask());
+        TaskExecutionResult result = taskExecution.execute();
+        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());
+        String json = JsonSerializer.toString(InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), completedTask));
+        String path = ZooKeeperConstants.getCompletedTaskKey(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
+        workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, json.getBytes());
     }
 
-    private void checkForTasks()
+    @Override
+    public void stateChanged(CuratorFramework client, ConnectionState newState)
     {
-        for ( ChildData data : workflowManager.getSchedulesCache().getCurrentData() )
-        {
-            ScheduleId scheduleId = new ScheduleId(ZKPaths.getNodeFromPath(data.getPath()));
-        }
-    }
-
-    private void attemptToRunTask(ScheduleId scheduleId, TaskModel task)
-    {
-        String path = ZooKeeperConstants.getCompletedTaskKey(scheduleId, task.getTaskId());
-        try
-        {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
-
-            TaskExecution taskExecution = workflowManager.getTaskExecutor().newTaskExecution(task);
-            // TODO
-
-            if ( !task.isIdempotent() )
-            {
-                workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
-            }
-        }
-        catch ( KeeperException.NodeExistsException dummy )
-        {
-            // ignore - another process is executing the task
-            // TODO log?
-        }
-        catch ( Exception e )
-        {
-            // TODO
-        }
-        finally
-        {
-            try
-            {
-                workflowManager.getCurator().delete().guaranteed().inBackground().forPath(path);
-            }
-            catch ( Exception e )
-            {
-                // TODO
-            }
-        }
-    }
-
-    private void attemptToTakeTask(ScheduleId scheduleId, TaskModel task)
-    {
-        String path = ZooKeeperConstants.getTaskLockKey(scheduleId, task.getTaskId());
-        boolean hasLock = false;
-        try
-        {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
-            hasLock = true;
-
-            attemptToRunTask(scheduleId, task);
-            // TODO
-        }
-        catch ( KeeperException.NodeExistsException dummy )
-        {
-            // ignore - another process has the task
-        }
-        catch ( Exception e )
-        {
-            // TODO
-        }
-        finally
-        {
-            if ( hasLock )
-            {
-                try
-                {
-                    workflowManager.getCurator().delete().guaranteed().inBackground().forPath(path);
-                }
-                catch ( Exception e )
-                {
-                    // TODO
-                }
-            }
-        }
+        // NOP - let other parts of the app handle it
     }
 }

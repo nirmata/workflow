@@ -10,6 +10,9 @@ public class ZooKeeperConstants
     public static final String SCHEDULES_PATH = "/schedules";
     public static final String TASK_LOCKS_PATH = "/task-locks";
     public static final String COMPLETED_TASKS_PATH = "/tasks-completed";
+    public static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
+    public static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
+    public static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
 
     public static final int MAX_PAYLOAD = 0xfffff;  // see "jute.maxbuffer" at http://zookeeper.apache.org/doc/r3.3.1/zookeeperAdmin.html
 
