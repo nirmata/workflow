@@ -1,15 +1,10 @@
 package com.nirmata.workflow.details;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
@@ -19,8 +14,6 @@ import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
-import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
@@ -28,7 +21,6 @@ import org.apache.curator.utils.CloseableUtils;
 import org.apache.zookeeper.KeeperException;
 import java.io.Closeable;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Scheduler implements Closeable
@@ -74,96 +66,13 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void queueTask(ScheduleId scheduleId, TaskModel task)
-    {
-        String path = ZooKeeperConstants.getCompletedTaskKey(scheduleId, task.getTaskId());
-        ObjectNode node = InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), new CompletedTaskModel());
-        byte[] json = JsonSerializer.toBytes(node);
-        try
-        {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, json);
-            workflowManager.executeTask(new ExecutableTaskModel(scheduleId, task));
-        }
-        catch ( Exception e )
-        {
-            // TODO
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void updateAndQueueTasks(DenormalizedWorkflowModel workflow)
-    {
-        ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), StateCache.taskIdFunction);
-        int taskSetsIndex = workflow.getTaskSetsIndex();
-        int completedQty = 0;
-        List<TaskId> thisTasks = workflow.getTaskSets().get(taskSetsIndex);
-        for ( TaskId taskId : thisTasks )
-        {
-            TaskModel task = tasks.get(taskId);
-            if ( task == null )
-            {
-                // TODO
-            }
-
-            try
-            {
-                String path = ZooKeeperConstants.getCompletedTaskKey(workflow.getScheduleId(), taskId);
-                byte[] bytes = workflowManager.getCurator().getData().forPath(path);
-                CompletedTaskModel completedTask = InternalJsonSerializer.getCompletedTask(JsonSerializer.fromBytes(bytes));
-                if ( completedTask.isComplete() )
-                {
-                    ++completedQty;
-                }
-                else
-                {
-                    // TODO requeue?
-                }
-            }
-            catch ( KeeperException.NoNodeException dummy )
-            {
-                queueTask(workflow.getScheduleId(), task);
-            }
-            catch ( Exception e )
-            {
-                // TODO log
-                throw new RuntimeException(e);
-            }
-        }
-
-        if ( completedQty == thisTasks.size() )
-        {
-            if ( (taskSetsIndex + 1) >= workflow.getTaskSets().size() )
-            {
-                // TODO workflow is done
-            }
-
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleId(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
-            byte[] json = toJson(newWorkflow);
-            try
-            {
-                workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()), json);
-                updateAndQueueTasks(newWorkflow);
-            }
-            catch ( Exception e )
-            {
-                // TODO log
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    private void monitorRunningTasks()
-    {
-
-    }
-
-    private void startNewTasks(PathChildrenCache cache)
+    private void startNewTasks(Cacher cacher)
     {
         StateCache localStateCache = workflowManager.getStateCache();    // save local value so we're safe if master state cache changes
 
         for ( ScheduleId scheduleId : localStateCache.getSchedules().keySet() )
         {
-            if ( cache.getCurrentData(ZooKeeperConstants.getScheduleKey(scheduleId)) == null )
+            if ( !cacher.scheduleIsActive(scheduleId) )
             {
                 ScheduleModel schedule = localStateCache.getSchedules().get(scheduleId);
                 if ( schedule != null )
@@ -226,10 +135,9 @@ public class Scheduler implements Closeable
         {
             // TODO
         }
-        updateAndQueueTasks(denormalizedWorkflow);
     }
 
-    private byte[] toJson(DenormalizedWorkflowModel denormalizedWorkflow)
+    static byte[] toJson(DenormalizedWorkflowModel denormalizedWorkflow)
     {
         byte[] json = JsonSerializer.toBytes(InternalJsonSerializer.addDenormalizedWorkflow(JsonSerializer.newNode(), denormalizedWorkflow));
         if ( json.length > ZooKeeperConstants.MAX_PAYLOAD )
@@ -241,29 +149,14 @@ public class Scheduler implements Closeable
 
     private void takeLeadership()
     {
-        final TimedGate timedGate = new TimedGate();
-
-        PathChildrenCacheListener listener = new PathChildrenCacheListener()
-        {
-            @Override
-            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception
-            {
-                timedGate.forceOpen();
-            }
-        };
-
-        PathChildrenCache cache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.SCHEDULES_PATH, true);
+        Cacher cacher = new Cacher(workflowManager, new CacherListenerImpl(workflowManager));
         try
         {
-            cache.start();
-
-            workflowManager.getCompletedTasksCache().getListenable().addListener(listener);
-
+            cacher.start();
             while ( !Thread.currentThread().isInterrupted() )
             {
-                timedGate.closeAndWaitForOpen(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
-                monitorRunningTasks();
-                startNewTasks(cache);
+                Thread.sleep(workflowManager.getConfiguration().getSchedulerSleepMs());
+                startNewTasks(cacher);
             }
         }
         catch ( InterruptedException dummy )
@@ -276,8 +169,7 @@ public class Scheduler implements Closeable
         }
         finally
         {
-            CloseableUtils.closeQuietly(cache);
-            workflowManager.getCompletedTasksCache().getListenable().removeListener(listener);
+            CloseableUtils.closeQuietly(cacher);
         }
     }
 }

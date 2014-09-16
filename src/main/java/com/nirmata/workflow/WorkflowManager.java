@@ -14,6 +14,7 @@ import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
+import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
 import com.nirmata.workflow.spi.StorageBridge;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
@@ -48,6 +49,11 @@ public class WorkflowManager implements AutoCloseable
         CLOSED
     }
 
+    public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge)
+    {
+        this(curator, configuration, taskExecutor, storageBridge, new ZooKeeperQueueFactory());
+    }
+
     public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge, QueueFactory queueFactory)
     {
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
@@ -59,8 +65,8 @@ public class WorkflowManager implements AutoCloseable
 
         completedTasksCache = new PathChildrenCache(curator, ZooKeeperConstants.COMPLETED_TASKS_PATH, true);
 
-        idempotentTaskQueue = queueFactory.createIdempotentQueue();
-        nonIdempotentTaskQueue = queueFactory.createNonIdempotentQueue();
+        idempotentTaskQueue = queueFactory.createIdempotentQueue(this);
+        nonIdempotentTaskQueue = queueFactory.createNonIdempotentQueue(this);
         taskConsumers = makeTaskConsumers(queueFactory, configuration);
     }
 
@@ -158,11 +164,11 @@ public class WorkflowManager implements AutoCloseable
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
         for ( int i = 0; i < configuration.getIdempotentTaskQty(); ++i )
         {
-            builder.add(queueFactory.createIdempotentQueueConsumer());
+            builder.add(queueFactory.createIdempotentQueueConsumer(this));
         }
         for ( int i = 0; i < configuration.getNonIdempotentTaskQty(); ++i )
         {
-            builder.add(queueFactory.createNonIdempotentQueueConsumer());
+            builder.add(queueFactory.createNonIdempotentQueueConsumer(this));
         }
         return builder.build();
     }
