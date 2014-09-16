@@ -10,9 +10,12 @@ import org.apache.curator.framework.recipes.queue.DistributedQueue;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.utils.CloseableUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator.framework.recipes.queue.QueueConsumer<ExecutableTaskModel>
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final DistributedQueue<ExecutableTaskModel> queue;
     private final WorkflowManager workflowManager;
 
@@ -37,7 +40,7 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Could not start queue", e);
             throw new RuntimeException(e);
         }
     }

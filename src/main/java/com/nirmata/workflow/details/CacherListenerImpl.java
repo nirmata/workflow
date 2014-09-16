@@ -13,10 +13,13 @@ import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 
 class CacherListenerImpl implements CacherListener
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManager workflowManager;
 
     CacherListenerImpl(WorkflowManager workflowManager)
@@ -36,41 +39,35 @@ class CacherListenerImpl implements CacherListener
             TaskModel task = tasks.get(taskId);
             if ( task == null )
             {
-                // TODO
+                String message = "Expected task not found in workflow " + taskId;
+                log.error(message);
+                throw new RuntimeException(message);
             }
 
-            try
+            String path = ZooKeeperConstants.getCompletedTaskKey(workflow.getScheduleId(), taskId);
+            ChildData currentData = workflowManager.getCompletedTasksCache().getCurrentData(path);
+            if ( currentData != null )
             {
-                String path = ZooKeeperConstants.getCompletedTaskKey(workflow.getScheduleId(), taskId);
-                ChildData currentData = workflowManager.getCompletedTasksCache().getCurrentData(path);
-                if ( currentData != null )
+                CompletedTaskModel completedTask = InternalJsonSerializer.getCompletedTask(JsonSerializer.fromBytes(currentData.getData()));
+                if ( completedTask.isComplete() )
                 {
-                    CompletedTaskModel completedTask = InternalJsonSerializer.getCompletedTask(JsonSerializer.fromBytes(currentData.getData()));
-                    if ( completedTask.isComplete() )
-                    {
-                        ++completedQty;
-                    }
-                    else
-                    {
-                        // TODO requeue?
-                    }
+                    ++completedQty;
                 }
                 else
                 {
-                    queueTask(workflow.getScheduleId(), task);
+                    // TODO requeue?
                 }
             }
-            catch ( Exception e )
+            else
             {
-                // TODO log
-                throw new RuntimeException(e);
+                queueTask(workflow.getScheduleId(), task);
             }
         }
 
         if ( completedQty == thisTasks.size() )
         {
             DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleId(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
-            byte[] json = Scheduler.toJson(newWorkflow);
+            byte[] json = Scheduler.toJson(log, newWorkflow);
             try
             {
                 if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
@@ -86,7 +83,7 @@ class CacherListenerImpl implements CacherListener
             }
             catch ( Exception e )
             {
-                // TODO log
+                log.error("Could not create paths for completed workflow: ", workflow, e);
                 throw new RuntimeException(e);
             }
         }
@@ -108,7 +105,7 @@ class CacherListenerImpl implements CacherListener
         }
         catch ( Exception e )
         {
-            // TODO
+            log.error(String.format("Could not queue tasks for schedule (%s) and task (%s)", scheduleId, task), e);
             throw new RuntimeException(e);
         }
     }

@@ -12,11 +12,14 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.utils.CloseableUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
 
 class Cacher implements Closeable
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManager workflowManager;
     private final PathChildrenCache scheduleCache;
     private final ConcurrentMap<ScheduleId, PathChildrenCache> completedTasksCache;
@@ -55,14 +58,17 @@ class Cacher implements Closeable
     private final PathChildrenCacheListener completedTasksListener = new PathChildrenCacheListener()
     {
         @Override
-        public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
+        public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception
         {
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
-                ChildData scheduleData = scheduleCache.getCurrentData(ZooKeeperConstants.getScheduleIdKeyFromCompletedTaskPath(event.getData().getPath()));
+                String scheduleIdKey = ZooKeeperConstants.getScheduleIdKeyFromCompletedTaskPath(event.getData().getPath());
+                ChildData scheduleData = scheduleCache.getCurrentData(scheduleIdKey);
                 if ( scheduleData == null )
                 {
-                    // TODO
+                    String message = "Expected schedule not found at path " + scheduleIdKey;
+                    log.error(message);
+                    throw new Exception(message);
                 }
                 DenormalizedWorkflowModel workflow = InternalJsonSerializer.getDenormalizedWorkflow(JsonSerializer.fromBytes(scheduleData.getData()));
                 cacherListener.updateAndQueueTasks(workflow);
@@ -88,7 +94,7 @@ class Cacher implements Closeable
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Could not start schedule cache", e);
             throw new RuntimeException(e);
         }
     }

@@ -1,6 +1,5 @@
 package com.nirmata.workflow.details;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.WorkflowManager;
@@ -13,18 +12,20 @@ import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Scheduler implements Closeable
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManager workflowManager;
     private final LeaderSelector leaderSelector;
     private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
@@ -87,12 +88,12 @@ public class Scheduler implements Closeable
                     }
                     else
                     {
-                        // TODO logging needed?
+                        log.warn("Could not find scheduled execution for schedule " + scheduleId);
                     }
                 }
                 else
                 {
-                    // TODO logging needed?
+                    log.warn("Could not find schedule " + scheduleId);
                 }
             }
         }
@@ -103,24 +104,27 @@ public class Scheduler implements Closeable
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
         {
-            // TODO
+            String message = "Expected workflow not found in StateCache. WorkflowId: " + schedule.getWorkflowId();
+            log.error(message);
+            throw new RuntimeException(message);
         }
         List<TaskModel> tasks = Lists.newArrayList();
         for ( List<TaskId> thisSet : workflow.getTasks() )
         {
-            ArrayNode tab = JsonSerializer.newArrayNode();
             for ( TaskId taskId : thisSet )
             {
                 TaskModel task = localStateCache.getTasks().get(taskId);
                 if ( task == null )
                 {
-                    // TODO
+                    String message = "Expected task not found in StateCache. TaskId: " + taskId;
+                    log.error(message);
+                    throw new RuntimeException(message);
                 }
                 tasks.add(task);
             }
         }
         DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(schedule.getScheduleId(), workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
-        byte[] json = toJson(denormalizedWorkflow);
+        byte[] json = toJson(log, denormalizedWorkflow);
 
         try
         {
@@ -129,20 +133,23 @@ public class Scheduler implements Closeable
         catch ( KeeperException.NodeExistsException ignore )
         {
             // should never happen, but ignore in case it does
-            // TODO log
+            log.warn("Workflow already started: ", workflow);
         }
         catch ( Exception e )
         {
-            // TODO
+            log.error("Could not create workflow node: ", workflow, e);
+            throw new RuntimeException(e);
         }
     }
 
-    static byte[] toJson(DenormalizedWorkflowModel denormalizedWorkflow)
+    static byte[] toJson(Logger log, DenormalizedWorkflowModel denormalizedWorkflow)
     {
         byte[] json = JsonSerializer.toBytes(InternalJsonSerializer.addDenormalizedWorkflow(JsonSerializer.newNode(), denormalizedWorkflow));
         if ( json.length > ZooKeeperConstants.MAX_PAYLOAD )
         {
-            // TODO
+            String message = "JSON payload for workflow too big: " + denormalizedWorkflow;
+            log.error(message);
+            throw new RuntimeException(message);
         }
         return json;
     }
@@ -165,7 +172,7 @@ public class Scheduler implements Closeable
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Exception while running scheduler", e);
         }
         finally
         {

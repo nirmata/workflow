@@ -21,6 +21,8 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ThreadUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class WorkflowManager implements AutoCloseable
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final TaskExecutor taskExecutor;
     private final StorageBridge storageBridge;
     private final WorkflowManagerConfiguration configuration;
@@ -86,7 +89,7 @@ public class WorkflowManager implements AutoCloseable
         }
         catch ( Exception e )
         {
-            // TODO
+            log.error("Starting manager", e);
             throw new RuntimeException(e);
         }
 

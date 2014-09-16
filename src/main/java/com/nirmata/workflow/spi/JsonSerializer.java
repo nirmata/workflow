@@ -10,6 +10,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -22,6 +24,7 @@ import java.util.Map;
 
 public class JsonSerializer
 {
+    private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static ObjectNode newNode()
@@ -52,7 +55,7 @@ public class JsonSerializer
         }
         catch ( JsonProcessingException e )
         {
-            // TODO log
+            log.error("mapper.writeValueAsString", e);
             throw new RuntimeException(e);
         }
     }
@@ -70,7 +73,7 @@ public class JsonSerializer
         }
         catch ( IOException e )
         {
-            // TODO log
+            log.error("reading JSON: " + str, e);
             throw new RuntimeException(e);
         }
     }
@@ -270,7 +273,7 @@ public class JsonSerializer
         }
         catch ( ParseException e )
         {
-            // TODO log
+            log.error("parsing date: " + str, e);
             throw new RuntimeException(e);
         }
     }

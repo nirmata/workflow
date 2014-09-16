@@ -7,9 +7,12 @@ import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutionResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExecutableTaskRunner
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManager workflowManager;
 
     public ExecutableTaskRunner(WorkflowManager workflowManager)
@@ -31,7 +34,7 @@ public class ExecutableTaskRunner
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Could not set completed data for executable task: " + executableTask, e);
             throw new RuntimeException(e);
         }
     }

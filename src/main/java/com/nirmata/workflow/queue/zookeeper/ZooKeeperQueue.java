@@ -8,9 +8,12 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.DistributedQueue;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.utils.CloseableUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooKeeperQueue implements Queue
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final DistributedQueue<ExecutableTaskModel> queue;
 
     public ZooKeeperQueue(CuratorFramework curator, boolean idempotent)
@@ -34,7 +37,7 @@ public class ZooKeeperQueue implements Queue
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Could not add to queue for: " + executableTask, e);
             throw new RuntimeException(e);
         }
     }
@@ -48,7 +51,7 @@ public class ZooKeeperQueue implements Queue
         }
         catch ( Exception e )
         {
-            // TODO log
+            log.error("Could not start queue", e);
             throw new RuntimeException(e);
         }
     }
