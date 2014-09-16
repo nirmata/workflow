@@ -10,6 +10,9 @@ import com.nirmata.workflow.spi.TaskExecutionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
+
 public class ExecutableTaskRunner
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -26,7 +29,7 @@ public class ExecutableTaskRunner
 
         TaskExecutionResult result = taskExecution.execute();
         CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());
-        String json = JsonSerializer.toString(InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), completedTask));
+        String json = nodeToString(addCompletedTask(newNode(), completedTask));
         try
         {
             String path = ZooKeeperConstants.getCompletedTaskKey(executableTask.getScheduleId(), executableTask.getTask().getTaskId());

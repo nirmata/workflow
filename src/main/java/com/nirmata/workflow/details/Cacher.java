@@ -17,6 +17,9 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
 
+import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
+
 class Cacher implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -40,7 +43,7 @@ class Cacher implements Closeable
                     taskCache.start(PathChildrenCache.StartMode.NORMAL);
                 }
 
-                DenormalizedWorkflowModel workflow = InternalJsonSerializer.getDenormalizedWorkflow(JsonSerializer.fromBytes(event.getData().getData()));
+                DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
                 cacherListener.updateAndQueueTasks(workflow);
             }
             else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_REMOVED )
@@ -70,7 +73,7 @@ class Cacher implements Closeable
                     log.error(message);
                     throw new Exception(message);
                 }
-                DenormalizedWorkflowModel workflow = InternalJsonSerializer.getDenormalizedWorkflow(JsonSerializer.fromBytes(scheduleData.getData()));
+                DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(scheduleData.getData()));
                 cacherListener.updateAndQueueTasks(workflow);
             }
         }

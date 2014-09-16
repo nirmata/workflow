@@ -44,10 +44,10 @@ public class JsonSerializer
 
     public static byte[] toBytes(ObjectNode node)
     {
-        return toString(node).getBytes();
+        return nodeToString(node).getBytes();
     }
 
-    public static String toString(ObjectNode node)
+    public static String nodeToString(ObjectNode node)
     {
         try
         {
@@ -82,8 +82,8 @@ public class JsonSerializer
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecutionStartUtc", toString(scheduleExecution.getLastExecutionStartUtc()));
-        scheduleExecutionNode.put("lastExecutionEndUtc", toString(scheduleExecution.getLastExecutionEndUtc()));
+        scheduleExecutionNode.put("lastExecutionStartUtc", dateToString(scheduleExecution.getLastExecutionStartUtc()));
+        scheduleExecutionNode.put("lastExecutionEndUtc", dateToString(scheduleExecution.getLastExecutionEndUtc()));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
         return node;
@@ -260,7 +260,7 @@ public class JsonSerializer
         return node.get("id").asText();
     }
 
-    public static String toString(Date date)
+    public static String dateToString(Date date)
     {
         return newIsoDateFormatter().format(date);
     }

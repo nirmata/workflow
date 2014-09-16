@@ -17,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 
+import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
+
 class CacherListenerImpl implements CacherListener
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -48,7 +51,7 @@ class CacherListenerImpl implements CacherListener
             ChildData currentData = workflowManager.getCompletedTasksCache().getCurrentData(path);
             if ( currentData != null )
             {
-                CompletedTaskModel completedTask = InternalJsonSerializer.getCompletedTask(JsonSerializer.fromBytes(currentData.getData()));
+                CompletedTaskModel completedTask = getCompletedTask(fromBytes(currentData.getData()));
                 if ( completedTask.isComplete() )
                 {
                     ++completedQty;
@@ -92,8 +95,8 @@ class CacherListenerImpl implements CacherListener
     private void queueTask(ScheduleId scheduleId, TaskModel task)
     {
         String path = ZooKeeperConstants.getCompletedTaskKey(scheduleId, task.getTaskId());
-        ObjectNode node = InternalJsonSerializer.addCompletedTask(JsonSerializer.newNode(), new CompletedTaskModel());
-        byte[] json = JsonSerializer.toBytes(node);
+        ObjectNode node = InternalJsonSerializer.addCompletedTask(newNode(), new CompletedTaskModel());
+        byte[] json = toBytes(node);
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, json);

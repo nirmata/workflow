@@ -32,7 +32,7 @@ public class TestJsonSerializer
         ObjectNode node = newNode();
         Id id = new Id(){};
         addId(node, id);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         String unId = getId(fromString(str));
@@ -46,7 +46,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addTask(node, task);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         TaskModel unTask = getTask(fromString(str));
@@ -83,7 +83,7 @@ public class TestJsonSerializer
         }
         ObjectNode node = newNode();
         addTasks(node, tasks);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         List<TaskModel> unTasks = getTasks(fromString(str));
@@ -97,7 +97,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addTaskSet(node, taskSets);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         TaskSets unTaskSets = getTaskSet(fromString(str));
@@ -111,7 +111,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addSchedule(node, schedule);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         ScheduleModel unSchedule = getSchedule(fromString(str));
@@ -125,7 +125,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addWorkflow(node, workflow);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         WorkflowModel unWorkflow = getWorkflow(fromString(str));
@@ -139,7 +139,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addScheduleExecution(node, scheduleExecution);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         ScheduleExecutionModel unScheduleExecution = getScheduleExecution(fromString(str));
@@ -164,7 +164,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addDenormalizedWorkflow(node, denormalizedWorkflowModel);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         DenormalizedWorkflowModel unDenormalizedWorkflow = getDenormalizedWorkflow(fromString(str));
@@ -177,7 +177,7 @@ public class TestJsonSerializer
         CompletedTaskModel completedTask = new CompletedTaskModel();
         ObjectNode node = newNode();
         addCompletedTask(node, completedTask);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         CompletedTaskModel unCompletedTask = getCompletedTask(fromString(str));
@@ -189,7 +189,7 @@ public class TestJsonSerializer
         completedTask = new CompletedTaskModel(true, resultData);
         node = newNode();
         addCompletedTask(node, completedTask);
-        str = JsonSerializer.toString(node);
+        str = nodeToString(node);
         System.out.println(str);
 
         unCompletedTask = getCompletedTask(fromString(str));
@@ -203,7 +203,7 @@ public class TestJsonSerializer
 
         ObjectNode node = newNode();
         addExecutableTask(node, executableTask);
-        String str = JsonSerializer.toString(node);
+        String str = nodeToString(node);
         System.out.println(str);
 
         ExecutableTaskModel unExecutableTask = getExecutableTask(fromString(str));

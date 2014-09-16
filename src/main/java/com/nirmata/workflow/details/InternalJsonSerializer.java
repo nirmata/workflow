@@ -9,6 +9,8 @@ import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.WorkflowId;
 import com.nirmata.workflow.spi.JsonSerializer;
 
+import static com.nirmata.workflow.spi.JsonSerializer.*;
+
 public class InternalJsonSerializer
 {
     public static ObjectNode addCompletedTask(ObjectNode node, CompletedTaskModel completedTask)
@@ -23,14 +25,14 @@ public class InternalJsonSerializer
         return new CompletedTaskModel
             (
                 node.get("isComplete").asBoolean(),
-                JsonSerializer.getMap(node.get("resultData"))
+                getMap(node.get("resultData"))
             );
     }
 
     public static ObjectNode addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
     {
         node.put("scheduleId", executableTask.getScheduleId().getId());
-        JsonSerializer.addTask(node, executableTask.getTask());
+        addTask(node, executableTask.getTask());
         return node;
     }
 
@@ -39,7 +41,7 @@ public class InternalJsonSerializer
         return new ExecutableTaskModel
         (
             new ScheduleId(node.get("scheduleId").asText()),
-            JsonSerializer.getTask(node)
+            getTask(node)
         );
     }
 
@@ -48,9 +50,9 @@ public class InternalJsonSerializer
         node.put("scheduleId", denormalizedWorkflow.getScheduleId().getId());
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
-        JsonSerializer.addTaskSet(node, denormalizedWorkflow.getTaskSets());
-        JsonSerializer.addTasks(node, denormalizedWorkflow.getTasks());
-        node.put("startDate", JsonSerializer.toString(denormalizedWorkflow.getStartDateUtc()));
+        addTaskSet(node, denormalizedWorkflow.getTaskSets());
+        addTasks(node, denormalizedWorkflow.getTasks());
+        node.put("startDate", dateToString(denormalizedWorkflow.getStartDateUtc()));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
     }
@@ -61,10 +63,10 @@ public class InternalJsonSerializer
         (
             new ScheduleId(node.get("scheduleId").asText()),
             new WorkflowId(node.get("workflowId").asText()),
-            JsonSerializer.getTasks(node),
+            getTasks(node),
             node.get("name").asText(),
-            JsonSerializer.getTaskSet(node),
-            JsonSerializer.dateFromString(node.get("startDate").asText()),
+            getTaskSet(node),
+            dateFromString(node.get("startDate").asText()),
             node.get("taskSetsIndex").asInt()
         );
     }
