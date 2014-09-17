@@ -90,7 +90,7 @@ class Cacher implements Closeable
         completedTasksCache = Maps.newConcurrentMap();
     }
 
-    public void start()
+    void start()
     {
         scheduleCache.getListenable().addListener(scheduleListener, executorService);
 
@@ -115,12 +115,27 @@ class Cacher implements Closeable
         CloseableUtils.closeQuietly(scheduleCache);
     }
 
-    public boolean scheduleIsActive(ScheduleId scheduleId)
+    void updateSchedule(DenormalizedWorkflowModel workflow)
+    {
+        try
+        {
+            String schedulePath = ZooKeeperConstants.getSchedulePath(workflow.getScheduleId());
+            curator.setData().forPath(schedulePath, Scheduler.toJson(log, workflow));
+            scheduleCache.rebuildNode(schedulePath);
+        }
+        catch ( Exception e )
+        {
+            log.error("Could not updateSchedule for workflow: " + workflow, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    boolean scheduleIsActive(ScheduleId scheduleId)
     {
         return scheduleCache.getCurrentData(ZooKeeperConstants.getSchedulePath(scheduleId)) != null;
     }
 
-    public boolean taskIsComplete(ScheduleId scheduleId, TaskId taskId)
+    boolean taskIsComplete(ScheduleId scheduleId, TaskId taskId)
     {
         PathChildrenCache taskCache = completedTasksCache.get(scheduleId);
         if ( taskCache != null )

@@ -54,22 +54,13 @@ class CacherListenerImpl implements CacherListener
         if ( completedQty == thisTasks.size() )
         {
             DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
-            try
+            if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
             {
-                if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
-                {
-                    completeSchedule(newWorkflow);
-                }
-                else
-                {
-                    workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
-                    updateAndQueueTasks(cacher, newWorkflow);
-                }
+                completeSchedule(newWorkflow);
             }
-            catch ( Exception e )
+            else
             {
-                log.error("Could not create paths for completed workflow: ", workflow, e);
-                throw new RuntimeException(e);
+                cacher.updateSchedule(newWorkflow);
             }
         }
     }
@@ -94,11 +85,19 @@ class CacherListenerImpl implements CacherListener
         }
     }
 
-    private void completeSchedule(DenormalizedWorkflowModel newWorkflow) throws Exception
+    private void completeSchedule(DenormalizedWorkflowModel newWorkflow)
     {
-        workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
-        workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
-        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
-        workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
+        try
+        {
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
+            workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
+            ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
+            workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
+        }
+        catch ( Exception e )
+        {
+            log.error("Could not completeSchedule for workflow: " + newWorkflow, e);
+            throw new RuntimeException(e);
+        }
     }
 }
