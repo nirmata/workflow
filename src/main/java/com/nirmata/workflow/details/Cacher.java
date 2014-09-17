@@ -2,7 +2,6 @@ package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskId;
@@ -12,10 +11,12 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.utils.CloseableUtils;
+import org.apache.curator.utils.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
@@ -23,10 +24,11 @@ import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
 class Cacher implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final WorkflowManager workflowManager;
     private final PathChildrenCache scheduleCache;
     private final ConcurrentMap<ScheduleId, PathChildrenCache> completedTasksCache;
+    private final CuratorFramework curator;
     private final CacherListener cacherListener;
+    private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("Cacher");
 
     private final PathChildrenCacheListener scheduleListener = new PathChildrenCacheListener()
     {
@@ -36,10 +38,10 @@ class Cacher implements Closeable
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                PathChildrenCache taskCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
+                PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
                 if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
                 {
-                    taskCache.getListenable().addListener(completedTasksListener);
+                    taskCache.getListenable().addListener(completedTasksListener, executorService);
                     taskCache.start(PathChildrenCache.StartMode.NORMAL);
                 }
 
@@ -65,11 +67,12 @@ class Cacher implements Closeable
         {
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
-                String scheduleIdKey = ZooKeeperConstants.getScheduleIdFromCompletedTaskPath(event.getData().getPath());
-                ChildData scheduleData = scheduleCache.getCurrentData(scheduleIdKey);
+                String scheduleId = ZooKeeperConstants.getScheduleIdFromCompletedTaskPath(event.getData().getPath());
+                String schedulePath = ZooKeeperConstants.getSchedulePath(new ScheduleId(scheduleId));
+                ChildData scheduleData = scheduleCache.getCurrentData(schedulePath);
                 if ( scheduleData == null )
                 {
-                    String message = "Expected schedule not found at path " + scheduleIdKey;
+                    String message = "Expected schedule not found at path " + schedulePath;
                     log.error(message);
                     throw new Exception(message);
                 }
@@ -79,17 +82,17 @@ class Cacher implements Closeable
         }
     };
 
-    Cacher(WorkflowManager workflowManager, CacherListener cacherListener)
+    Cacher(CuratorFramework curator, CacherListener cacherListener)
     {
-        this.cacherListener = cacherListener;
-        this.workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
-        scheduleCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getScheduleParentPath(), true);
+        this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
+        this.cacherListener = Preconditions.checkNotNull(cacherListener, "cacherListener cannot be null");
+        scheduleCache = new PathChildrenCache(curator, ZooKeeperConstants.getScheduleParentPath(), true);
         completedTasksCache = Maps.newConcurrentMap();
     }
 
     public void start()
     {
-        scheduleCache.getListenable().addListener(scheduleListener);
+        scheduleCache.getListenable().addListener(scheduleListener, executorService);
 
         try
         {

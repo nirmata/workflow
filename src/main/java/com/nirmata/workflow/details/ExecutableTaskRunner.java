@@ -31,7 +31,7 @@ public class ExecutableTaskRunner
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
 
         TaskExecutionResult result = taskExecution.execute();
-        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());
+        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());    // TODO - store details as well
         String json = nodeToString(addCompletedTask(newNode(), completedTask));
         try
         {

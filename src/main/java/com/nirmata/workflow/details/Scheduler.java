@@ -160,7 +160,7 @@ public class Scheduler implements Closeable
 
     private void takeLeadership()
     {
-        Cacher cacher = new Cacher(workflowManager, new CacherListenerImpl(workflowManager));
+        Cacher cacher = new Cacher(workflowManager.getCurator(), new CacherListenerImpl(workflowManager));
         try
         {
             cacher.start();
