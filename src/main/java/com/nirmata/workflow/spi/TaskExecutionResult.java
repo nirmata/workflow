@@ -1,4 +1,4 @@
-package com.nirmata.workflow.models;
+package com.nirmata.workflow.spi;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * A task result
  */
-public class TaskExecutionResultModel
+public class TaskExecutionResult
 {
     private final String details;
     private final Map<String, String> resultData;
@@ -16,7 +16,7 @@ public class TaskExecutionResultModel
      * @param details task-specific details
      * @param resultData task-specific fields/values
      */
-    public TaskExecutionResultModel(String details, Map<String, String> resultData)
+    public TaskExecutionResult(String details, Map<String, String> resultData)
     {
         resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
         this.details = Preconditions.checkNotNull(details, "details cannot be null");
@@ -45,7 +45,7 @@ public class TaskExecutionResultModel
             return false;
         }
 
-        TaskExecutionResultModel that = (TaskExecutionResultModel)o;
+        TaskExecutionResult that = (TaskExecutionResult)o;
 
         if ( !details.equals(that.details) )
         {

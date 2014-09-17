@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.TaskExecutionResultModel;
+import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
@@ -51,7 +51,7 @@ public class TestCacher extends BaseClassForTests
                     if ( latch.getCount() > 0 )
                     {
                         Map<String, String> resultData = Maps.newHashMap();
-                        TaskExecutionResultModel result = new TaskExecutionResultModel("test", resultData);
+                        TaskExecutionResult result = new TaskExecutionResult("test", resultData);
                         String json = nodeToString(addTaskExecutionResult(newNode(), result));
                         try
                         {

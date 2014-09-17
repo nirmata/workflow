@@ -193,13 +193,13 @@ public class TestJsonSerializer
         Map<String, String> resultData = Maps.newHashMap();
         resultData.put("one", "1");
         resultData.put("two", "2");
-        TaskExecutionResultModel taskExecutionResult = new TaskExecutionResultModel(Integer.toString(random.nextInt()), resultData);
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData);
         ObjectNode node = newNode();
         addTaskExecutionResult(node, taskExecutionResult);
         String str = nodeToString(node);
         System.out.println(str);
 
-        TaskExecutionResultModel unTaskExecutionResult = getTaskExecutionResultModel(fromString(str));
+        TaskExecutionResult unTaskExecutionResult = getTaskExecutionResult(fromString(str));
         Assert.assertEquals(taskExecutionResult, unTaskExecutionResult);
     }
 

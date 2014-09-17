@@ -1,7 +1,5 @@
 package com.nirmata.workflow.spi;
 
-import com.nirmata.workflow.models.TaskExecutionResultModel;
-
 /**
  * Represents an execution task
  */
@@ -12,5 +10,5 @@ public interface TaskExecution
      *
      * @return result
      */
-    public TaskExecutionResultModel execute();
+    public TaskExecutionResult execute();
 }

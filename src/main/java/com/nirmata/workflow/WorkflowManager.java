@@ -3,18 +3,24 @@ package com.nirmata.workflow;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.nirmata.workflow.details.ExecutableTaskRunner;
+import com.nirmata.workflow.details.InternalJsonSerializer;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
+import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
+import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
+import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
+import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.StorageBridge;
+import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
@@ -152,6 +158,28 @@ public class WorkflowManager implements Closeable
     public void executeTask(ExecutableTaskModel executableTask)
     {
         executableTaskRunner.executeTask(executableTask);
+    }
+
+    /**
+     * Return the stored task result data or null
+     *
+     * @param scheduleId the schedule that the task was run
+     * @param taskId the task
+     * @return result data or null
+     */
+    public TaskExecutionResult getTaskExecutionResult(ScheduleId scheduleId, TaskId taskId)
+    {
+        String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, taskId);
+        try
+        {
+            byte[] data = curator.getData().forPath(path);
+            return InternalJsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(data));
+        }
+        catch ( Exception e )
+        {
+            log.error(String.format("getTaskExecutionResult(%s, %s)", scheduleId, taskId), e);
+        }
+        return null;
     }
 
     public CuratorFramework getCurator()

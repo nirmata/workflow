@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.TaskExecutionResultModel;
+import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.models.WorkflowId;
 import com.nirmata.workflow.spi.Clock;
 
@@ -13,16 +13,16 @@ import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class InternalJsonSerializer
 {
-    public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResultModel taskExecutionResult)
+    public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResult taskExecutionResult)
     {
         node.put("details", taskExecutionResult.getDetails());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
         return node;
     }
 
-    public static TaskExecutionResultModel getTaskExecutionResultModel(JsonNode node)
+    public static TaskExecutionResult getTaskExecutionResult(JsonNode node)
     {
-        return new TaskExecutionResultModel
+        return new TaskExecutionResult
         (
             node.get("details").asText(),
             getMap(node.get("resultData"))

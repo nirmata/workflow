@@ -2,7 +2,7 @@ package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
-import com.nirmata.workflow.models.TaskExecutionResultModel;
+import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
@@ -29,7 +29,7 @@ public class ExecutableTaskRunner
     {
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
 
-        TaskExecutionResultModel result = taskExecution.execute();
+        TaskExecutionResult result = taskExecution.execute();
         String json = nodeToString(addTaskExecutionResult(newNode(), result));
         try
         {
