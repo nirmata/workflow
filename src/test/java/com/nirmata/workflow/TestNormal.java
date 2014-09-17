@@ -2,10 +2,12 @@ package com.nirmata.workflow;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
+import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.StorageBridge;
@@ -23,8 +25,10 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
@@ -130,13 +134,22 @@ public class TestNormal extends BaseClassForTests
         try
         {
             Assert.assertTrue(timing.awaitLatch(latch));
+
+            List<Set<TaskId>> sets = checker.getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+
+            List<TaskId> all = checker.getAll();
+            Assert.assertEquals(all.size(), Sets.newHashSet(all).size());   // no dups
         }
         finally
         {
             CloseableUtils.closeQuietly(workflowManager);
         }
-
-        System.out.println(checker.getSets());
-        System.out.println(checker.getAll());
     }
 }
