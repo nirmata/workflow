@@ -148,6 +148,11 @@ public class WorkflowManager implements AutoCloseable
         return completedTasksCache;
     }
 
+    public StorageBridge getStorageBridge()
+    {
+        return storageBridge;
+    }
+
     public void executeTask(ExecutableTaskModel executableTask)
     {
         executableTaskRunner.executeTask(executableTask);

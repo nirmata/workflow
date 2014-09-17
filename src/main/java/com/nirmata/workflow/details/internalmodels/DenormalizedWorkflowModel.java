@@ -1,6 +1,7 @@
 package com.nirmata.workflow.details.internalmodels;
 
 import com.google.common.base.Preconditions;
+import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
@@ -10,7 +11,7 @@ import java.util.List;
 
 public class DenormalizedWorkflowModel
 {
-    private final ScheduleId scheduleId;
+    private final ScheduleExecutionModel scheduleExecution;
     private final WorkflowId workflowId;
     private final List<TaskModel> tasks;
     private final String name;
@@ -18,9 +19,9 @@ public class DenormalizedWorkflowModel
     private final int taskSetsIndex;
     private final Date startDateUtc;
 
-    public DenormalizedWorkflowModel(ScheduleId scheduleId, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, Date startDateUtc, int taskSetsIndex)
+    public DenormalizedWorkflowModel(ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, Date startDateUtc, int taskSetsIndex)
     {
-        this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");
+        this.scheduleExecution = Preconditions.checkNotNull(scheduleExecution, "scheduleExecution cannot be null");
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");
         this.taskSetsIndex = taskSetsIndex;
         this.tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
@@ -31,7 +32,12 @@ public class DenormalizedWorkflowModel
 
     public ScheduleId getScheduleId()
     {
-        return scheduleId;
+        return scheduleExecution.getScheduleId();
+    }
+
+    public ScheduleExecutionModel getScheduleExecution()
+    {
+        return scheduleExecution;
     }
 
     public WorkflowId getWorkflowId()
@@ -86,7 +92,7 @@ public class DenormalizedWorkflowModel
         {
             return false;
         }
-        if ( !scheduleId.equals(that.scheduleId) )
+        if ( !scheduleExecution.equals(that.scheduleExecution) )
         {
             return false;
         }
@@ -114,7 +120,7 @@ public class DenormalizedWorkflowModel
     @Override
     public int hashCode()
     {
-        int result = scheduleId.hashCode();
+        int result = scheduleExecution.hashCode();
         result = 31 * result + workflowId.hashCode();
         result = 31 * result + tasks.hashCode();
         result = 31 * result + name.hashCode();
@@ -128,7 +134,7 @@ public class DenormalizedWorkflowModel
     public String toString()
     {
         return "DenormalizedWorkflowModel{" +
-            "scheduleId=" + scheduleId +
+            "scheduleExecution=" + scheduleExecution +
             ", workflowId=" + workflowId +
             ", tasks=" + tasks +
             ", name='" + name + '\'' +

@@ -7,10 +7,10 @@ import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -69,18 +69,16 @@ class CacherListenerImpl implements CacherListener
 
         if ( completedQty == thisTasks.size() )
         {
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleId(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
-            byte[] json = Scheduler.toJson(log, newWorkflow);
+            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
             try
             {
                 if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
                 {
-                    workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedScheduleKey(newWorkflow.getScheduleId()), json);
-                    workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()));
+                    completeSchedule(newWorkflow);
                 }
                 else
                 {
-                    workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()), json);
+                    workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
                     updateAndQueueTasks(newWorkflow);
                 }
             }
@@ -90,6 +88,14 @@ class CacherListenerImpl implements CacherListener
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private void completeSchedule(DenormalizedWorkflowModel newWorkflow) throws Exception
+    {
+        workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedScheduleKey(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
+        workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()));
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), 0);
+        workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
     }
 
     private void queueTask(ScheduleId scheduleId, TaskModel task)

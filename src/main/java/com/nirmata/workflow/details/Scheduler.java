@@ -10,7 +10,6 @@ import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
-import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -23,8 +22,9 @@ import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.*;
-import static com.nirmata.workflow.spi.JsonSerializer.*;
+import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
+import static com.nirmata.workflow.spi.JsonSerializer.newNode;
+import static com.nirmata.workflow.spi.JsonSerializer.toBytes;
 
 public class Scheduler implements Closeable
 {
@@ -86,7 +86,7 @@ public class Scheduler implements Closeable
                     {
                         if ( schedule.shouldExecuteNow(scheduleExecution) )
                         {
-                            startWorkflow(schedule, localStateCache);
+                            startWorkflow(scheduleExecution, schedule, localStateCache);
                         }
                     }
                     else
@@ -102,7 +102,7 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void startWorkflow(ScheduleModel schedule, StateCache localStateCache)
+    private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
@@ -126,7 +126,7 @@ public class Scheduler implements Closeable
                 tasks.add(task);
             }
         }
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(schedule.getScheduleId(), workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try

@@ -147,7 +147,7 @@ public class TestJsonSerializer
     }
 
     @Test
-    public void testDenormalizedWorkflow()
+    public void testDenormalizedWorkflow() throws Exception
     {
         WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
         List<TaskModel> tasks = Lists.newArrayList();
@@ -160,7 +160,11 @@ public class TestJsonSerializer
             }
         }
 
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new ScheduleId(), workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
+        Date randomDate = Clock.nowUtc();
+        Thread.sleep(5);
+        Date randomDate2 = Clock.nowUtc();
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), randomDate, randomDate2, random.nextInt());
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
 
         ObjectNode node = newNode();
         addDenormalizedWorkflow(node, denormalizedWorkflowModel);

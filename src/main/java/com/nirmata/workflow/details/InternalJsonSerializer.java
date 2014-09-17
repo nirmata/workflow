@@ -7,7 +7,6 @@ import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.WorkflowId;
-import com.nirmata.workflow.spi.JsonSerializer;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -47,7 +46,7 @@ public class InternalJsonSerializer
 
     public static ObjectNode addDenormalizedWorkflow(ObjectNode node, DenormalizedWorkflowModel denormalizedWorkflow)
     {
-        node.put("scheduleId", denormalizedWorkflow.getScheduleId().getId());
+        addScheduleExecution(node, denormalizedWorkflow.getScheduleExecution());
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
         addTaskSet(node, denormalizedWorkflow.getTaskSets());
@@ -61,7 +60,7 @@ public class InternalJsonSerializer
     {
         return new DenormalizedWorkflowModel
         (
-            new ScheduleId(node.get("scheduleId").asText()),
+            getScheduleExecution(node),
             new WorkflowId(node.get("workflowId").asText()),
             getTasks(node),
             node.get("name").asText(),
