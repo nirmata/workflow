@@ -8,6 +8,7 @@ import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
+import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.spi.Clock;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -48,7 +49,7 @@ class CacherListenerImpl implements CacherListener
             }
             else
             {
-                executeTask(workflow, task);
+                queueTask(workflow, task);
             }
         }
 
@@ -66,13 +67,14 @@ class CacherListenerImpl implements CacherListener
         }
     }
 
-    private void executeTask(DenormalizedWorkflowModel workflow, TaskModel task)
+    private void queueTask(DenormalizedWorkflowModel workflow, TaskModel task)
     {
         String path = ZooKeeperConstants.getStartedTaskPath(workflow.getScheduleId(), task.getTaskId());
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
-            workflowManager.executeTask(new ExecutableTaskModel(workflow.getScheduleId(), task));
+            Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
+            queue.put(new ExecutableTaskModel(workflow.getScheduleId(), task));
         }
         catch ( KeeperException.NodeExistsException ignore )
         {

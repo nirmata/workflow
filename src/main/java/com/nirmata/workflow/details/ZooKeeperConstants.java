@@ -112,6 +112,12 @@ public class ZooKeeperConstants
         return ZKPaths.makePath(getCompletedTasksParentPath(scheduleId), taskId.getId());
     }
 
+    public static String getTaskIdFromCompletedTaskPath(String path)
+    {
+        ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(path);
+        return pathAndNode.getNode();
+    }
+
     public static String getScheduleIdFromCompletedTaskPath(String path)
     {
         ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(path);

@@ -38,6 +38,7 @@ class Cacher implements Closeable
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
+                log.info("Schedule added: " + scheduleId);
                 PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
                 if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
                 {
@@ -67,7 +68,9 @@ class Cacher implements Closeable
         {
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
+                String taskId = ZooKeeperConstants.getTaskIdFromCompletedTaskPath(event.getData().getPath());
                 String scheduleId = ZooKeeperConstants.getScheduleIdFromCompletedTaskPath(event.getData().getPath());
+                log.info("Task completed: " + taskId);
                 String schedulePath = ZooKeeperConstants.getSchedulePath(new ScheduleId(scheduleId));
                 ChildData scheduleData = scheduleCache.getCurrentData(schedulePath);
                 if ( scheduleData == null )

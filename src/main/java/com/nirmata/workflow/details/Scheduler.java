@@ -103,6 +103,7 @@ public class Scheduler implements Closeable
 
     private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
+        log.info("Starting workflow: " + schedule.getWorkflowId());
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
         {

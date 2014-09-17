@@ -16,13 +16,16 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.BaseClassForTests;
+import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
+import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -88,36 +91,14 @@ public class TestNormal extends BaseClassForTests
     @Test
     public void testNormal() throws Exception
     {
-        WorkflowManagerConfiguration configuration = new WorkflowManagerConfiguration()
-        {
-            @Override
-            public int getStorageRefreshMs()
-            {
-                return 1;
-            }
-
-            @Override
-            public int getSchedulerSleepMs()
-            {
-                return 1;
-            }
-
-            @Override
-            public int getIdempotentTaskQty()
-            {
-                return 10;
-            }
-
-            @Override
-            public int getNonIdempotentTaskQty()
-            {
-                return 10;
-            }
-        };
+        Timing timing = new Timing();
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1, 1, 10, 10);
+        final CountDownLatch latch = new CountDownLatch(6);
+        final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
         TaskExecutor taskExecutor = new TaskExecutor()
         {
             @Override
-            public TaskExecution newTaskExecution(TaskModel task)
+            public TaskExecution newTaskExecution(final TaskModel task)
             {
                 return new TaskExecution()
                 {
@@ -126,12 +107,18 @@ public class TestNormal extends BaseClassForTests
                     {
                         try
                         {
-                            Thread.sleep(100);
+                            checker.add(task.getTaskId());
+                            Thread.sleep(3000);
                         }
                         catch ( InterruptedException e )
                         {
                             Thread.currentThread().interrupt();
                             throw new RuntimeException(e);
+                        }
+                        finally
+                        {
+                            checker.decrement();
+                            latch.countDown();
                         }
                         return new TaskExecutionResult("hey", Maps.<String, String>newHashMap());
                     }
@@ -140,6 +127,16 @@ public class TestNormal extends BaseClassForTests
         };
         WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
         workflowManager.start();
-        Thread.currentThread().join();
+        try
+        {
+            Assert.assertTrue(timing.awaitLatch(latch));
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+
+        System.out.println(checker.getSets());
+        System.out.println(checker.getAll());
     }
 }

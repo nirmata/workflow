@@ -207,6 +207,16 @@ public class WorkflowManager implements Closeable
         return storageBridge;
     }
 
+    public Queue getIdempotentTaskQueue()
+    {
+        return idempotentTaskQueue;
+    }
+
+    public Queue getNonIdempotentTaskQueue()
+    {
+        return nonIdempotentTaskQueue;
+    }
+
     private void updateState()
     {
         List<ScheduleModel> scheduleModels = storageBridge.getScheduleModels();
