@@ -1,29 +1,31 @@
-package com.nirmata.workflow.details.internalmodels;
+package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
-public class CompletedTaskModel
+/**
+ * A task result
+ */
+public class TaskExecutionResultModel
 {
-    private final boolean isComplete;
+    private final String details;
     private final Map<String, String> resultData;
 
-    public CompletedTaskModel()
+    /**
+     * @param details task-specific details
+     * @param resultData task-specific fields/values
+     */
+    public TaskExecutionResultModel(String details, Map<String, String> resultData)
     {
-        isComplete = false;
-        resultData = ImmutableMap.of();
+        resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
+        this.details = Preconditions.checkNotNull(details, "details cannot be null");
+        this.resultData = ImmutableMap.copyOf(resultData);
     }
 
-    public CompletedTaskModel(boolean isComplete, Map<String, String> resultData)
+    public String getDetails()
     {
-        this.isComplete = isComplete;
-        this.resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
-    }
-
-    public boolean isComplete()
-    {
-        return isComplete;
+        return details;
     }
 
     public Map<String, String> getResultData()
@@ -43,9 +45,9 @@ public class CompletedTaskModel
             return false;
         }
 
-        CompletedTaskModel that = (CompletedTaskModel)o;
+        TaskExecutionResultModel that = (TaskExecutionResultModel)o;
 
-        if ( isComplete != that.isComplete )
+        if ( !details.equals(that.details) )
         {
             return false;
         }
@@ -61,7 +63,7 @@ public class CompletedTaskModel
     @Override
     public int hashCode()
     {
-        int result = (isComplete ? 1 : 0);
+        int result = details.hashCode();
         result = 31 * result + resultData.hashCode();
         return result;
     }
@@ -69,8 +71,8 @@ public class CompletedTaskModel
     @Override
     public String toString()
     {
-        return "CompletedTaskModel{" +
-            "isComplete=" + isComplete +
+        return "TaskExecutionResultModel{" +
+            "details='" + details + '\'' +
             ", resultData=" + resultData +
             '}';
     }

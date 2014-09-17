@@ -2,10 +2,10 @@ package com.nirmata.workflow.details;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.TaskExecutionResultModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
@@ -24,11 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.addCompletedTask;
 import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
-import static com.nirmata.workflow.spi.JsonSerializer.newNode;
-import static com.nirmata.workflow.spi.JsonSerializer.nodeToString;
-import static com.nirmata.workflow.spi.JsonSerializer.toBytes;
+import static com.nirmata.workflow.details.InternalJsonSerializer.addTaskExecutionResult;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class TestCacher extends BaseClassForTests
 {
@@ -53,8 +51,8 @@ public class TestCacher extends BaseClassForTests
                     if ( latch.getCount() > 0 )
                     {
                         Map<String, String> resultData = Maps.newHashMap();
-                        CompletedTaskModel completedTask = new CompletedTaskModel(true, resultData);
-                        String json = nodeToString(addCompletedTask(newNode(), completedTask));
+                        TaskExecutionResultModel result = new TaskExecutionResultModel("test", resultData);
+                        String json = nodeToString(addTaskExecutionResult(newNode(), result));
                         try
                         {
                             String path = ZooKeeperConstants.getCompletedTaskPath(workflow.getScheduleId(), taskId);

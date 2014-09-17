@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
@@ -175,31 +174,6 @@ public class TestJsonSerializer
     }
 
     @Test
-    public void testCompletedTask()
-    {
-        CompletedTaskModel completedTask = new CompletedTaskModel();
-        ObjectNode node = newNode();
-        addCompletedTask(node, completedTask);
-        String str = nodeToString(node);
-        System.out.println(str);
-
-        CompletedTaskModel unCompletedTask = getCompletedTask(fromString(str));
-        Assert.assertEquals(completedTask, unCompletedTask);
-
-        Map<String, String> resultData = Maps.newHashMap();
-        resultData.put("one", "1");
-        resultData.put("two", "2");
-        completedTask = new CompletedTaskModel(true, resultData);
-        node = newNode();
-        addCompletedTask(node, completedTask);
-        str = nodeToString(node);
-        System.out.println(str);
-
-        unCompletedTask = getCompletedTask(fromString(str));
-        Assert.assertEquals(completedTask, unCompletedTask);
-    }
-
-    @Test
     public void testExecutableTask()
     {
         ExecutableTaskModel executableTask = new ExecutableTaskModel(new ScheduleId(), makeTask());
@@ -211,6 +185,22 @@ public class TestJsonSerializer
 
         ExecutableTaskModel unExecutableTask = getExecutableTask(fromString(str));
         Assert.assertEquals(executableTask, unExecutableTask);
+    }
+
+    @Test
+    public void testTaskExecutionResult()
+    {
+        Map<String, String> resultData = Maps.newHashMap();
+        resultData.put("one", "1");
+        resultData.put("two", "2");
+        TaskExecutionResultModel taskExecutionResult = new TaskExecutionResultModel(Integer.toString(random.nextInt()), resultData);
+        ObjectNode node = newNode();
+        addTaskExecutionResult(node, taskExecutionResult);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        TaskExecutionResultModel unTaskExecutionResult = getTaskExecutionResultModel(fromString(str));
+        Assert.assertEquals(taskExecutionResult, unTaskExecutionResult);
     }
 
     private TaskSets makeTaskSet()

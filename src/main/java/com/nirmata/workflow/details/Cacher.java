@@ -120,14 +120,14 @@ class Cacher implements Closeable
         return scheduleCache.getCurrentData(ZooKeeperConstants.getSchedulePath(scheduleId)) != null;
     }
 
-    public ChildData getCompletedData(ScheduleId scheduleId, TaskId taskId)
+    public boolean taskIsComplete(ScheduleId scheduleId, TaskId taskId)
     {
         PathChildrenCache taskCache = completedTasksCache.get(scheduleId);
         if ( taskCache != null )
         {
             String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, taskId);
-            return taskCache.getCurrentData(path);
+            return taskCache.getCurrentData(path) != null;
         }
-        return null;
+        return false;
     }
 }

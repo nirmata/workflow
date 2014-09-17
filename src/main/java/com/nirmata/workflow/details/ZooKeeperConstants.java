@@ -10,6 +10,7 @@ public class ZooKeeperConstants
     private static final String SCHEDULES_PATH = "/schedules";
     private static final String COMPLETED_SCHEDULES_PATH = "/completed-schedules";
     private static final String COMPLETED_TASKS_PATH = "/tasks-completed";
+    private static final String STARTED_TASKS_PATH = "/tasks-completed";
     private static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
     private static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
     private static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
@@ -76,5 +77,11 @@ public class ZooKeeperConstants
     public static String getCompletedTaskPath(ScheduleId scheduleId, TaskId taskId)
     {
         return ZKPaths.makePath(getCompletedTasksParentPath(scheduleId), taskId.getId());
+    }
+
+    public static String getStartedTaskPath(ScheduleId scheduleId, TaskId taskId)
+    {
+        String parentPath = ZKPaths.makePath(getSchedulePath(scheduleId), STARTED_TASKS_PATH);
+        return ZKPaths.makePath(parentPath, taskId.getId());
     }
 }

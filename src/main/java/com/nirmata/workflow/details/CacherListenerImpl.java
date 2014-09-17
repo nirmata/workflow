@@ -1,25 +1,18 @@
 package com.nirmata.workflow.details;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
-import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.spi.Clock;
-import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
-
-import static com.nirmata.workflow.details.InternalJsonSerializer.getCompletedTask;
-import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 class CacherListenerImpl implements CacherListener
 {
@@ -48,22 +41,13 @@ class CacherListenerImpl implements CacherListener
                 throw new RuntimeException(message);
             }
 
-            ChildData currentData = cacher.getCompletedData(workflow.getScheduleId(), taskId);
-            if ( currentData != null )
+            if ( cacher.taskIsComplete(workflow.getScheduleId(), taskId) )
             {
-                CompletedTaskModel completedTask = getCompletedTask(fromBytes(currentData.getData()));
-                if ( completedTask.isComplete() )
-                {
-                    ++completedQty;
-                }
-                else
-                {
-                    // TODO requeue?
-                }
+                ++completedQty;
             }
             else
             {
-                queueTask(workflow.getScheduleId(), task);
+                executeTask(workflow, task);
             }
         }
 
@@ -90,32 +74,31 @@ class CacherListenerImpl implements CacherListener
         }
     }
 
+    private void executeTask(DenormalizedWorkflowModel workflow, TaskModel task)
+    {
+        String path = ZooKeeperConstants.getStartedTaskPath(workflow.getScheduleId(), task.getTaskId());
+        try
+        {
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
+            workflowManager.executeTask(new ExecutableTaskModel(workflow.getScheduleId(), task));
+        }
+        catch ( KeeperException.NodeExistsException ignore )
+        {
+            // race - task already started
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not start task " + task;
+            log.error(message, e);
+            throw new RuntimeException(e);
+        }
+    }
+
     private void completeSchedule(DenormalizedWorkflowModel newWorkflow) throws Exception
     {
         workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
         workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
         workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
-    }
-
-    private void queueTask(ScheduleId scheduleId, TaskModel task)
-    {
-        String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, task.getTaskId());
-        ObjectNode node = InternalJsonSerializer.addCompletedTask(newNode(), new CompletedTaskModel());
-        byte[] json = toBytes(node);
-        try
-        {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, json);
-            workflowManager.executeTask(new ExecutableTaskModel(scheduleId, task));
-        }
-        catch ( KeeperException.NodeExistsException ignore )
-        {
-            // already exists - just ignore
-        }
-        catch ( Exception e )
-        {
-            log.error(String.format("Could not queue tasks for schedule (%s) and task (%s)", scheduleId, task), e);
-            throw new RuntimeException(e);
-        }
     }
 }

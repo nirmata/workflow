@@ -1,16 +1,15 @@
 package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.TaskExecutionResultModel;
 import com.nirmata.workflow.spi.TaskExecution;
-import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.addCompletedTask;
+import static com.nirmata.workflow.details.InternalJsonSerializer.addTaskExecutionResult;
 import static com.nirmata.workflow.spi.JsonSerializer.newNode;
 import static com.nirmata.workflow.spi.JsonSerializer.nodeToString;
 
@@ -30,9 +29,8 @@ public class ExecutableTaskRunner
     {
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
 
-        TaskExecutionResult result = taskExecution.execute();
-        CompletedTaskModel completedTask = new CompletedTaskModel(true, result.getResultData());    // TODO - store details as well
-        String json = nodeToString(addCompletedTask(newNode(), completedTask));
+        TaskExecutionResultModel result = taskExecution.execute();
+        String json = nodeToString(addTaskExecutionResult(newNode(), result));
         try
         {
             String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getScheduleId(), executableTask.getTask().getTaskId());

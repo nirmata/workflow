@@ -2,10 +2,10 @@ package com.nirmata.workflow.details;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.TaskExecutionResultModel;
 import com.nirmata.workflow.models.WorkflowId;
 import com.nirmata.workflow.spi.Clock;
 
@@ -13,20 +13,20 @@ import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class InternalJsonSerializer
 {
-    public static ObjectNode addCompletedTask(ObjectNode node, CompletedTaskModel completedTask)
+    public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResultModel taskExecutionResult)
     {
-        node.put("isComplete", completedTask.isComplete());
-        node.putPOJO("resultData", completedTask.getResultData());
+        node.put("details", taskExecutionResult.getDetails());
+        node.putPOJO("resultData", taskExecutionResult.getResultData());
         return node;
     }
 
-    public static CompletedTaskModel getCompletedTask(JsonNode node)
+    public static TaskExecutionResultModel getTaskExecutionResultModel(JsonNode node)
     {
-        return new CompletedTaskModel
-            (
-                node.get("isComplete").asBoolean(),
-                getMap(node.get("resultData"))
-            );
+        return new TaskExecutionResultModel
+        (
+            node.get("details").asText(),
+            getMap(node.get("resultData"))
+        );
     }
 
     public static ObjectNode addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
