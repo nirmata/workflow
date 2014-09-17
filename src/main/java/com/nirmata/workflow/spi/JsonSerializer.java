@@ -296,7 +296,7 @@ public class JsonSerializer
         return new RepetitionModel
         (
             Duration.valueOf(repetitionNode.get("duration").asText()),
-            RepetitionModel.Type.valueOf(repetitionNode.get("type").asText()),
+            RepetitionModel.Type.valueOf(repetitionNode.get("type").asText().toUpperCase()),
             repetitionNode.get("qty").asInt()
         );
     }

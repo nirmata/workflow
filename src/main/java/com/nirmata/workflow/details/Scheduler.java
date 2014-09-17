@@ -20,6 +20,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -83,16 +84,13 @@ public class Scheduler implements Closeable
                 if ( schedule != null )
                 {
                     ScheduleExecutionModel scheduleExecution = localStateCache.getScheduleExecutions().get(scheduleId);
-                    if ( scheduleExecution != null )
+                    if ( scheduleExecution == null )
                     {
-                        if ( schedule.shouldExecuteNow(scheduleExecution) )
-                        {
-                            startWorkflow(scheduleExecution, schedule, localStateCache);
-                        }
+                        scheduleExecution = new ScheduleExecutionModel(scheduleId, new Date(0), new Date(0), 0);
                     }
-                    else
+                    if ( schedule.shouldExecuteNow(scheduleExecution) )
                     {
-                        log.warn("Could not find scheduled execution for schedule " + scheduleId);
+                        startWorkflow(scheduleExecution, schedule, localStateCache);
                     }
                 }
                 else
