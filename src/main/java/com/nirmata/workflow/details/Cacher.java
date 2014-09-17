@@ -35,27 +35,47 @@ class Cacher implements Closeable
         @Override
         public void childEvent(CuratorFramework client, PathChildrenCacheEvent event) throws Exception
         {
-            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            switch ( event.getType() )
             {
-                ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                log.info("Schedule added: " + scheduleId);
-                PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
-                if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
+                default:
                 {
-                    taskCache.getListenable().addListener(completedTasksListener, executorService);
-                    taskCache.start(PathChildrenCache.StartMode.NORMAL);
+                    break;  // NOP
                 }
 
-                DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
-                cacherListener.updateAndQueueTasks(Cacher.this, workflow);
-            }
-            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_REMOVED )
-            {
-                ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                PathChildrenCache cache = completedTasksCache.remove(scheduleId);
-                if ( cache != null )
+                case CHILD_ADDED:
                 {
-                    CloseableUtils.closeQuietly(cache);
+                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
+                    log.info("Schedule added: " + scheduleId);
+                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
+                    if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
+                    {
+                        taskCache.getListenable().addListener(completedTasksListener, executorService);
+                        taskCache.start(PathChildrenCache.StartMode.NORMAL);
+                    }
+
+                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                    cacherListener.updateAndQueueTasks(Cacher.this, workflow);
+                    break;
+                }
+
+                case CHILD_REMOVED:
+                {
+                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
+                    log.info("Schedule removed: " + scheduleId);
+                    PathChildrenCache cache = completedTasksCache.remove(scheduleId);
+                    if ( cache != null )
+                    {
+                        CloseableUtils.closeQuietly(cache);
+                    }
+                    break;
+                }
+
+                case CHILD_UPDATED:
+                {
+                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
+                    log.info("Schedule updated: " + scheduleId);
+                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                    cacherListener.updateAndQueueTasks(Cacher.this, workflow);
                 }
             }
         }
@@ -124,7 +144,7 @@ class Cacher implements Closeable
         {
             String schedulePath = ZooKeeperConstants.getSchedulePath(workflow.getScheduleId());
             curator.setData().forPath(schedulePath, Scheduler.toJson(log, workflow));
-            scheduleCache.rebuildNode(schedulePath);
+//            scheduleCache.rebuildNode(schedulePath); TODO is this needed?
         }
         catch ( Exception e )
         {

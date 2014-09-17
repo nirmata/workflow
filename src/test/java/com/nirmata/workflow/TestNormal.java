@@ -96,7 +96,7 @@ public class TestNormal extends BaseClassForTests
     public void testNormal() throws Exception
     {
         Timing timing = new Timing();
-        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1, 1, 10, 10);
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
         final CountDownLatch latch = new CountDownLatch(6);
         final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
         TaskExecutor taskExecutor = new TaskExecutor()
@@ -112,7 +112,7 @@ public class TestNormal extends BaseClassForTests
                         try
                         {
                             checker.add(task.getTaskId());
-                            Thread.sleep(3000);
+                            Thread.sleep(1000);
                         }
                         catch ( InterruptedException e )
                         {

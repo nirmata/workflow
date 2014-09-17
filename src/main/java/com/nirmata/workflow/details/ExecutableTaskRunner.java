@@ -27,6 +27,7 @@ public class ExecutableTaskRunner
 
     public void executeTask(ExecutableTaskModel executableTask)
     {
+        log.info("Executing task: " + executableTask);
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
 
         TaskExecutionResult result = taskExecution.execute();

@@ -136,11 +136,11 @@ public class Scheduler implements Closeable
         catch ( KeeperException.NodeExistsException ignore )
         {
             // should never happen, but ignore in case it does
-            log.warn("Workflow already started: ", workflow);
+            log.warn("Workflow already started: " + workflow);
         }
         catch ( Exception e )
         {
-            log.error("Could not create workflow node: ", workflow, e);
+            log.error("Could not create workflow node: " + workflow, e);
             throw new RuntimeException(e);
         }
     }
