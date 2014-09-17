@@ -13,15 +13,14 @@ import io.airlift.units.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Serializer/deserializer methods for the various models
+ */
 public class JsonSerializer
 {
     private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
@@ -82,8 +81,8 @@ public class JsonSerializer
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecutionStartUtc", dateToString(scheduleExecution.getLastExecutionStartUtc()));
-        scheduleExecutionNode.put("lastExecutionEndUtc", dateToString(scheduleExecution.getLastExecutionEndUtc()));
+        scheduleExecutionNode.put("lastExecutionStartUtc", Clock.dateToString(scheduleExecution.getLastExecutionStartUtc()));
+        scheduleExecutionNode.put("lastExecutionEndUtc", Clock.dateToString(scheduleExecution.getLastExecutionEndUtc()));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
         return node;
@@ -95,8 +94,8 @@ public class JsonSerializer
         return new ScheduleExecutionModel
         (
             new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
-            dateFromString(scheduleExecutionNode.get("lastExecutionStartUtc").asText()),
-            dateFromString(scheduleExecutionNode.get("lastExecutionEndUtc").asText()),
+            Clock.dateFromString(scheduleExecutionNode.get("lastExecutionStartUtc").asText()),
+            Clock.dateFromString(scheduleExecutionNode.get("lastExecutionEndUtc").asText()),
             scheduleExecutionNode.get("executionQty").asInt()
         );
     }
@@ -258,30 +257,6 @@ public class JsonSerializer
     public static String getId(JsonNode node)
     {
         return node.get("id").asText();
-    }
-
-    public static String dateToString(Date date)
-    {
-        return newIsoDateFormatter().format(date);
-    }
-
-    public static Date dateFromString(String str)
-    {
-        try
-        {
-            return newIsoDateFormatter().parse(str);
-        }
-        catch ( ParseException e )
-        {
-            log.error("parsing date: " + str, e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static DateFormat newIsoDateFormatter()
-    {
-        // per http://stackoverflow.com/questions/2201925/converting-iso-8601-compliant-string-to-java-util-date
-        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     }
 
     public static Map<String, String> getMap(JsonNode node)

@@ -3,6 +3,9 @@ package com.nirmata.workflow.models;
 import com.google.common.base.Preconditions;
 import java.util.UUID;
 
+/**
+ * Base for IDs
+ */
 public class Id
 {
     private final String id;

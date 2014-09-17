@@ -2,12 +2,20 @@ package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Models an entire workflow
+ */
 public class WorkflowModel
 {
     private final WorkflowId workflowId;
     private final String name;
     private final TaskSets tasks;
 
+    /**
+     * @param workflowId the workflow Id
+     * @param name workflow name (for display only)
+     * @param tasks task sets
+     */
     public WorkflowModel(WorkflowId workflowId, String name, TaskSets tasks)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");

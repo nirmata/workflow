@@ -7,6 +7,7 @@ import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.WorkflowId;
+import com.nirmata.workflow.spi.Clock;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -51,7 +52,7 @@ public class InternalJsonSerializer
         node.put("name", denormalizedWorkflow.getName());
         addTaskSet(node, denormalizedWorkflow.getTaskSets());
         addTasks(node, denormalizedWorkflow.getTasks());
-        node.put("startDate", dateToString(denormalizedWorkflow.getStartDateUtc()));
+        node.put("startDate", Clock.dateToString(denormalizedWorkflow.getStartDateUtc()));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
     }
@@ -65,7 +66,7 @@ public class InternalJsonSerializer
             getTasks(node),
             node.get("name").asText(),
             getTaskSet(node),
-            dateFromString(node.get("startDate").asText()),
+            Clock.dateFromString(node.get("startDate").asText()),
             node.get("taskSetsIndex").asInt()
         );
     }

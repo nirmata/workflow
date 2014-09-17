@@ -3,6 +3,9 @@ package com.nirmata.workflow.models;
 import com.google.common.base.Preconditions;
 import java.util.Date;
 
+/**
+ * Models an executing schedule
+ */
 public class ScheduleExecutionModel
 {
     private final ScheduleId scheduleId;
@@ -10,6 +13,12 @@ public class ScheduleExecutionModel
     private final Date lastExecutionEndUtc;
     private final int executionQty;
 
+    /**
+     * @param scheduleId the schedule ID
+     * @param lastExecutionStartUtc the start time UTC of last execution
+     * @param lastExecutionEndUtc the end time UTC of last execution
+     * @param executionQty the number of times this schedule has executed or 0
+     */
     public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecutionStartUtc, Date lastExecutionEndUtc, int executionQty)
     {
         this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");

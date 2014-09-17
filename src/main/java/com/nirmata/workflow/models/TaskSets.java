@@ -5,10 +5,18 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Models sets of tasks. Each set can execute concurrently. The next
+ * set will not start until the previous set completes.
+ */
 public class TaskSets implements Iterable<List<TaskId>>
 {
     private final List<List<TaskId>> tasks;
 
+    /**
+     * Task sets
+     * @param tasks sets
+     */
     public TaskSets(List<List<TaskId>> tasks)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");

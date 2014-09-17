@@ -1,20 +1,34 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.details.Clock;
+import com.nirmata.workflow.spi.Clock;
 import java.util.Date;
 
+/**
+ * Models a schedule
+ */
 public class ScheduleModel
 {
     private final RepetitionModel repetition;
     private final ScheduleId scheduleId;
     private final WorkflowId workflowId;
 
+    /**
+     * A schedule that executes once
+     *
+     * @param scheduleId the schedule Id
+     * @param workflowId the workflow Id that gets executed
+     */
     public ScheduleModel(ScheduleId scheduleId, WorkflowId workflowId)
     {
         this(scheduleId, workflowId, RepetitionModel.ONCE);
     }
 
+    /**
+     * @param scheduleId the schedule Id
+     * @param workflowId the workflow Id that gets executed
+     * @param repetition the repetition model
+     */
     public ScheduleModel(ScheduleId scheduleId, WorkflowId workflowId, RepetitionModel repetition)
     {
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");

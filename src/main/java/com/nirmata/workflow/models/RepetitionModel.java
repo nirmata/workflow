@@ -4,6 +4,9 @@ import com.google.common.base.Preconditions;
 import io.airlift.units.Duration;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Represents a schedule repetition
+ */
 public class RepetitionModel
 {
     private final Duration duration;
@@ -12,14 +15,28 @@ public class RepetitionModel
 
     public enum Type
     {
+        /**
+         * The next execution will start from the end time of the previous
+         * execution plus the duration
+         */
         RELATIVE,
+
+        /**
+         * The next execution will start from the start time of the previous
+         * execution plus the duration
+         */
         ABSOLUTE
     }
 
-    public static final int UNLIMITED = -1;
+    public static final int UNLIMITED = Integer.MAX_VALUE;
 
     public static final RepetitionModel ONCE = new RepetitionModel();
 
+    /**
+     * @param duration duration between repetitions
+     * @param type whether the duration is added to the start time or the end time
+     * @param qty max number of repetitions
+     */
     public RepetitionModel(Duration duration, Type type, int qty)
     {
         this.qty = qty;

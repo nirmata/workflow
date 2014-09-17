@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.details.Clock;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;

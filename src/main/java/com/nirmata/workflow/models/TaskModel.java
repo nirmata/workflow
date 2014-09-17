@@ -5,6 +5,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Map;
 
+/**
+ * Models a executable task
+ */
 public class TaskModel
 {
     private final TaskId taskId;
@@ -13,11 +16,24 @@ public class TaskModel
     private final String taskExecutionCode;
     private final boolean isIdempotent;
 
+    /**
+     * @param taskId task Id
+     * @param name the task's name (used for display only)
+     * @param taskExecutionCode the execution code - whatever is needed to execute the task
+     * @param isIdempotent true if the task is idempotent (it will get retried as needed)
+     */
     public TaskModel(TaskId taskId, String name, String taskExecutionCode, boolean isIdempotent)
     {
         this(taskId, name, taskExecutionCode, isIdempotent, Maps.<String, String>newHashMap());
     }
 
+    /**
+     * @param taskId task Id
+     * @param name the task's name (used for display only)
+     * @param taskExecutionCode the execution code - whatever is needed to execute the task
+     * @param isIdempotent true if the task is idempotent (it will get retried as needed)
+     * @param metaData optional metadata for the task
+     */
     public TaskModel(TaskId taskId, String name, String taskExecutionCode, boolean isIdempotent, Map<String, String> metaData)
     {
         this.taskExecutionCode = Preconditions.checkNotNull(taskExecutionCode, "taskExecutionCode cannot be null");
