@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.nirmata.workflow.details.ExecutableTaskRunner;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
-import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
@@ -18,7 +17,6 @@ import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
 import com.nirmata.workflow.spi.StorageBridge;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ThreadUtils;
 import org.slf4j.Logger;
@@ -39,7 +37,6 @@ public class WorkflowManager implements AutoCloseable
     private final AtomicReference<StateCache> stateCache = new AtomicReference<StateCache>(new StateCache());
     private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
     private final Scheduler scheduler;
-    private final PathChildrenCache completedTasksCache;
     private final Queue idempotentTaskQueue;
     private final Queue nonIdempotentTaskQueue;
     private final List<QueueConsumer> taskConsumers;
@@ -66,8 +63,6 @@ public class WorkflowManager implements AutoCloseable
 
         scheduler = new Scheduler(this);
 
-        completedTasksCache = new PathChildrenCache(curator, ZooKeeperConstants.COMPLETED_TASKS_PATH, true);
-
         idempotentTaskQueue = queueFactory.createIdempotentQueue(this);
         nonIdempotentTaskQueue = queueFactory.createNonIdempotentQueue(this);
         taskConsumers = makeTaskConsumers(queueFactory, configuration);
@@ -79,7 +74,6 @@ public class WorkflowManager implements AutoCloseable
 
         try
         {
-            completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             idempotentTaskQueue.start();
             nonIdempotentTaskQueue.start();
             for ( QueueConsumer queueConsumer : taskConsumers )
@@ -117,7 +111,6 @@ public class WorkflowManager implements AutoCloseable
             {
                 CloseableUtils.closeQuietly(queueConsumer);
             }
-            CloseableUtils.closeQuietly(completedTasksCache);
             CloseableUtils.closeQuietly(scheduler);
             scheduledExecutorService.shutdownNow();
         }
@@ -141,11 +134,6 @@ public class WorkflowManager implements AutoCloseable
     public TaskExecutor getTaskExecutor()
     {
         return taskExecutor;
-    }
-
-    public PathChildrenCache getCompletedTasksCache()
-    {
-        return completedTasksCache;
     }
 
     public StorageBridge getStorageBridge()

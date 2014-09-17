@@ -19,11 +19,11 @@ public class ZooKeeperQueue implements Queue
     public ZooKeeperQueue(CuratorFramework curator, boolean idempotent)
     {
         curator = Preconditions.checkNotNull(curator, "curator cannot be null");
-        String path = idempotent ? ZooKeeperConstants.IDEMPOTENT_TASKS_QUEUE_PATH : ZooKeeperConstants.NON_IDEMPOTENT_TASKS_QUEUE_PATH;
+        String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath() : ZooKeeperConstants.getNonIdempotentTasksQueuePath();
         QueueBuilder<ExecutableTaskModel> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(), path);
         if ( idempotent )
         {
-            builder = builder.lockPath(ZooKeeperConstants.IDEMPOTENT_TASKS_QUEUE_LOCK_PATH);
+            builder = builder.lockPath(ZooKeeperConstants.getIdempotentTasksQueueLockPath());
         }
         queue = builder.buildQueue();
     }

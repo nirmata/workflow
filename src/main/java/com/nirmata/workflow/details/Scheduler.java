@@ -51,7 +51,7 @@ public class Scheduler implements Closeable
                 Scheduler.this.takeLeadership();
             }
         };
-        leaderSelector = new LeaderSelector(workflowManager.getCurator(), ZooKeeperConstants.SCHEDULER_LEADER_PATH, listener);
+        leaderSelector = new LeaderSelector(workflowManager.getCurator(), ZooKeeperConstants.getSchedulerLeaderPath(), listener);
         leaderSelector.autoRequeue();
     }
 
@@ -131,7 +131,7 @@ public class Scheduler implements Closeable
 
         try
         {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getScheduleKey(schedule.getScheduleId()), json);
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getSchedulePath(schedule.getScheduleId()), json);
         }
         catch ( KeeperException.NodeExistsException ignore )
         {

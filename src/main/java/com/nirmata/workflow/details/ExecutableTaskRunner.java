@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.CompletedTaskModel;
 import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
-import com.nirmata.workflow.spi.JsonSerializer;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import org.slf4j.Logger;
@@ -32,7 +31,7 @@ public class ExecutableTaskRunner
         String json = nodeToString(addCompletedTask(newNode(), completedTask));
         try
         {
-            String path = ZooKeeperConstants.getCompletedTaskKey(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
+            String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
             workflowManager.getCurator().setData().forPath(path, json.getBytes());
         }
         catch ( Exception e )

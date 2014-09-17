@@ -6,58 +6,74 @@ import org.apache.curator.utils.ZKPaths;
 
 public class ZooKeeperConstants
 {
-    public static final String SCHEDULER_LEADER_PATH = "/scheduler-leader";
-    public static final String SCHEDULES_PATH = "/schedules";
-    public static final String COMPLETED_SCHEDULES_PATH = "/completed-schedules";
-    public static final String TASK_LOCKS_PATH = "/task-locks";
-    public static final String COMPLETED_TASKS_PATH = "/tasks-completed";
-    public static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
-    public static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
-    public static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
+    private static final String SCHEDULER_LEADER_PATH = "/scheduler-leader";
+    private static final String SCHEDULES_PATH = "/schedules";
+    private static final String COMPLETED_SCHEDULES_PATH = "/completed-schedules";
+    private static final String COMPLETED_TASKS_PATH = "/tasks-completed";
+    private static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
+    private static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
+    private static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
 
     public static final int MAX_PAYLOAD = 0xfffff;  // see "jute.maxbuffer" at http://zookeeper.apache.org/doc/r3.3.1/zookeeperAdmin.html
-
-    private static final String SEPARATOR = "|";
 
     private ZooKeeperConstants()
     {
     }
 
-    public static String getScheduleKey(ScheduleId scheduleId)
+    public static String getSchedulerLeaderPath()
+    {
+        return SCHEDULER_LEADER_PATH;
+    }
+
+    public static String getScheduleParentPath()
+    {
+        return SCHEDULES_PATH;
+    }
+
+    public static String getSchedulePath(ScheduleId scheduleId)
     {
         return ZKPaths.makePath(SCHEDULES_PATH, scheduleId.getId());
     }
 
-    public static String getScheduleIdFromScheduleKey(String key)
+    public static String getScheduleIdFromSchedulePath(String key)
     {
-        ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(key);
-        return pathAndNode.getNode();
+        return ZKPaths.getPathAndNode(key).getNode();
     }
 
-    public static String getCompletedScheduleKey(ScheduleId scheduleId)
+    public static String getIdempotentTasksQueuePath()
+    {
+        return IDEMPOTENT_TASKS_QUEUE_PATH;
+    }
+
+    public static String getIdempotentTasksQueueLockPath()
+    {
+        return IDEMPOTENT_TASKS_QUEUE_LOCK_PATH;
+    }
+
+    public static String getNonIdempotentTasksQueuePath()
+    {
+        return NON_IDEMPOTENT_TASKS_QUEUE_PATH;
+    }
+
+    public static String getCompletedSchedulePath(ScheduleId scheduleId)
     {
         return ZKPaths.makePath(COMPLETED_SCHEDULES_PATH, scheduleId.getId());
     }
 
-    public static String getTaskLockKey(ScheduleId scheduleId, TaskId taskId)
+    public static String getCompletedTasksParentPath(ScheduleId scheduleId)
     {
-        return ZKPaths.makePath(TASK_LOCKS_PATH, scheduleId.getId() + SEPARATOR + taskId.getId());
+        return ZKPaths.makePath(getSchedulePath(scheduleId), COMPLETED_TASKS_PATH);
     }
 
-    public static String getCompletedTasksKey(ScheduleId scheduleId)
-    {
-        return ZKPaths.makePath(getScheduleKey(scheduleId), COMPLETED_TASKS_PATH);
-    }
-
-    public static String getScheduleIdKeyFromCompletedTaskPath(String path)
+    public static String getScheduleIdFromCompletedTaskPath(String path)
     {
         ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(path);
         ZKPaths.PathAndNode parentPathAndNode = ZKPaths.getPathAndNode(pathAndNode.getPath());
         return ZKPaths.makePath(parentPathAndNode.getPath(), parentPathAndNode.getNode());
     }
 
-    public static String getCompletedTaskKey(ScheduleId scheduleId, TaskId taskId)
+    public static String getCompletedTaskPath(ScheduleId scheduleId, TaskId taskId)
     {
-        return ZKPaths.makePath(COMPLETED_TASKS_PATH, scheduleId.getId() + SEPARATOR + taskId.getId());
+        return ZKPaths.makePath(getCompletedTasksParentPath(scheduleId), taskId.getId());
     }
 }

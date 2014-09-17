@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.details.InternalJsonSerializer.getCompletedTask;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 class CacherListenerImpl implements CacherListener
@@ -31,7 +31,7 @@ class CacherListenerImpl implements CacherListener
     }
 
     @Override
-    public void updateAndQueueTasks(DenormalizedWorkflowModel workflow)
+    public void updateAndQueueTasks(Cacher cacher, DenormalizedWorkflowModel workflow)
     {
         ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), StateCache.taskIdFunction);
         int taskSetsIndex = workflow.getTaskSetsIndex();
@@ -47,8 +47,7 @@ class CacherListenerImpl implements CacherListener
                 throw new RuntimeException(message);
             }
 
-            String path = ZooKeeperConstants.getCompletedTaskKey(workflow.getScheduleId(), taskId);
-            ChildData currentData = workflowManager.getCompletedTasksCache().getCurrentData(path);
+            ChildData currentData = cacher.getCompletedData(workflow.getScheduleId(), taskId);
             if ( currentData != null )
             {
                 CompletedTaskModel completedTask = getCompletedTask(fromBytes(currentData.getData()));
@@ -78,8 +77,8 @@ class CacherListenerImpl implements CacherListener
                 }
                 else
                 {
-                    workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
-                    updateAndQueueTasks(newWorkflow);
+                    workflowManager.getCurator().setData().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
+                    updateAndQueueTasks(cacher, newWorkflow);
                 }
             }
             catch ( Exception e )
@@ -92,15 +91,15 @@ class CacherListenerImpl implements CacherListener
 
     private void completeSchedule(DenormalizedWorkflowModel newWorkflow) throws Exception
     {
-        workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedScheduleKey(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
-        workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getScheduleKey(newWorkflow.getScheduleId()));
-        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), 0);
+        workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
+        workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
         workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
     }
 
     private void queueTask(ScheduleId scheduleId, TaskModel task)
     {
-        String path = ZooKeeperConstants.getCompletedTaskKey(scheduleId, task.getTaskId());
+        String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, task.getTaskId());
         ObjectNode node = InternalJsonSerializer.addCompletedTask(newNode(), new CompletedTaskModel());
         byte[] json = toBytes(node);
         try

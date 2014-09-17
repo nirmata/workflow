@@ -22,11 +22,11 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
     public ZooKeeperQueueConsumer(WorkflowManager workflowManager, boolean idempotent)
     {
         this.workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
-        String path = idempotent ? ZooKeeperConstants.IDEMPOTENT_TASKS_QUEUE_PATH : ZooKeeperConstants.NON_IDEMPOTENT_TASKS_QUEUE_PATH;
+        String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath(): ZooKeeperConstants.getNonIdempotentTasksQueuePath();
         QueueBuilder<ExecutableTaskModel> builder = QueueBuilder.builder(workflowManager.getCurator(), this, new TaskQueueSerializer(), path);
         if ( idempotent )
         {
-            builder = builder.lockPath(ZooKeeperConstants.IDEMPOTENT_TASKS_QUEUE_LOCK_PATH);
+            builder = builder.lockPath(ZooKeeperConstants.getIdempotentTasksQueueLockPath());
         }
         queue = builder.buildQueue();
     }
