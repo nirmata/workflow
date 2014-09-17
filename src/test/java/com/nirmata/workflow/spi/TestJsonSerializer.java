@@ -105,7 +105,7 @@ public class TestJsonSerializer
     @Test
     public void testSchedule()
     {
-        ScheduleModel schedule = new ScheduleModel(new ScheduleId(), new WorkflowId(), new RepetitionModel(new Duration(10064, TimeUnit.MINUTES), RepetitionModel.Type.ABSOLUTE, random.nextInt()));
+        ScheduleModel schedule = newSchedule();
 
         ObjectNode node = newNode();
         addSchedule(node, schedule);
@@ -114,6 +114,24 @@ public class TestJsonSerializer
 
         ScheduleModel unSchedule = getSchedule(fromString(str));
         Assert.assertEquals(schedule, unSchedule);
+    }
+
+    @Test
+    public void testSchedules()
+    {
+        List<ScheduleModel> schedules = Lists.newArrayList();
+        for ( int i = 0; i < (random.nextInt(9) + 1); ++i )
+        {
+            schedules.add(newSchedule());
+        }
+
+        ObjectNode node = newNode();
+        addSchedules(node, schedules);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        List<ScheduleModel> unSchedules = getSchedules(fromString(str));
+        Assert.assertEquals(schedules, unSchedules);
     }
 
     @Test
@@ -201,6 +219,12 @@ public class TestJsonSerializer
 
         TaskExecutionResult unTaskExecutionResult = getTaskExecutionResult(fromString(str));
         Assert.assertEquals(taskExecutionResult, unTaskExecutionResult);
+    }
+
+    private ScheduleModel newSchedule()
+    {
+        RepetitionModel.Type type = random.nextBoolean() ? RepetitionModel.Type.ABSOLUTE : RepetitionModel.Type.RELATIVE;
+        return new ScheduleModel(new ScheduleId(), new WorkflowId(), new RepetitionModel(new Duration(Math.abs(random.nextInt()), TimeUnit.MINUTES), type, random.nextInt()));
     }
 
     private TaskSets makeTaskSet()

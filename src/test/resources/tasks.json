@@ -1,0 +1,57 @@
+{
+    "tasks": [
+        {
+            "task": {
+                "name": "t1",
+                "code": "code1",
+                "isIdempotent": true,
+                "meta": {}
+            }
+        },
+
+        {
+            "task": {
+                "name": "t2",
+                "code": "code2",
+                "isIdempotent": true,
+                "meta": {}
+            }
+        },
+
+        {
+            "task": {
+                "name": "t3",
+                "code": "code3",
+                "isIdempotent": true,
+                "meta": {}
+            }
+        },
+
+        {
+            "task": {
+                "name": "t4",
+                "code": "code4",
+                "isIdempotent": false,
+                "meta": {}
+            }
+        },
+
+        {
+            "task": {
+                "name": "t5",
+                "code": "code5",
+                "isIdempotent": false,
+                "meta": {}
+            }
+        },
+
+        {
+            "task": {
+                "name": "t6",
+                "code": "code6",
+                "isIdempotent": false,
+                "meta": {}
+            }
+        }
+    ]
+}

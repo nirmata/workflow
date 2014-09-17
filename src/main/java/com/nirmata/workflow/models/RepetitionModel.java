@@ -35,11 +35,11 @@ public class RepetitionModel
     /**
      * @param duration duration between repetitions
      * @param type whether the duration is added to the start time or the end time
-     * @param qty max number of repetitions
+     * @param qty max number of repetitions (pass a negative number for unlimited)
      */
     public RepetitionModel(Duration duration, Type type, int qty)
     {
-        this.qty = qty;
+        this.qty = (qty < 0) ? UNLIMITED : qty;
         this.duration = Preconditions.checkNotNull(duration, "duration cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
     }

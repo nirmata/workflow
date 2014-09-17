@@ -121,11 +121,37 @@ public class JsonSerializer
         );
     }
 
+    public static ObjectNode addSchedules(ObjectNode node, List<ScheduleModel> schedules)
+    {
+        ArrayNode tab = newArrayNode();
+        for ( ScheduleModel schedule : schedules )
+        {
+            ObjectNode scheduleNode = newNode();
+            addSchedule(scheduleNode, schedule);
+            tab.add(scheduleNode);
+        }
+        node.set("schedules", tab);
+        return node;
+    }
+
+    public static List<ScheduleModel> getSchedules(JsonNode node)
+    {
+        ImmutableList.Builder<ScheduleModel> builder = ImmutableList.builder();
+        JsonNode tab = node.get("schedules");
+        Iterator<JsonNode> elements = tab.elements();
+        while ( elements.hasNext() )
+        {
+            JsonNode next = elements.next();
+            builder.add(getSchedule(next));
+        }
+        return builder.build();
+    }
+
     public static ObjectNode addSchedule(ObjectNode node, ScheduleModel schedule)
     {
         ObjectNode scheduleNode = newNode();
-        addRepetition(scheduleNode, schedule.getRepetition());
         addId(scheduleNode, schedule.getScheduleId());
+        addRepetition(scheduleNode, schedule.getRepetition());
         scheduleNode.put("workflowId", schedule.getWorkflowId().getId());
         node.set("schedule", scheduleNode);
         return node;

@@ -9,6 +9,7 @@ import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.spi.Clock;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +90,9 @@ class CacherListenerImpl implements CacherListener
     {
         try
         {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getCompletedSchedulePath(newWorkflow.getScheduleId()), Scheduler.toJson(log, newWorkflow));
+            String completedScheduleBasePath = ZooKeeperConstants.getCompletedScheduleBasePath(newWorkflow.getScheduleId());
+            workflowManager.getCurator().create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).forPath(completedScheduleBasePath, Scheduler.toJson(log, newWorkflow));
+
             workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
             ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
             workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);

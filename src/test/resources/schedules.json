@@ -1,0 +1,27 @@
+{
+    "schedules": [
+        {
+            "schedule": {
+                "id": "schedule1",
+                "repetition": {
+                    "duration": "5s",
+                    "type": "relative",
+                    "qty": -1
+                },
+                "workflowId": "workflow1"
+            }
+        },
+
+        {
+            "schedule": {
+                "id": "schedule2",
+                "repetition": {
+                    "duration": "10s",
+                    "type": "absolute",
+                    "qty": -1
+                },
+                "workflowId": "workflow1"
+            }
+        }
+    ]
+}

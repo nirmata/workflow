@@ -9,12 +9,14 @@ public class ZooKeeperConstants
     private static final String SCHEDULER_LEADER_PATH = "/scheduler-leader";
     private static final String SCHEDULES_PATH = "/schedules";
     private static final String SCHEDULES_WORK_PATH = "/schedules-work";
-    private static final String COMPLETED_SCHEDULES_PATH = "/completed-schedules";
+    private static final String COMPLETED_SCHEDULES_PARENT_PATH = "/completed-schedules";
     private static final String COMPLETED_TASKS_PATH = "/tasks-completed";
     private static final String STARTED_TASKS_PATH = "/tasks-started";
     private static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
     private static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
     private static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
+
+    private static final String COMPLETED_SCHEDULE_BASE_NAME = "instance-";
 
     public static final int MAX_PAYLOAD = 0xfffff;  // see "jute.maxbuffer" at http://zookeeper.apache.org/doc/r3.3.1/zookeeperAdmin.html
 
@@ -43,7 +45,8 @@ public class ZooKeeperConstants
         System.out.println("getIdempotentTasksQueuePath:\t\t" + getIdempotentTasksQueuePath());
         System.out.println("getIdempotentTasksQueueLockPath:\t" + getIdempotentTasksQueueLockPath());
         System.out.println("getNonIdempotentTasksQueuePath:\t\t" + getNonIdempotentTasksQueuePath());
-        System.out.println("getCompletedSchedulePath:\t\t\t" + getCompletedSchedulePath(scheduleId));
+        System.out.println("getCompletedScheduleParentPath:\t\t" + getCompletedScheduleParentPath(scheduleId));
+        System.out.println("getCompletedScheduleBasePath:\t\t" + getCompletedScheduleBasePath(scheduleId));
         System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTasksParentPath(scheduleId));
         System.out.println("getCompletedTaskPath:\t\t\t\t" + completedTaskPath);
         System.out.println("getStartedTaskPath:\t\t\t\t\t" + getStartedTaskPath(scheduleId, taskId));
@@ -84,9 +87,14 @@ public class ZooKeeperConstants
         return NON_IDEMPOTENT_TASKS_QUEUE_PATH;
     }
 
-    public static String getCompletedSchedulePath(ScheduleId scheduleId)
+    public static String getCompletedScheduleParentPath(ScheduleId scheduleId)
     {
-        return ZKPaths.makePath(COMPLETED_SCHEDULES_PATH, scheduleId.getId());
+        return ZKPaths.makePath(COMPLETED_SCHEDULES_PARENT_PATH, scheduleId.getId());
+    }
+
+    public static String getCompletedScheduleBasePath(ScheduleId scheduleId)
+    {
+        return ZKPaths.makePath(getCompletedScheduleParentPath(scheduleId), COMPLETED_SCHEDULE_BASE_NAME);
     }
 
     private static String getSchedulesWorkParentPath(ScheduleId scheduleId)
