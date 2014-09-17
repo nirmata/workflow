@@ -40,7 +40,7 @@ public class WorkflowManager implements AutoCloseable
     private final Queue idempotentTaskQueue;
     private final Queue nonIdempotentTaskQueue;
     private final List<QueueConsumer> taskConsumers;
-    private final ExecutableTaskRunner executableTaskRunner = new ExecutableTaskRunner(this);
+    private final ExecutableTaskRunner executableTaskRunner;
 
     private enum State
     {
@@ -66,6 +66,7 @@ public class WorkflowManager implements AutoCloseable
         idempotentTaskQueue = queueFactory.createIdempotentQueue(this);
         nonIdempotentTaskQueue = queueFactory.createNonIdempotentQueue(this);
         taskConsumers = makeTaskConsumers(queueFactory, configuration);
+        executableTaskRunner = new ExecutableTaskRunner(taskExecutor, curator);
     }
 
     public void start()
