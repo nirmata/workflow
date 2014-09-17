@@ -21,12 +21,16 @@ import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.Closeable;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class WorkflowManager implements AutoCloseable
+/**
+ * The main container/manager for the Workflow
+ */
+public class WorkflowManager implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final TaskExecutor taskExecutor;
@@ -49,11 +53,28 @@ public class WorkflowManager implements AutoCloseable
         CLOSED
     }
 
+    /**
+     * Create the workflow
+     *
+     * @param curator Curator instance namespaced as desired
+     * @param configuration configuration
+     * @param taskExecutor the task executor
+     * @param storageBridge the storage bridge
+     */
     public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge)
     {
         this(curator, configuration, taskExecutor, storageBridge, new ZooKeeperQueueFactory());
     }
 
+    /**
+     * Create the workflow
+     *
+     * @param curator Curator instance namespaced as desired
+     * @param configuration configuration
+     * @param taskExecutor the task executor
+     * @param storageBridge the storage bridge
+     * @param queueFactory the queue factory
+     */
     public WorkflowManager(CuratorFramework curator, WorkflowManagerConfiguration configuration, TaskExecutor taskExecutor, StorageBridge storageBridge, QueueFactory queueFactory)
     {
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
@@ -69,6 +90,9 @@ public class WorkflowManager implements AutoCloseable
         executableTaskRunner = new ExecutableTaskRunner(taskExecutor, curator);
     }
 
+    /**
+     * The workflow must be started
+     */
     public void start()
     {
         Preconditions.checkState(state.compareAndSet(State.LATENT, State.STARTED), "Already started");
@@ -101,6 +125,9 @@ public class WorkflowManager implements AutoCloseable
         scheduler.start();
     }
 
+    /**
+     * Close the workflow when it's no longer needed. All running tasks, etc. will be closed.
+     */
     @Override
     public void close()
     {
@@ -115,6 +142,16 @@ public class WorkflowManager implements AutoCloseable
             CloseableUtils.closeQuietly(scheduler);
             scheduledExecutorService.shutdownNow();
         }
+    }
+
+    /**
+     * Execute a task
+     *
+     * @param executableTask task to execute
+     */
+    public void executeTask(ExecutableTaskModel executableTask)
+    {
+        executableTaskRunner.executeTask(executableTask);
     }
 
     public CuratorFramework getCurator()
@@ -140,11 +177,6 @@ public class WorkflowManager implements AutoCloseable
     public StorageBridge getStorageBridge()
     {
         return storageBridge;
-    }
-
-    public void executeTask(ExecutableTaskModel executableTask)
-    {
-        executableTaskRunner.executeTask(executableTask);
     }
 
     private void updateState()
