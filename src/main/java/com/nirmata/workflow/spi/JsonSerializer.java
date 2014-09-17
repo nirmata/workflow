@@ -100,6 +100,32 @@ public class JsonSerializer
         );
     }
 
+    public static ObjectNode addWorkflows(ObjectNode node, List<WorkflowModel> workflows)
+    {
+        ArrayNode tab = newArrayNode();
+        for ( WorkflowModel workflow : workflows )
+        {
+            ObjectNode workflowNode = newNode();
+            addWorkflow(workflowNode, workflow);
+            tab.add(workflowNode);
+        }
+        node.set("workflows", tab);
+        return node;
+    }
+
+    public static List<WorkflowModel> getWorkflows(JsonNode node)
+    {
+        ImmutableList.Builder<WorkflowModel> builder = ImmutableList.builder();
+        JsonNode tab = node.get("workflows");
+        Iterator<JsonNode> elements = tab.elements();
+        while ( elements.hasNext() )
+        {
+            JsonNode next = elements.next();
+            builder.add(getWorkflow(next));
+        }
+        return builder.build();
+    }
+
     public static ObjectNode addWorkflow(ObjectNode node, WorkflowModel workflow)
     {
         ObjectNode workflowNode = newNode();

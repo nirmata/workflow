@@ -1,0 +1,41 @@
+{
+    "workflows": [
+        {
+            "workflow": {
+                "id": "workflow1",
+                "name": "whatever",
+                "taskSet": [
+                    [
+                        {
+                            "id": "task1"
+                        },
+
+                        {
+                            "id": "task2"
+                        }
+                    ],
+
+                    [
+                        {
+                            "id": "task3"
+                        },
+
+                        {
+                            "id": "task4"
+                        },
+
+                        {
+                            "id": "task5"
+                        }
+                    ],
+
+                    [
+                        {
+                            "id": "task6"
+                        }
+                    ]
+                ]
+            }
+        }
+    ]
+}

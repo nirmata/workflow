@@ -149,6 +149,25 @@ public class TestJsonSerializer
     }
 
     @Test
+    public void testWorkflows()
+    {
+        List<WorkflowModel> workflows = Lists.newArrayList();
+        for ( int i = 0; i < random.nextInt(10); ++i )
+        {
+            WorkflowModel workflow = new WorkflowModel(new WorkflowId(), Integer.toString(random.nextInt()), makeTaskSet());
+            workflows.add(workflow);
+        }
+
+        ObjectNode node = newNode();
+        addWorkflows(node, workflows);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        List<WorkflowModel> unWorkflows = getWorkflows(fromString(str));
+        Assert.assertEquals(workflows, unWorkflows);
+    }
+
+    @Test
     public void testScheduleExecution()
     {
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), new Date(), new Date(), random.nextInt());
