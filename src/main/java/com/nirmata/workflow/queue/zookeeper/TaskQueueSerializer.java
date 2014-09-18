@@ -2,9 +2,7 @@ package com.nirmata.workflow.queue.zookeeper;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nirmata.workflow.details.InternalJsonSerializer;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
-import com.nirmata.workflow.spi.JsonSerializer;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.*;

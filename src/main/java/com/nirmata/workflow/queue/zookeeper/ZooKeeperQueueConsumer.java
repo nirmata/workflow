@@ -3,7 +3,7 @@ package com.nirmata.workflow.queue.zookeeper;
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.ZooKeeperConstants;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.queue.QueueConsumer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.DistributedQueue;

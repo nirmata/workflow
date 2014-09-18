@@ -1,19 +1,9 @@
 package com.nirmata.workflow;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.io.Resources;
-import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.StorageBridge;
-import com.nirmata.workflow.spi.TaskExecution;
-import com.nirmata.workflow.spi.TaskExecutionResult;
-import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
@@ -24,18 +14,13 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
-import static com.nirmata.workflow.spi.JsonSerializer.*;
-
 public class TestNormal extends BaseClassForTests
 {
-    private StorageBridge storageBridge;
     private CuratorFramework curator;
 
     @BeforeMethod
@@ -43,44 +28,7 @@ public class TestNormal extends BaseClassForTests
     {
         super.setup();
 
-        final Map<ScheduleId, ScheduleExecutionModel> scheduleExecutions = Maps.newHashMap();
-        final List<ScheduleModel> schedules = getSchedules(fromString(Resources.toString(Resources.getResource("schedules.json"), Charset.defaultCharset())));
-        final List<TaskModel> tasks = getTasks(fromString(Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset())));
-        final List<WorkflowModel> workflows = getWorkflows(fromString(Resources.toString(Resources.getResource("workflows.json"), Charset.defaultCharset())));
-        storageBridge = new StorageBridge()
-        {
-            @Override
-            public List<ScheduleModel> getScheduleModels()
-            {
-                return schedules;
-            }
-
-            @Override
-            public List<WorkflowModel> getWorkflowModels()
-            {
-                return workflows;
-            }
-
-            @Override
-            public List<TaskModel> getTaskModels()
-            {
-                return tasks;
-            }
-
-            @Override
-            public List<ScheduleExecutionModel> getScheduleExecutions()
-            {
-                return Lists.newArrayList(scheduleExecutions.values());
-            }
-
-            @Override
-            public void updateScheduleExecution(ScheduleExecutionModel scheduleExecution)
-            {
-                scheduleExecutions.put(scheduleExecution.getScheduleId(), scheduleExecution);
-            }
-        };
-
-        curator = CuratorFrameworkFactory.newClient(server.getConnectString(), new RetryOneTime(1));
+        curator = CuratorFrameworkFactory.builder().connectString(server.getConnectString()).namespace("test").retryPolicy(new RetryOneTime(1)).build();
         curator.start();
     }
 
@@ -93,49 +41,20 @@ public class TestNormal extends BaseClassForTests
     }
 
     @Test
-    public void testNormal() throws Exception
+    public void testNormal_1x() throws Exception
     {
+        StorageBridge storageBridge = new TestStorageBridge("schedule_1x.json", "tasks.json", "workflows.json");
+
         Timing timing = new Timing();
         WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
-        final CountDownLatch latch = new CountDownLatch(6);
-        final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
-        TaskExecutor taskExecutor = new TaskExecutor()
-        {
-            @Override
-            public TaskExecution newTaskExecution(final TaskModel task)
-            {
-                return new TaskExecution()
-                {
-                    @Override
-                    public TaskExecutionResult execute()
-                    {
-                        try
-                        {
-                            checker.add(task.getTaskId());
-                            Thread.sleep(1000);
-                        }
-                        catch ( InterruptedException e )
-                        {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(e);
-                        }
-                        finally
-                        {
-                            checker.decrement();
-                            latch.countDown();
-                        }
-                        return new TaskExecutionResult("hey", Maps.<String, String>newHashMap());
-                    }
-                };
-            }
-        };
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
         WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
         workflowManager.start();
         try
         {
-            Assert.assertTrue(timing.awaitLatch(latch));
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
 
-            List<Set<TaskId>> sets = checker.getSets();
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
                 (
                     Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
@@ -144,8 +63,66 @@ public class TestNormal extends BaseClassForTests
                 );
             Assert.assertEquals(sets, expectedSets);
 
-            List<TaskId> all = checker.getAll();
-            Assert.assertEquals(all.size(), Sets.newHashSet(all).size());   // no dups
+            taskExecutor.getChecker().assertNoDuplicates();
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testNormal_2x() throws Exception
+    {
+        StorageBridge storageBridge = new TestStorageBridge("schedule_2x.json", "tasks.json", "workflows.json");
+
+        Timing timing = new Timing();
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
+        final CountDownLatch scheduleLatch = new CountDownLatch(2);
+        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
+        WorkflowManagerListener listener = new WorkflowManagerListener()
+        {
+            @Override
+            public void notifyScheduleStarted(ScheduleId scheduleId)
+            {
+                scheduleLatch.countDown();
+            }
+
+            @Override
+            public void notifyTaskExecuted(ScheduleId scheduleId, TaskId taskId)
+            {
+
+            }
+
+            @Override
+            public void notifyScheduleCompleted(ScheduleId scheduleId)
+            {
+            }
+        };
+        workflowManager.getListenable().addListener(listener);
+        workflowManager.start();
+        try
+        {
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+            taskExecutor.getChecker().assertNoDuplicates();
+            taskExecutor.reset();
+
+            Assert.assertTrue(timing.awaitLatch(scheduleLatch));
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            sets = taskExecutor.getChecker().getSets();
+            Assert.assertEquals(sets, expectedSets);
+            taskExecutor.getChecker().assertNoDuplicates();
         }
         finally
         {

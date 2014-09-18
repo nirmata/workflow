@@ -1,6 +1,6 @@
 package com.nirmata.workflow.queue;
 
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import java.io.Closeable;
 
 public interface Queue extends Closeable

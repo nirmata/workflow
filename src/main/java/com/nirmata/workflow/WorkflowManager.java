@@ -1,5 +1,6 @@
 package com.nirmata.workflow;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.nirmata.workflow.details.ExecutableTaskRunner;
@@ -7,7 +8,7 @@ import com.nirmata.workflow.details.InternalJsonSerializer;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.ZooKeeperConstants;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
@@ -23,6 +24,8 @@ import com.nirmata.workflow.spi.StorageBridge;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.listen.Listenable;
+import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ThreadUtils;
 import org.slf4j.Logger;
@@ -51,6 +54,7 @@ public class WorkflowManager implements Closeable
     private final Queue nonIdempotentTaskQueue;
     private final List<QueueConsumer> taskConsumers;
     private final ExecutableTaskRunner executableTaskRunner;
+    private final ListenerContainer<WorkflowManagerListener> listeners = new ListenerContainer<WorkflowManagerListener>();
 
     private enum State
     {
@@ -158,6 +162,7 @@ public class WorkflowManager implements Closeable
     public void executeTask(ExecutableTaskModel executableTask)
     {
         executableTaskRunner.executeTask(executableTask);
+        notifyTaskExecuted(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
     }
 
     /**
@@ -215,6 +220,53 @@ public class WorkflowManager implements Closeable
     public Queue getNonIdempotentTaskQueue()
     {
         return nonIdempotentTaskQueue;
+    }
+
+    public Listenable<WorkflowManagerListener> getListenable()
+    {
+        return listeners;
+    }
+
+    public void notifyScheduleCompleted(final ScheduleId scheduleId)
+    {
+        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
+        {
+            @Override
+            public Void apply(WorkflowManagerListener listener)
+            {
+                listener.notifyScheduleCompleted(scheduleId);
+                return null;
+            }
+        };
+        listeners.forEach(notifier);
+    }
+
+    public void notifyTaskExecuted(final ScheduleId scheduleId, final TaskId taskId)
+    {
+        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
+        {
+            @Override
+            public Void apply(WorkflowManagerListener listener)
+            {
+                listener.notifyTaskExecuted(scheduleId, taskId);
+                return null;
+            }
+        };
+        listeners.forEach(notifier);
+    }
+
+    public void notifyScheduleStarted(final ScheduleId scheduleId)
+    {
+        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
+        {
+            @Override
+            public Void apply(WorkflowManagerListener listener)
+            {
+                listener.notifyScheduleStarted(scheduleId);
+                return null;
+            }
+        };
+        listeners.forEach(notifier);
     }
 
     private void updateState()

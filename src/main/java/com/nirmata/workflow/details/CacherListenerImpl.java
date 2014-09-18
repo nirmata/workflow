@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
@@ -55,7 +55,7 @@ class CacherListenerImpl implements CacherListener
 
         if ( completedQty == thisTasks.size() )
         {
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
+            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(runId, workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
             if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
             {
                 completeSchedule(newWorkflow);
@@ -100,6 +100,8 @@ class CacherListenerImpl implements CacherListener
             workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
             ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
             workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
+
+            workflowManager.notifyScheduleCompleted(newWorkflow.getScheduleId());
         }
         catch ( Exception e )
         {

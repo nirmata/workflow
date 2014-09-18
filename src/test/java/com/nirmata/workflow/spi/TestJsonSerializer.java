@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
@@ -199,7 +199,7 @@ public class TestJsonSerializer
         Thread.sleep(5);
         Date randomDate2 = Clock.nowUtc();
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), randomDate, randomDate2, random.nextInt());
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(runId, scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
 
         ObjectNode node = newNode();
         addDenormalizedWorkflow(node, denormalizedWorkflowModel);

@@ -6,7 +6,7 @@
                 "repetition": {
                     "duration": "5s",
                     "type": "relative",
-                    "qty": -1
+                    "qty": 1
                 },
                 "workflowId": "workflow1"
             }

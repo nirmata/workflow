@@ -125,13 +125,14 @@ public class Scheduler implements Closeable
                 tasks.add(task);
             }
         }
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(runId, scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getSchedulePath(schedule.getScheduleId()), json);
             log.info("Started workflow: " + schedule.getWorkflowId());
+            workflowManager.notifyScheduleStarted(schedule.getScheduleId());
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
