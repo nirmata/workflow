@@ -29,7 +29,6 @@ class CacherListenerImpl implements CacherListener
     @Override
     public void updateAndQueueTasks(Cacher cacher, DenormalizedWorkflowModel workflow)
     {
-        log.info("updateAndQueueTasks for " + workflow);
         ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), StateCache.taskIdFunction);
         int taskSetsIndex = workflow.getTaskSetsIndex();
         int completedQty = 0;
@@ -70,18 +69,18 @@ class CacherListenerImpl implements CacherListener
 
     private void queueTask(DenormalizedWorkflowModel workflow, TaskModel task)
     {
-        log.info("Queueing task: " + task);
         String path = ZooKeeperConstants.getStartedTaskPath(workflow.getScheduleId(), task.getTaskId());
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
             queue.put(new ExecutableTaskModel(workflow.getScheduleId(), task));
+            log.info("Queued task: " + task);
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
-            log.info("Task already queued: " + task);
-            // race - task already started
+            log.debug("Task already queued: " + task);
+            // race due to caching latency - task already started
         }
         catch ( Exception e )
         {

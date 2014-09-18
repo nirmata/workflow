@@ -45,7 +45,7 @@ class Cacher implements Closeable
                 case CHILD_ADDED:
                 {
                     ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.info("Schedule added: " + scheduleId);
+                    log.debug("Schedule added: " + scheduleId);
                     PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
                     if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
                     {
@@ -61,7 +61,7 @@ class Cacher implements Closeable
                 case CHILD_REMOVED:
                 {
                     ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.info("Schedule removed: " + scheduleId);
+                    log.debug("Schedule removed: " + scheduleId);
                     PathChildrenCache cache = completedTasksCache.remove(scheduleId);
                     if ( cache != null )
                     {
@@ -73,7 +73,7 @@ class Cacher implements Closeable
                 case CHILD_UPDATED:
                 {
                     ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.info("Schedule updated: " + scheduleId);
+                    log.debug("Schedule updated: " + scheduleId);
                     DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
                     cacherListener.updateAndQueueTasks(Cacher.this, workflow);
                 }
@@ -144,7 +144,6 @@ class Cacher implements Closeable
         {
             String schedulePath = ZooKeeperConstants.getSchedulePath(workflow.getScheduleId());
             curator.setData().forPath(schedulePath, Scheduler.toJson(log, workflow));
-//            scheduleCache.rebuildNode(schedulePath); TODO is this needed?
         }
         catch ( Exception e )
         {

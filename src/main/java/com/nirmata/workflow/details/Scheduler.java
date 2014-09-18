@@ -103,7 +103,6 @@ public class Scheduler implements Closeable
 
     private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
-        log.info("Starting workflow: " + schedule.getWorkflowId());
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
         {
@@ -132,11 +131,12 @@ public class Scheduler implements Closeable
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getSchedulePath(schedule.getScheduleId()), json);
+            log.info("Started workflow: " + schedule.getWorkflowId());
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
-            // should never happen, but ignore in case it does
-            log.warn("Workflow already started: " + workflow);
+            // happens due to cache latency
+            log.debug("Workflow already started: " + workflow);
         }
         catch ( Exception e )
         {
