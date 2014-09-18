@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
@@ -125,12 +126,12 @@ public class Scheduler implements Closeable
                 tasks.add(task);
             }
         }
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(runId, scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try
         {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getSchedulePath(schedule.getScheduleId()), json);
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
             log.info("Started workflow: " + schedule.getWorkflowId());
             workflowManager.notifyScheduleStarted(schedule.getScheduleId());
         }

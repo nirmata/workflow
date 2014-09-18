@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.CuratorFramework;
@@ -24,8 +25,8 @@ import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
 class Cacher implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final PathChildrenCache scheduleCache;
-    private final ConcurrentMap<ScheduleId, PathChildrenCache> completedTasksCaches;
+    private final PathChildrenCache runsCache;
+    private final ConcurrentMap<RunId, PathChildrenCache> completedTasksCaches;
     private final CuratorFramework curator;
     private final CacherListener cacherListener;
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("Cacher");
@@ -44,25 +45,24 @@ class Cacher implements Closeable
 
                 case CHILD_ADDED:
                 {
-                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.debug("Schedule added: " + scheduleId);
-                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), false);
-                    if ( completedTasksCaches.putIfAbsent(scheduleId, taskCache) == null )
+                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                    log.debug("New run added: " + workflow);
+                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(workflow.getRunId()), false);
+                    if ( completedTasksCaches.putIfAbsent(workflow.getRunId(), taskCache) == null )
                     {
                         taskCache.getListenable().addListener(completedTasksListener, executorService);
                         taskCache.start(PathChildrenCache.StartMode.NORMAL);
                     }
 
-                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
                     cacherListener.updateAndQueueTasks(Cacher.this, workflow);
                     break;
                 }
 
                 case CHILD_REMOVED:
                 {
-                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.debug("Schedule removed: " + scheduleId);
-                    PathChildrenCache cache = completedTasksCaches.remove(scheduleId);
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                    log.debug("Run removed: " + runId);
+                    PathChildrenCache cache = completedTasksCaches.remove(runId);
                     if ( cache != null )
                     {
                         CloseableUtils.closeQuietly(cache);
@@ -72,9 +72,8 @@ class Cacher implements Closeable
 
                 case CHILD_UPDATED:
                 {
-                    ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
-                    log.debug("Schedule updated: " + scheduleId);
                     DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                    log.debug("Run updated: " + workflow);
                     cacherListener.updateAndQueueTasks(Cacher.this, workflow);
                 }
             }
@@ -89,13 +88,13 @@ class Cacher implements Closeable
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 String taskId = ZooKeeperConstants.getTaskIdFromCompletedTaskPath(event.getData().getPath());
-                String scheduleId = ZooKeeperConstants.getScheduleIdFromCompletedTaskPath(event.getData().getPath());
+                String runId = ZooKeeperConstants.getRunIdFromCompletedTaskPath(event.getData().getPath());
                 log.info("Task completed: " + taskId);
-                String schedulePath = ZooKeeperConstants.getSchedulePath(new ScheduleId(scheduleId));
-                ChildData scheduleData = scheduleCache.getCurrentData(schedulePath);
+                String runPath = ZooKeeperConstants.getRunPath(new RunId(runId));
+                ChildData scheduleData = runsCache.getCurrentData(runPath);
                 if ( scheduleData == null )
                 {
-                    String message = "Expected schedule not found at path " + schedulePath;
+                    String message = "Expected schedule not found at path " + runPath;
                     log.error(message);
                     throw new Exception(message);
                 }
@@ -109,17 +108,17 @@ class Cacher implements Closeable
     {
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         this.cacherListener = Preconditions.checkNotNull(cacherListener, "cacherListener cannot be null");
-        scheduleCache = new PathChildrenCache(curator, ZooKeeperConstants.getScheduleParentPath(), true);
+        runsCache = new PathChildrenCache(curator, ZooKeeperConstants.getRunsParentPath(), true);
         completedTasksCaches = Maps.newConcurrentMap();
     }
 
     void start()
     {
-        scheduleCache.getListenable().addListener(scheduleListener, executorService);
+        runsCache.getListenable().addListener(scheduleListener, executorService);
 
         try
         {
-            scheduleCache.start(PathChildrenCache.StartMode.NORMAL);
+            runsCache.start(PathChildrenCache.StartMode.NORMAL);
         }
         catch ( Exception e )
         {
@@ -135,15 +134,15 @@ class Cacher implements Closeable
         {
             CloseableUtils.closeQuietly(cache);
         }
-        CloseableUtils.closeQuietly(scheduleCache);
+        CloseableUtils.closeQuietly(runsCache);
     }
 
     void updateSchedule(DenormalizedWorkflowModel workflow)
     {
         try
         {
-            String schedulePath = ZooKeeperConstants.getSchedulePath(workflow.getScheduleId());
-            curator.setData().forPath(schedulePath, Scheduler.toJson(log, workflow));
+            String path = ZooKeeperConstants.getRunPath(workflow.getRunId());
+            curator.setData().forPath(path, Scheduler.toJson(log, workflow));
         }
         catch ( Exception e )
         {
@@ -154,15 +153,24 @@ class Cacher implements Closeable
 
     boolean scheduleIsActive(ScheduleId scheduleId)
     {
-        return scheduleCache.getCurrentData(ZooKeeperConstants.getSchedulePath(scheduleId)) != null;
+        for ( ChildData childData : runsCache.getCurrentData() )
+        {
+            DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(childData.getData()));
+            if ( workflow.getScheduleId().equals(scheduleId) )
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    boolean taskIsComplete(ScheduleId scheduleId, TaskId taskId)
+    boolean taskIsComplete(RunId runId, TaskId taskId)
     {
-        PathChildrenCache taskCache = completedTasksCaches.get(scheduleId);
+        PathChildrenCache taskCache = completedTasksCaches.get(runId);
         if ( taskCache != null )
         {
-            String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, taskId);
+            String path = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
             return taskCache.getCurrentData(path) != null;
         }
         return false;

@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
@@ -43,7 +44,7 @@ class CacherListenerImpl implements CacherListener
                 throw new RuntimeException(message);
             }
 
-            if ( cacher.taskIsComplete(workflow.getScheduleId(), taskId) )
+            if ( cacher.taskIsComplete(workflow.getRunId(), taskId) )
             {
                 ++completedQty;
             }
@@ -55,7 +56,7 @@ class CacherListenerImpl implements CacherListener
 
         if ( completedQty == thisTasks.size() )
         {
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(runId, workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
+            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
             if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
             {
                 completeSchedule(newWorkflow);
@@ -69,12 +70,12 @@ class CacherListenerImpl implements CacherListener
 
     private void queueTask(DenormalizedWorkflowModel workflow, TaskModel task)
     {
-        String path = ZooKeeperConstants.getStartedTaskPath(workflow.getScheduleId(), task.getTaskId());
+        String path = ZooKeeperConstants.getStartedTaskPath(workflow.getRunId(), task.getTaskId());
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
-            queue.put(new ExecutableTaskModel(workflow.getScheduleId(), task));
+            queue.put(new ExecutableTaskModel(workflow.getRunId(), workflow.getScheduleId(), task));
             log.info("Queued task: " + task);
         }
         catch ( KeeperException.NodeExistsException ignore )
@@ -94,10 +95,11 @@ class CacherListenerImpl implements CacherListener
     {
         try
         {
-            String completedScheduleBasePath = ZooKeeperConstants.getCompletedScheduleBasePath(newWorkflow.getScheduleId());
-            workflowManager.getCurator().create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).forPath(completedScheduleBasePath, Scheduler.toJson(log, newWorkflow));
+            log.info("Completing workflow: " + newWorkflow);
+            String completedBasePath = ZooKeeperConstants.getCompletedRunPath(newWorkflow.getRunId());
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(completedBasePath, Scheduler.toJson(log, newWorkflow));
 
-            workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getSchedulePath(newWorkflow.getScheduleId()));
+            workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getRunPath(newWorkflow.getRunId()));
             ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
             workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
 

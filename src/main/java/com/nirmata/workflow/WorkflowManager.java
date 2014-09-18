@@ -8,6 +8,7 @@ import com.nirmata.workflow.details.InternalJsonSerializer;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
@@ -168,13 +169,13 @@ public class WorkflowManager implements Closeable
     /**
      * Return the stored task result data or null
      *
-     * @param scheduleId the schedule that the task was run
+     * @param runId the schedule that the task was run
      * @param taskId the task
      * @return result data or null
      */
-    public TaskExecutionResult getTaskExecutionResult(ScheduleId scheduleId, TaskId taskId)
+    public TaskExecutionResult getTaskExecutionResult(RunId runId, TaskId taskId)
     {
-        String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, taskId);
+        String path = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
         try
         {
             byte[] data = curator.getData().forPath(path);
@@ -182,7 +183,7 @@ public class WorkflowManager implements Closeable
         }
         catch ( Exception e )
         {
-            log.error(String.format("getTaskExecutionResult(%s, %s)", scheduleId, taskId), e);
+            log.error(String.format("getTaskExecutionResult(%s, %s)", runId, taskId), e);
         }
         return null;
     }

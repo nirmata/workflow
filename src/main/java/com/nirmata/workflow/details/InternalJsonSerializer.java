@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
@@ -31,6 +32,7 @@ public class InternalJsonSerializer
 
     public static ObjectNode addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
     {
+        node.put("runId", executableTask.getRunId().getId());
         node.put("scheduleId", executableTask.getScheduleId().getId());
         addTask(node, executableTask.getTask());
         return node;
@@ -40,6 +42,7 @@ public class InternalJsonSerializer
     {
         return new ExecutableTaskModel
         (
+            new RunId(node.get("runId").asText()),
             new ScheduleId(node.get("scheduleId").asText()),
             getTask(node)
         );
@@ -47,6 +50,7 @@ public class InternalJsonSerializer
 
     public static ObjectNode addDenormalizedWorkflow(ObjectNode node, DenormalizedWorkflowModel denormalizedWorkflow)
     {
+        addId(node, denormalizedWorkflow.getRunId());
         addScheduleExecution(node, denormalizedWorkflow.getScheduleExecution());
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
@@ -60,7 +64,9 @@ public class InternalJsonSerializer
     public static DenormalizedWorkflowModel getDenormalizedWorkflow(JsonNode node)
     {
         return new DenormalizedWorkflowModel
-        (runId, getScheduleExecution(node),
+        (
+            new RunId(getId(node)),
+            getScheduleExecution(node),
             new WorkflowId(node.get("workflowId").asText()),
             getTasks(node),
             node.get("name").asText(),

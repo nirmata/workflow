@@ -34,7 +34,7 @@ public class ExecutableTaskRunner
         String json = nodeToString(addTaskExecutionResult(newNode(), result));
         try
         {
-            String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getScheduleId(), executableTask.getTask().getTaskId());
+            String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTask().getTaskId());
             curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
         }
         catch ( Exception e )

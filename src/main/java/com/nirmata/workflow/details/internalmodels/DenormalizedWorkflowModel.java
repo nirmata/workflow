@@ -11,6 +11,7 @@ import java.util.List;
 
 public class DenormalizedWorkflowModel
 {
+    private final RunId runId;
     private final ScheduleExecutionModel scheduleExecution;
     private final WorkflowId workflowId;
     private final List<TaskModel> tasks;
@@ -19,8 +20,9 @@ public class DenormalizedWorkflowModel
     private final int taskSetsIndex;
     private final Date startDateUtc;
 
-    public DenormalizedWorkflowModel(ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, Date startDateUtc, int taskSetsIndex)
+    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, Date startDateUtc, int taskSetsIndex)
     {
+        this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         this.scheduleExecution = Preconditions.checkNotNull(scheduleExecution, "scheduleExecution cannot be null");
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");
         this.taskSetsIndex = taskSetsIndex;
@@ -28,6 +30,11 @@ public class DenormalizedWorkflowModel
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
         this.taskSets = Preconditions.checkNotNull(taskSets, "taskSets cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
+    }
+
+    public RunId getRunId()
+    {
+        return runId;
     }
 
     public ScheduleId getScheduleId()
@@ -92,6 +99,10 @@ public class DenormalizedWorkflowModel
         {
             return false;
         }
+        if ( !runId.equals(that.runId) )
+        {
+            return false;
+        }
         if ( !scheduleExecution.equals(that.scheduleExecution) )
         {
             return false;
@@ -120,7 +131,8 @@ public class DenormalizedWorkflowModel
     @Override
     public int hashCode()
     {
-        int result = scheduleExecution.hashCode();
+        int result = runId.hashCode();
+        result = 31 * result + scheduleExecution.hashCode();
         result = 31 * result + workflowId.hashCode();
         result = 31 * result + tasks.hashCode();
         result = 31 * result + name.hashCode();
@@ -134,7 +146,8 @@ public class DenormalizedWorkflowModel
     public String toString()
     {
         return "DenormalizedWorkflowModel{" +
-            "scheduleExecution=" + scheduleExecution +
+            "runId=" + runId +
+            ", scheduleExecution=" + scheduleExecution +
             ", workflowId=" + workflowId +
             ", tasks=" + tasks +
             ", name='" + name + '\'' +

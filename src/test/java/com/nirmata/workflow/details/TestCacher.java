@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
@@ -55,7 +56,7 @@ public class TestCacher extends BaseClassForTests
                         String json = nodeToString(addTaskExecutionResult(newNode(), result));
                         try
                         {
-                            String path = ZooKeeperConstants.getCompletedTaskPath(workflow.getScheduleId(), taskId);
+                            String path = ZooKeeperConstants.getCompletedTaskPath(workflow.getRunId(), taskId);
                             client.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
                         }
                         catch ( Exception e )
@@ -74,9 +75,9 @@ public class TestCacher extends BaseClassForTests
             List<List<TaskId>> tasksSets = Lists.newArrayList();
             tasksSets.add(Arrays.asList(taskId));
             TaskSets taskSets = new TaskSets(tasksSets);
-            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(runId, scheduleExecution, new WorkflowId(), tasks, "test", taskSets, Clock.nowUtc(), 0);
+            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskSets, Clock.nowUtc(), 0);
             byte[] json = toBytes(addDenormalizedWorkflow(newNode(), denormalizedWorkflow));
-            client.create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getSchedulePath(scheduleId), json);
+            client.create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
 
             Assert.assertTrue(timing.awaitLatch(latch));
         }
