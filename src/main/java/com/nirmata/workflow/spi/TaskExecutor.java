@@ -1,6 +1,6 @@
 package com.nirmata.workflow.spi;
 
-import com.nirmata.workflow.models.TaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 
 /**
  * Factory for creating task executions
@@ -13,5 +13,5 @@ public interface TaskExecutor
      * @param task task
      * @return execution
      */
-    public TaskExecution newTaskExecution(TaskModel task);
+    public TaskExecution newTaskExecution(ExecutableTaskModel task);
 }

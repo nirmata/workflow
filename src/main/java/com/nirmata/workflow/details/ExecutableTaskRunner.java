@@ -28,7 +28,7 @@ public class ExecutableTaskRunner
     public void executeTask(ExecutableTaskModel executableTask)
     {
         log.info("Executing task: " + executableTask);
-        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask.getTask());
+        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask);
 
         TaskExecutionResult result = taskExecution.execute();
         String json = nodeToString(addTaskExecutionResult(newNode(), result));

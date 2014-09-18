@@ -1,7 +1,6 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.details.internalmodels.RunId;
 
 public class ExecutableTaskModel
 {

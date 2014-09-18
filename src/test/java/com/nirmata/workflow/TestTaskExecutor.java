@@ -1,7 +1,7 @@
 package com.nirmata.workflow;
 
 import com.google.common.collect.Maps;
-import com.nirmata.workflow.models.TaskModel;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
@@ -36,7 +36,7 @@ class TestTaskExecutor implements TaskExecutor
     }
 
     @Override
-    public TaskExecution newTaskExecution(final TaskModel task)
+    public TaskExecution newTaskExecution(final ExecutableTaskModel task)
     {
         return new TaskExecution()
         {
@@ -45,7 +45,7 @@ class TestTaskExecutor implements TaskExecutor
             {
                 try
                 {
-                    checker.add(task.getTaskId());
+                    checker.add(task.getTask().getTaskId());
                     Thread.sleep(1000);
                 }
                 catch ( InterruptedException e )

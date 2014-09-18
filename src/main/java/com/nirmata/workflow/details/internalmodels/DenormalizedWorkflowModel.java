@@ -1,6 +1,7 @@
 package com.nirmata.workflow.details.internalmodels;
 
 import com.google.common.base.Preconditions;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskModel;

@@ -3,7 +3,7 @@ package com.nirmata.workflow.details;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.RunId;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.spi.TaskExecutionResult;

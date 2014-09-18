@@ -1,6 +1,4 @@
-package com.nirmata.workflow.details.internalmodels;
-
-import com.nirmata.workflow.models.Id;
+package com.nirmata.workflow.models;
 
 public class RunId extends Id
 {

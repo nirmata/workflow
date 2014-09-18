@@ -3,7 +3,7 @@ package com.nirmata.workflow.details;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.RunId;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.spi.TaskExecutionResult;

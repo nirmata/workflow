@@ -8,7 +8,7 @@ import com.nirmata.workflow.details.InternalJsonSerializer;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.StateCache;
 import com.nirmata.workflow.details.ZooKeeperConstants;
-import com.nirmata.workflow.details.internalmodels.RunId;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;

@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.RunId;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;

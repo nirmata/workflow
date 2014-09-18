@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.RunId;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
