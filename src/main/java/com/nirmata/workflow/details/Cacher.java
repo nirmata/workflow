@@ -25,7 +25,7 @@ class Cacher implements Closeable
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final PathChildrenCache scheduleCache;
-    private final ConcurrentMap<ScheduleId, PathChildrenCache> completedTasksCache;
+    private final ConcurrentMap<ScheduleId, PathChildrenCache> completedTasksCaches;
     private final CuratorFramework curator;
     private final CacherListener cacherListener;
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("Cacher");
@@ -46,8 +46,8 @@ class Cacher implements Closeable
                 {
                     ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
                     log.debug("Schedule added: " + scheduleId);
-                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), true);
-                    if ( completedTasksCache.putIfAbsent(scheduleId, taskCache) == null )
+                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(scheduleId), false);
+                    if ( completedTasksCaches.putIfAbsent(scheduleId, taskCache) == null )
                     {
                         taskCache.getListenable().addListener(completedTasksListener, executorService);
                         taskCache.start(PathChildrenCache.StartMode.NORMAL);
@@ -62,7 +62,7 @@ class Cacher implements Closeable
                 {
                     ScheduleId scheduleId = new ScheduleId(ZooKeeperConstants.getScheduleIdFromSchedulePath(event.getData().getPath()));
                     log.debug("Schedule removed: " + scheduleId);
-                    PathChildrenCache cache = completedTasksCache.remove(scheduleId);
+                    PathChildrenCache cache = completedTasksCaches.remove(scheduleId);
                     if ( cache != null )
                     {
                         CloseableUtils.closeQuietly(cache);
@@ -110,7 +110,7 @@ class Cacher implements Closeable
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         this.cacherListener = Preconditions.checkNotNull(cacherListener, "cacherListener cannot be null");
         scheduleCache = new PathChildrenCache(curator, ZooKeeperConstants.getScheduleParentPath(), true);
-        completedTasksCache = Maps.newConcurrentMap();
+        completedTasksCaches = Maps.newConcurrentMap();
     }
 
     void start()
@@ -131,7 +131,7 @@ class Cacher implements Closeable
     @Override
     public void close()
     {
-        for ( PathChildrenCache cache : completedTasksCache.values() )
+        for ( PathChildrenCache cache : completedTasksCaches.values() )
         {
             CloseableUtils.closeQuietly(cache);
         }
@@ -159,7 +159,7 @@ class Cacher implements Closeable
 
     boolean taskIsComplete(ScheduleId scheduleId, TaskId taskId)
     {
-        PathChildrenCache taskCache = completedTasksCache.get(scheduleId);
+        PathChildrenCache taskCache = completedTasksCaches.get(scheduleId);
         if ( taskCache != null )
         {
             String path = ZooKeeperConstants.getCompletedTaskPath(scheduleId, taskId);
