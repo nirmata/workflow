@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.StartedTaskModel;
+import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
@@ -73,7 +73,8 @@ class CacherListenerImpl implements CacherListener
         String path = ZooKeeperConstants.getStartedTaskPath(workflow.getRunId(), task.getTaskId());
         try
         {
-            byte[] data = JsonSerializer.toBytes(InternalJsonSerializer.addStartedTask(JsonSerializer.newNode(), new StartedTaskModel(Clock.nowUtc())));
+            StartedTaskModel startedTask = new StartedTaskModel(workflowManager.getConfiguration().getInstanceName(), Clock.nowUtc());
+            byte[] data = JsonSerializer.toBytes(JsonSerializer.addStartedTask(JsonSerializer.newNode(), startedTask));
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
             queue.put(new ExecutableTaskModel(workflow.getRunId(), workflow.getScheduleId(), task));

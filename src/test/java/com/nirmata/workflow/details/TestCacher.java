@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
-import static com.nirmata.workflow.details.InternalJsonSerializer.addTaskExecutionResult;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class TestCacher extends BaseClassForTests

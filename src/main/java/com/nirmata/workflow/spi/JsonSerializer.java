@@ -301,6 +301,67 @@ public class JsonSerializer
         );
     }
 
+    public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResult taskExecutionResult)
+    {
+        ObjectNode taskExecutionResultNode = newNode();
+        taskExecutionResultNode.put("details", taskExecutionResult.getDetails());
+        taskExecutionResultNode.putPOJO("resultData", taskExecutionResult.getResultData());
+        taskExecutionResultNode.put("completionDateUtc", Clock.dateToString(taskExecutionResult.getCompletionDateUtc()));
+        node.set("taskExecutionResult", taskExecutionResultNode);
+        return node;
+    }
+
+    public static TaskExecutionResult getTaskExecutionResult(JsonNode node)
+    {
+        JsonNode taskExecutionResultNode = node.get("taskExecutionResult");
+        return new TaskExecutionResult
+            (
+                taskExecutionResultNode.get("details").asText(),
+                getMap(taskExecutionResultNode.get("resultData")),
+                Clock.dateFromString(taskExecutionResultNode.get("completionDateUtc").asText())
+            );
+    }
+
+    public static ObjectNode addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
+    {
+        ObjectNode executableTaskNode = newNode();
+        executableTaskNode.put("runId", executableTask.getRunId().getId());
+        executableTaskNode.put("scheduleId", executableTask.getScheduleId().getId());
+        addTask(executableTaskNode, executableTask.getTask());
+        node.set("executableTask", executableTaskNode);
+        return node;
+    }
+
+    public static ExecutableTaskModel getExecutableTask(JsonNode node)
+    {
+        JsonNode executableTaskNode = node.get("executableTask");
+        return new ExecutableTaskModel
+            (
+                new RunId(executableTaskNode.get("runId").asText()),
+                new ScheduleId(executableTaskNode.get("scheduleId").asText()),
+                getTask(executableTaskNode)
+            );
+    }
+
+    public static ObjectNode addStartedTask(ObjectNode node, StartedTaskModel startedTask)
+    {
+        ObjectNode startedTaskNode = newNode();
+        startedTaskNode.put("instanceName", startedTask.getInstanceName());
+        startedTaskNode.put("startDateUtc", Clock.dateToString(startedTask.getStartDateUtc()));
+        node.set("startedTask", startedTaskNode);
+        return node;
+    }
+
+    public static StartedTaskModel getStartedTask(JsonNode node)
+    {
+        JsonNode startedTaskNode = node.get("startedTask");
+        return new StartedTaskModel
+        (
+            startedTaskNode.get("instanceName").asText(),
+            Clock.dateFromString(startedTaskNode.get("startDateUtc").asText())
+        );
+    }
+
     public static void addId(ObjectNode node, Id id)
     {
         node.put("id", id.getId());

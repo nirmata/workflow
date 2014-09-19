@@ -3,7 +3,7 @@ package com.nirmata.workflow.admin;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.details.internalmodels.StartedTaskModel;
+import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.*;
-import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class RunReport
 {

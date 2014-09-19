@@ -9,9 +9,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.addTaskExecutionResult;
-import static com.nirmata.workflow.spi.JsonSerializer.newNode;
-import static com.nirmata.workflow.spi.JsonSerializer.nodeToString;
+import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class ExecutableTaskRunner
 {

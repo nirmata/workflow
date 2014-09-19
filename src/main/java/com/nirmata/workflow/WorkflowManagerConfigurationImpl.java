@@ -1,11 +1,15 @@
 package com.nirmata.workflow;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 public class WorkflowManagerConfigurationImpl implements WorkflowManagerConfiguration
 {
     private int storageRefreshMs;
     private int schedulerSleepMs;
     private int idempotentTaskQty;
     private int nonIdempotentTaskQty;
+    private String instanceName = getLocalAddress();
 
     public WorkflowManagerConfigurationImpl()
     {
@@ -61,5 +65,29 @@ public class WorkflowManagerConfigurationImpl implements WorkflowManagerConfigur
     public void setNonIdempotentTaskQty(int nonIdempotentTaskQty)
     {
         this.nonIdempotentTaskQty = nonIdempotentTaskQty;
+    }
+
+    @Override
+    public String getInstanceName()
+    {
+        return instanceName;
+    }
+
+    public void setInstanceName(String instanceName)
+    {
+        this.instanceName = instanceName;
+    }
+
+    private static String getLocalAddress()
+    {
+        try
+        {
+            return InetAddress.getLocalHost().getHostAddress();
+        }
+        catch ( UnknownHostException ignore )
+        {
+            // ignore
+        }
+        return "n/a";
     }
 }

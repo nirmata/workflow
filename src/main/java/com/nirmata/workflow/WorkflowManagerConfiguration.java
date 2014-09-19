@@ -34,4 +34,11 @@ public interface WorkflowManagerConfiguration
      * @return max
      */
     public int getNonIdempotentTaskQty();
+
+    /**
+     * Return the identifying name of this VM/instance (e.g. it's address, etc.)
+     *
+     * @return name
+     */
+    public String getInstanceName();
 }
