@@ -1,6 +1,5 @@
-package com.nirmata.workflow;
+package com.nirmata.workflow.admin;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
@@ -17,16 +16,16 @@ import java.util.List;
 import java.util.Map;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.*;
-import static com.nirmata.workflow.spi.JsonSerializer.*;
+import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
 
-public class WorkflowReport
+public class RunReport
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DenormalizedWorkflowModel workflow;
     private final Map<TaskId, TaskExecutionResult> completedTasks;
     private final Map<TaskId, Date> runningTasks;
 
-    public WorkflowReport(CuratorFramework curator, RunId runId)
+    public RunReport(CuratorFramework curator, RunId runId)
     {
         ImmutableMap.Builder<TaskId, TaskExecutionResult> completedTasksBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<TaskId, Date> runningTasksBuilder = ImmutableMap.builder();
@@ -44,19 +43,16 @@ public class WorkflowReport
 
     public Date getStartDateUtc()
     {
-        Preconditions.checkState(isValid(), "report is not valid");
-        return workflow.getStartDateUtc();
+        return (workflow != null) ? workflow.getStartDateUtc() : null;
     }
 
     public Map<TaskId, TaskExecutionResult> getCompletedTasks()
     {
-        Preconditions.checkState(isValid(), "report is not valid");
         return completedTasks;
     }
 
     public Map<TaskId, Date> getRunningTasks()
     {
-        Preconditions.checkState(isValid(), "report is not valid");
         return runningTasks;
     }
 

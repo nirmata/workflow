@@ -1,5 +1,6 @@
 package com.nirmata.workflow.spi;
 
+import io.airlift.units.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.text.DateFormat;
@@ -9,6 +10,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 public class Clock
 {
@@ -33,6 +35,18 @@ public class Clock
             calendar.get(Calendar.SECOND)
         );
         return gregorianCalendar.getTime();
+    }
+
+    /**
+     * Return the elapsed time from the given start date to now
+     *
+     * @param startDateUtc start date
+     * @return duration
+     */
+    public static Duration elapsedMs(Date startDateUtc)
+    {
+        long elapsedMs = nowUtc().getTime() - startDateUtc.getTime();
+        return new Duration(elapsedMs, TimeUnit.MILLISECONDS);
     }
 
     /**
