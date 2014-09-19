@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.WorkflowId;
-import com.nirmata.workflow.spi.Clock;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -19,7 +20,7 @@ public class InternalJsonSerializer
         node.put("name", denormalizedWorkflow.getName());
         addTaskSet(node, denormalizedWorkflow.getTaskSets());
         addTasks(node, denormalizedWorkflow.getTasks());
-        node.put("startDateUtc", Clock.dateToString(denormalizedWorkflow.getStartDateUtc()));
+        node.put("startDateUtc", denormalizedWorkflow.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
     }
@@ -34,7 +35,7 @@ public class InternalJsonSerializer
             getTasks(node),
             node.get("name").asText(),
             getTaskSet(node),
-            Clock.dateFromString(node.get("startDateUtc").asText()),
+            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
             node.get("taskSetsIndex").asInt()
         );
     }

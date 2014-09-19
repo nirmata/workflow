@@ -4,17 +4,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
+import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.queue.Queue;
-import com.nirmata.workflow.spi.Clock;
 import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 
 class CacherListenerImpl implements CacherListener
@@ -73,7 +74,7 @@ class CacherListenerImpl implements CacherListener
         String path = ZooKeeperConstants.getStartedTaskPath(workflow.getRunId(), task.getTaskId());
         try
         {
-            StartedTaskModel startedTask = new StartedTaskModel(workflowManager.getConfiguration().getInstanceName(), Clock.nowUtc());
+            StartedTaskModel startedTask = new StartedTaskModel(workflowManager.getConfiguration().getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
             byte[] data = JsonSerializer.toBytes(JsonSerializer.addStartedTask(JsonSerializer.newNode(), startedTask));
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
@@ -102,7 +103,7 @@ class CacherListenerImpl implements CacherListener
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(completedBasePath, Scheduler.toJson(log, newWorkflow));
 
             workflowManager.getCurator().delete().guaranteed().inBackground().forPath(ZooKeeperConstants.getRunPath(newWorkflow.getRunId()));
-            ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), Clock.nowUtc(), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
+            ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(newWorkflow.getScheduleId(), newWorkflow.getStartDateUtc(), LocalDateTime.now(Clock.systemUTC()), newWorkflow.getScheduleExecution().getExecutionQty() + 1);
             workflowManager.getStorageBridge().updateScheduleExecution(scheduleExecution);
 
             workflowManager.notifyScheduleCompleted(newWorkflow.getScheduleId());

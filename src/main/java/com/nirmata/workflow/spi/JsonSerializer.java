@@ -13,6 +13,8 @@ import io.airlift.units.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -81,8 +83,8 @@ public class JsonSerializer
     {
         ObjectNode scheduleExecutionNode = newNode();
         scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecutionStartUtc", Clock.dateToString(scheduleExecution.getLastExecutionStartUtc()));
-        scheduleExecutionNode.put("lastExecutionEndUtc", Clock.dateToString(scheduleExecution.getLastExecutionEndUtc()));
+        scheduleExecutionNode.put("lastExecutionStartUtc", scheduleExecution.getLastExecutionStartUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        scheduleExecutionNode.put("lastExecutionEndUtc", scheduleExecution.getLastExecutionEndUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
         node.set("scheduleExecution", scheduleExecutionNode);
         return node;
@@ -94,8 +96,8 @@ public class JsonSerializer
         return new ScheduleExecutionModel
         (
             new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
-            Clock.dateFromString(scheduleExecutionNode.get("lastExecutionStartUtc").asText()),
-            Clock.dateFromString(scheduleExecutionNode.get("lastExecutionEndUtc").asText()),
+            LocalDateTime.parse(scheduleExecutionNode.get("lastExecutionStartUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
+            LocalDateTime.parse(scheduleExecutionNode.get("lastExecutionEndUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
             scheduleExecutionNode.get("executionQty").asInt()
         );
     }
@@ -306,7 +308,7 @@ public class JsonSerializer
         ObjectNode taskExecutionResultNode = newNode();
         taskExecutionResultNode.put("details", taskExecutionResult.getDetails());
         taskExecutionResultNode.putPOJO("resultData", taskExecutionResult.getResultData());
-        taskExecutionResultNode.put("completionDateUtc", Clock.dateToString(taskExecutionResult.getCompletionDateUtc()));
+        taskExecutionResultNode.put("completionDateUtc", taskExecutionResult.getCompletionDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         node.set("taskExecutionResult", taskExecutionResultNode);
         return node;
     }
@@ -318,7 +320,7 @@ public class JsonSerializer
             (
                 taskExecutionResultNode.get("details").asText(),
                 getMap(taskExecutionResultNode.get("resultData")),
-                Clock.dateFromString(taskExecutionResultNode.get("completionDateUtc").asText())
+                LocalDateTime.parse(taskExecutionResultNode.get("completionDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
             );
     }
 
@@ -347,7 +349,7 @@ public class JsonSerializer
     {
         ObjectNode startedTaskNode = newNode();
         startedTaskNode.put("instanceName", startedTask.getInstanceName());
-        startedTaskNode.put("startDateUtc", Clock.dateToString(startedTask.getStartDateUtc()));
+        startedTaskNode.put("startDateUtc", startedTask.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         node.set("startedTask", startedTaskNode);
         return node;
     }
@@ -358,7 +360,7 @@ public class JsonSerializer
         return new StartedTaskModel
         (
             startedTaskNode.get("instanceName").asText(),
-            Clock.dateFromString(startedTaskNode.get("startDateUtc").asText())
+            LocalDateTime.parse(startedTaskNode.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
         );
     }
 

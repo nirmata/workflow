@@ -11,7 +11,6 @@ import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
-import com.nirmata.workflow.spi.Clock;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -21,7 +20,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
-import java.util.Date;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -87,7 +87,7 @@ public class Scheduler implements Closeable
                     ScheduleExecutionModel scheduleExecution = localStateCache.getScheduleExecutions().get(scheduleId);
                     if ( scheduleExecution == null )
                     {
-                        scheduleExecution = new ScheduleExecutionModel(scheduleId, new Date(0), new Date(0), 0);
+                        scheduleExecution = new ScheduleExecutionModel(scheduleId, LocalDateTime.now(), LocalDateTime.now(), 0);
                     }
                     if ( schedule.shouldExecuteNow(scheduleExecution) )
                     {
@@ -126,7 +126,7 @@ public class Scheduler implements Closeable
                 tasks.add(task);
             }
         }
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), 0);
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), LocalDateTime.now(Clock.systemUTC()), 0);
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try

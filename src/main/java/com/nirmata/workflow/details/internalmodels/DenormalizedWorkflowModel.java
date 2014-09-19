@@ -7,7 +7,7 @@ import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
 import com.nirmata.workflow.models.WorkflowId;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class DenormalizedWorkflowModel
@@ -19,9 +19,9 @@ public class DenormalizedWorkflowModel
     private final String name;
     private final TaskSets taskSets;
     private final int taskSetsIndex;
-    private final Date startDateUtc;
+    private final LocalDateTime startDateUtc;
 
-    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, Date startDateUtc, int taskSetsIndex)
+    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, LocalDateTime startDateUtc, int taskSetsIndex)
     {
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         this.scheduleExecution = Preconditions.checkNotNull(scheduleExecution, "scheduleExecution cannot be null");
@@ -68,7 +68,7 @@ public class DenormalizedWorkflowModel
         return taskSets;
     }
 
-    public Date getStartDateUtc()
+    public LocalDateTime getStartDateUtc()
     {
         return startDateUtc;
     }

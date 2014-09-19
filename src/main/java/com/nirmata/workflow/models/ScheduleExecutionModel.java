@@ -1,7 +1,7 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 /**
  * Models an executing schedule
@@ -9,8 +9,8 @@ import java.util.Date;
 public class ScheduleExecutionModel
 {
     private final ScheduleId scheduleId;
-    private final Date lastExecutionStartUtc;
-    private final Date lastExecutionEndUtc;
+    private final LocalDateTime lastExecutionStartUtc;
+    private final LocalDateTime lastExecutionEndUtc;
     private final int executionQty;
 
     /**
@@ -19,7 +19,7 @@ public class ScheduleExecutionModel
      * @param lastExecutionEndUtc the end time UTC of last execution
      * @param executionQty the number of times this schedule has executed or 0
      */
-    public ScheduleExecutionModel(ScheduleId scheduleId, Date lastExecutionStartUtc, Date lastExecutionEndUtc, int executionQty)
+    public ScheduleExecutionModel(ScheduleId scheduleId, LocalDateTime lastExecutionStartUtc, LocalDateTime lastExecutionEndUtc, int executionQty)
     {
         this.scheduleId = Preconditions.checkNotNull(scheduleId, "scheduleId cannot be null");
         this.lastExecutionStartUtc = Preconditions.checkNotNull(lastExecutionStartUtc, "lastExecution cannot be null");
@@ -32,12 +32,12 @@ public class ScheduleExecutionModel
         return scheduleId;
     }
 
-    public Date getLastExecutionStartUtc()
+    public LocalDateTime getLastExecutionStartUtc()
     {
         return lastExecutionStartUtc;
     }
 
-    public Date getLastExecutionEndUtc()
+    public LocalDateTime getLastExecutionEndUtc()
     {
         return lastExecutionEndUtc;
     }

@@ -5,21 +5,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.models.StartedTaskModel;
-import com.nirmata.workflow.models.RunId;
-import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
+import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class TestJsonSerializer
@@ -172,7 +170,7 @@ public class TestJsonSerializer
     @Test
     public void testScheduleExecution()
     {
-        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), new Date(), new Date(), random.nextInt());
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
 
         ObjectNode node = newNode();
         addScheduleExecution(node, scheduleExecution);
@@ -197,11 +195,8 @@ public class TestJsonSerializer
             }
         }
 
-        Date randomDate = Clock.nowUtc();
-        Thread.sleep(5);
-        Date randomDate2 = Clock.nowUtc();
-        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), randomDate, randomDate2, random.nextInt());
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), Clock.nowUtc(), random.nextInt());
+        ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), LocalDateTime.now(), random.nextInt());
 
         ObjectNode node = newNode();
         addDenormalizedWorkflow(node, denormalizedWorkflowModel);
@@ -232,7 +227,7 @@ public class TestJsonSerializer
         Map<String, String> resultData = Maps.newHashMap();
         resultData.put("one", "1");
         resultData.put("two", "2");
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData, Clock.nowUtc());
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData);
         ObjectNode node = newNode();
         addTaskExecutionResult(node, taskExecutionResult);
         String str = nodeToString(node);
@@ -245,7 +240,7 @@ public class TestJsonSerializer
     @Test
     public void testStartedTask()
     {
-        StartedTaskModel startedTask = new StartedTaskModel("test", Clock.nowUtc());
+        StartedTaskModel startedTask = new StartedTaskModel("test", LocalDateTime.now());
         ObjectNode node = newNode();
         addStartedTask(node, startedTask);
         String str = nodeToString(node);

@@ -3,19 +3,19 @@ package com.nirmata.workflow.admin;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
-import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.RunId;
+import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.*;
+import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class RunReport
@@ -23,12 +23,12 @@ public class RunReport
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DenormalizedWorkflowModel workflow;
     private final Map<TaskId, TaskExecutionResult> completedTasks;
-    private final Map<TaskId, Date> runningTasks;
+    private final Map<TaskId, LocalDateTime> runningTasks;
 
     public RunReport(CuratorFramework curator, RunId runId)
     {
         ImmutableMap.Builder<TaskId, TaskExecutionResult> completedTasksBuilder = ImmutableMap.builder();
-        ImmutableMap.Builder<TaskId, Date> runningTasksBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<TaskId, LocalDateTime> runningTasksBuilder = ImmutableMap.builder();
 
         workflow = init(curator, runId);
         if ( isValid() )
@@ -41,7 +41,7 @@ public class RunReport
         runningTasks = runningTasksBuilder.build();
     }
 
-    public Date getStartDateUtc()
+    public LocalDateTime getStartDateUtc()
     {
         return (workflow != null) ? workflow.getStartDateUtc() : null;
     }
@@ -51,7 +51,7 @@ public class RunReport
         return completedTasks;
     }
 
-    public Map<TaskId, Date> getRunningTasks()
+    public Map<TaskId, LocalDateTime> getRunningTasks()
     {
         return runningTasks;
     }
@@ -61,7 +61,7 @@ public class RunReport
         return (workflow != null);
     }
 
-    private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, Date> builder)
+    private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, LocalDateTime> builder)
     {
         String path = ZooKeeperConstants.getStartedTasksParentPath(runId);
         try

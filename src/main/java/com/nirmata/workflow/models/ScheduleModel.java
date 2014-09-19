@@ -1,8 +1,9 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.spi.Clock;
-import java.util.Date;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Models a schedule
@@ -58,9 +59,9 @@ public class ScheduleModel
             return false;
         }
 
-        Date previousDateUtc = (repetition.getType() == RepetitionModel.Type.ABSOLUTE) ? scheduleExecution.getLastExecutionStartUtc() : scheduleExecution.getLastExecutionEndUtc();
-        Date nextDateUtc = new Date(repetition.getDuration().toMillis() + previousDateUtc.getTime());
-        return Clock.nowUtc().getTime() > nextDateUtc.getTime();
+        LocalDateTime previousDateUtc = (repetition.getType() == RepetitionModel.Type.ABSOLUTE) ? scheduleExecution.getLastExecutionStartUtc() : scheduleExecution.getLastExecutionEndUtc();
+        LocalDateTime nextDateUtc = previousDateUtc.plus(repetition.getDuration().toMillis(), ChronoUnit.MILLIS);
+        return LocalDateTime.now(Clock.systemUTC()).isAfter(nextDateUtc);
     }
 
     @Override

@@ -1,14 +1,14 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 public class StartedTaskModel
 {
     private final String instanceName;
-    private final Date startDateUtc;
+    private final LocalDateTime startDateUtc;
 
-    public StartedTaskModel(String instanceName, Date startDateUtc)
+    public StartedTaskModel(String instanceName, LocalDateTime startDateUtc)
     {
         this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
@@ -19,7 +19,7 @@ public class StartedTaskModel
         return instanceName;
     }
 
-    public Date getStartDateUtc()
+    public LocalDateTime getStartDateUtc()
     {
         return startDateUtc;
     }

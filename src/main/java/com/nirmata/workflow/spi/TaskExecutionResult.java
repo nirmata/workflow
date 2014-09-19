@@ -2,7 +2,8 @@ package com.nirmata.workflow.spi;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import java.util.Date;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -12,7 +13,7 @@ public class TaskExecutionResult
 {
     private final String details;
     private final Map<String, String> resultData;
-    private final Date completionDateUtc;
+    private final LocalDateTime completionDateUtc;
 
     /**
      * @param details task-specific details
@@ -20,7 +21,7 @@ public class TaskExecutionResult
      */
     public TaskExecutionResult(String details, Map<String, String> resultData)
     {
-        this(details, resultData, Clock.nowUtc());
+        this(details, resultData, LocalDateTime.now(Clock.systemUTC()));
     }
 
     /**
@@ -28,7 +29,7 @@ public class TaskExecutionResult
      * @param resultData task-specific fields/values
      * @param completionDateUtc date of completion
      */
-    public TaskExecutionResult(String details, Map<String, String> resultData, Date completionDateUtc)
+    public TaskExecutionResult(String details, Map<String, String> resultData, LocalDateTime completionDateUtc)
     {
         resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
         this.completionDateUtc = Preconditions.checkNotNull(completionDateUtc, "completionDateUtc cannot be null");
@@ -46,7 +47,7 @@ public class TaskExecutionResult
         return resultData;
     }
 
-    public Date getCompletionDateUtc()
+    public LocalDateTime getCompletionDateUtc()
     {
         return completionDateUtc;
     }
