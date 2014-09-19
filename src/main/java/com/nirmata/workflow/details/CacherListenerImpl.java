@@ -4,12 +4,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.StartedTaskModel;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.spi.Clock;
+import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +73,8 @@ class CacherListenerImpl implements CacherListener
         String path = ZooKeeperConstants.getStartedTaskPath(workflow.getRunId(), task.getTaskId());
         try
         {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path);
+            byte[] data = JsonSerializer.toBytes(InternalJsonSerializer.addStartedTask(JsonSerializer.newNode(), new StartedTaskModel(Clock.nowUtc())));
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
             queue.put(new ExecutableTaskModel(workflow.getRunId(), workflow.getScheduleId(), task));
             log.info("Queued task: " + task);

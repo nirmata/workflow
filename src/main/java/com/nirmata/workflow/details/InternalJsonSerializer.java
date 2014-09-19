@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.StartedTaskModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleId;
@@ -14,6 +15,17 @@ import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class InternalJsonSerializer
 {
+    public static ObjectNode addStartedTask(ObjectNode node, StartedTaskModel startedTask)
+    {
+        node.put("startDateUtc", Clock.dateToString(startedTask.getStartDateUtc()));
+        return node;
+    }
+
+    public static StartedTaskModel getStartedTask(JsonNode node)
+    {
+        return new StartedTaskModel(Clock.dateFromString(node.get("startDateUtc").asText()));
+    }
+
     public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResult taskExecutionResult)
     {
         node.put("details", taskExecutionResult.getDetails());
@@ -56,7 +68,7 @@ public class InternalJsonSerializer
         node.put("name", denormalizedWorkflow.getName());
         addTaskSet(node, denormalizedWorkflow.getTaskSets());
         addTasks(node, denormalizedWorkflow.getTasks());
-        node.put("startDate", Clock.dateToString(denormalizedWorkflow.getStartDateUtc()));
+        node.put("startDateUtc", Clock.dateToString(denormalizedWorkflow.getStartDateUtc()));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
     }
@@ -71,7 +83,7 @@ public class InternalJsonSerializer
             getTasks(node),
             node.get("name").asText(),
             getTaskSet(node),
-            Clock.dateFromString(node.get("startDate").asText()),
+            Clock.dateFromString(node.get("startDateUtc").asText()),
             node.get("taskSetsIndex").asInt()
         );
     }

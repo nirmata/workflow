@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.StartedTaskModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.*;
@@ -239,6 +240,19 @@ public class TestJsonSerializer
 
         TaskExecutionResult unTaskExecutionResult = getTaskExecutionResult(fromString(str));
         Assert.assertEquals(taskExecutionResult, unTaskExecutionResult);
+    }
+
+    @Test
+    public void testStartedTask()
+    {
+        StartedTaskModel startedTask = new StartedTaskModel(Clock.nowUtc());
+        ObjectNode node = newNode();
+        addStartedTask(node, startedTask);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        StartedTaskModel unStartedTask = getStartedTask(fromString(str));
+        Assert.assertEquals(startedTask, unStartedTask);
     }
 
     private ScheduleModel newSchedule()
