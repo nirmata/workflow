@@ -124,9 +124,14 @@ public class ZooKeeperConstants
         return grandParentPathAndNode.getNode();
     }
 
+    public static String getStartedTasksParentPath(RunId runId)
+    {
+        return ZKPaths.makePath(getRunsWorkParentPath(runId), STARTED_TASKS_PATH);
+    }
+
     public static String getStartedTaskPath(RunId runId, TaskId taskId)
     {
-        String parentPath = ZKPaths.makePath(getRunsWorkParentPath(runId), STARTED_TASKS_PATH);
+        String parentPath = getStartedTasksParentPath(runId);
         return ZKPaths.makePath(parentPath, taskId.getId());
     }
 }

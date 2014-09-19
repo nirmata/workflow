@@ -2,6 +2,7 @@ package com.nirmata.workflow;
 
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.ExecutableTaskModel;
+import com.nirmata.workflow.spi.Clock;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import com.nirmata.workflow.spi.TaskExecutor;
@@ -58,7 +59,7 @@ class TestTaskExecutor implements TaskExecutor
                     checker.decrement();
                     latch.countDown();
                 }
-                return new TaskExecutionResult("hey", Maps.<String, String>newHashMap());
+                return new TaskExecutionResult("hey", Maps.<String, String>newHashMap(), Clock.nowUtc());
             }
         };
     }

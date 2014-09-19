@@ -30,6 +30,7 @@ public class InternalJsonSerializer
     {
         node.put("details", taskExecutionResult.getDetails());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
+        node.put("completionDateUtc", Clock.dateToString(taskExecutionResult.getCompletionDateUtc()));
         return node;
     }
 
@@ -38,7 +39,8 @@ public class InternalJsonSerializer
         return new TaskExecutionResult
         (
             node.get("details").asText(),
-            getMap(node.get("resultData"))
+            getMap(node.get("resultData")),
+            Clock.dateFromString(node.get("completionDateUtc").asText())
         );
     }
 

@@ -52,7 +52,7 @@ public class TestCacher extends BaseClassForTests
                     if ( latch.getCount() > 0 )
                     {
                         Map<String, String> resultData = Maps.newHashMap();
-                        TaskExecutionResult result = new TaskExecutionResult("test", resultData);
+                        TaskExecutionResult result = new TaskExecutionResult("test", resultData, Clock.nowUtc());
                         String json = nodeToString(addTaskExecutionResult(newNode(), result));
                         try
                         {

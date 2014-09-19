@@ -232,7 +232,7 @@ public class TestJsonSerializer
         Map<String, String> resultData = Maps.newHashMap();
         resultData.put("one", "1");
         resultData.put("two", "2");
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData);
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData, Clock.nowUtc());
         ObjectNode node = newNode();
         addTaskExecutionResult(node, taskExecutionResult);
         String str = nodeToString(node);
