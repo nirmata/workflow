@@ -3,6 +3,7 @@ package com.nirmata.workflow.spi;
 /**
  * Represents an execution task
  */
+@FunctionalInterface
 public interface TaskExecution
 {
     /**
