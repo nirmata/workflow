@@ -1,6 +1,5 @@
 package com.nirmata.workflow.details;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -21,39 +20,6 @@ public class StateCache
     private final Map<WorkflowId, WorkflowModel> workflows;
     private final Map<TaskId, TaskModel> tasks;
 
-    private static final Function<? super ScheduleModel, ScheduleId> scheduleIdFunction = new Function<ScheduleModel, ScheduleId>()
-    {
-        @Override
-        public ScheduleId apply(ScheduleModel scheduleModel)
-        {
-            return scheduleModel.getScheduleId();
-        }
-    };
-    private static final Function<? super ScheduleExecutionModel, ScheduleId> scheduleExecutionIdFunction = new Function<ScheduleExecutionModel, ScheduleId>()
-    {
-        @Override
-        public ScheduleId apply(ScheduleExecutionModel scheduleExecution)
-        {
-            return scheduleExecution.getScheduleId();
-        }
-    };
-    public static final Function<? super TaskModel, TaskId> taskIdFunction = new Function<TaskModel, TaskId>()
-    {
-        @Override
-        public TaskId apply(TaskModel taskModel)
-        {
-            return taskModel.getTaskId();
-        }
-    };
-    private static final Function<? super WorkflowModel, WorkflowId> workflowIdFunction = new Function<WorkflowModel, WorkflowId>()
-    {
-        @Override
-        public WorkflowId apply(WorkflowModel workflowModel)
-        {
-            return workflowModel.getWorkflowId();
-        }
-    };
-
     public StateCache(List<ScheduleModel> schedules, List<ScheduleExecutionModel> scheduleExecutions, List<TaskModel> tasks, List<WorkflowModel> workflows)
     {
         schedules = Preconditions.checkNotNull(schedules, "schedules cannot be null");
@@ -61,10 +27,10 @@ public class StateCache
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         workflows = Preconditions.checkNotNull(workflows, "workflows cannot be null");
 
-        this.schedules = Maps.uniqueIndex(schedules, scheduleIdFunction);
-        this.scheduleExecutions = Maps.uniqueIndex(scheduleExecutions, scheduleExecutionIdFunction);
-        this.tasks = Maps.uniqueIndex(tasks, taskIdFunction);
-        this.workflows = Maps.uniqueIndex(workflows, workflowIdFunction);
+        this.schedules = Maps.uniqueIndex(schedules, ScheduleModel::getScheduleId);
+        this.scheduleExecutions = Maps.uniqueIndex(scheduleExecutions, ScheduleExecutionModel::getScheduleId);
+        this.tasks = Maps.uniqueIndex(tasks, TaskModel::getTaskId);
+        this.workflows = Maps.uniqueIndex(workflows, WorkflowModel::getWorkflowId);
     }
 
     public StateCache()

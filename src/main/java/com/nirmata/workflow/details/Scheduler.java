@@ -34,7 +34,7 @@ public class Scheduler implements Closeable
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManager workflowManager;
     private final LeaderSelector leaderSelector;
-    private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
+    private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
 
     private enum State
     {

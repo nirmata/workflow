@@ -47,14 +47,14 @@ public class WorkflowManager implements Closeable
     private final WorkflowManagerConfiguration configuration;
     private final CuratorFramework curator;
     private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("WorkflowManager");
-    private final AtomicReference<StateCache> stateCache = new AtomicReference<StateCache>(new StateCache());
-    private final AtomicReference<State> state = new AtomicReference<State>(State.LATENT);
+    private final AtomicReference<StateCache> stateCache = new AtomicReference<>(new StateCache());
+    private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
     private final Scheduler scheduler;
     private final Queue idempotentTaskQueue;
     private final Queue nonIdempotentTaskQueue;
     private final List<QueueConsumer> taskConsumers;
     private final ExecutableTaskRunner executableTaskRunner;
-    private final ListenerContainer<WorkflowManagerListener> listeners = new ListenerContainer<WorkflowManagerListener>();
+    private final ListenerContainer<WorkflowManagerListener> listeners = new ListenerContainer<>();
 
     private enum State
     {
@@ -122,15 +122,7 @@ public class WorkflowManager implements Closeable
             throw new RuntimeException(e);
         }
 
-        Runnable stateUpdater = new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                updateState();
-            }
-        };
-        scheduledExecutorService.scheduleWithFixedDelay(stateUpdater, configuration.getStorageRefreshMs(), configuration.getStorageRefreshMs(), TimeUnit.MILLISECONDS);
+        scheduledExecutorService.scheduleWithFixedDelay(this::updateState, configuration.getStorageRefreshMs(), configuration.getStorageRefreshMs(), TimeUnit.MILLISECONDS);
 
         scheduler.start();
     }
@@ -229,42 +221,27 @@ public class WorkflowManager implements Closeable
 
     public void notifyScheduleCompleted(final ScheduleId scheduleId)
     {
-        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
-        {
-            @Override
-            public Void apply(WorkflowManagerListener listener)
-            {
-                listener.notifyScheduleCompleted(scheduleId);
-                return null;
-            }
+        Function<WorkflowManagerListener, Void> notifier = listener -> {
+            listener.notifyScheduleCompleted(scheduleId);
+            return null;
         };
         listeners.forEach(notifier);
     }
 
     public void notifyTaskExecuted(final ScheduleId scheduleId, final TaskId taskId)
     {
-        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
-        {
-            @Override
-            public Void apply(WorkflowManagerListener listener)
-            {
-                listener.notifyTaskExecuted(scheduleId, taskId);
-                return null;
-            }
+        Function<WorkflowManagerListener, Void> notifier = listener -> {
+            listener.notifyTaskExecuted(scheduleId, taskId);
+            return null;
         };
         listeners.forEach(notifier);
     }
 
     public void notifyScheduleStarted(final ScheduleId scheduleId)
     {
-        Function<WorkflowManagerListener, Void> notifier = new Function<WorkflowManagerListener, Void>()
-        {
-            @Override
-            public Void apply(WorkflowManagerListener listener)
-            {
-                listener.notifyScheduleStarted(scheduleId);
-                return null;
-            }
+        Function<WorkflowManagerListener, Void> notifier = listener -> {
+            listener.notifyScheduleStarted(scheduleId);
+            return null;
         };
         listeners.forEach(notifier);
     }

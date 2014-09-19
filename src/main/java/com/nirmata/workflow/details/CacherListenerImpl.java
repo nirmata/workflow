@@ -30,7 +30,7 @@ class CacherListenerImpl implements CacherListener
     @Override
     public void updateAndQueueTasks(Cacher cacher, DenormalizedWorkflowModel workflow)
     {
-        ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), StateCache.taskIdFunction);
+        ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), TaskModel::getTaskId);
         int taskSetsIndex = workflow.getTaskSetsIndex();
         int completedQty = 0;
         List<TaskId> thisTasks = workflow.getTaskSets().get(taskSetsIndex);

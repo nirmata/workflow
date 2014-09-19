@@ -7,9 +7,17 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
+        <jdk-version>1.8</jdk-version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
         <curator-version>2.6.0</curator-version>
         <airlift-version>0.93</airlift-version>
         <jackson-version>2.4.2</jackson-version>
+        <testng-version>6.8.8</testng-version>
+        <slf4j-version>1.7.7</slf4j-version>
     </properties>
 
     <dependencies>
@@ -47,15 +55,28 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>6.8.8</version>
+            <version>${testng-version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.7</version>
+            <version>${slf4j-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
+                <configuration>
+                    <source>${jdk-version}</source>
+                    <target>${jdk-version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

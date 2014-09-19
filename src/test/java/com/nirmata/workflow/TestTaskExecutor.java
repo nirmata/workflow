@@ -39,28 +39,23 @@ class TestTaskExecutor implements TaskExecutor
     @Override
     public TaskExecution newTaskExecution(final ExecutableTaskModel task)
     {
-        return new TaskExecution()
-        {
-            @Override
-            public TaskExecutionResult execute()
+        return () -> {
+            try
             {
-                try
-                {
-                    checker.add(task.getTask().getTaskId());
-                    Thread.sleep(1000);
-                }
-                catch ( InterruptedException e )
-                {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                }
-                finally
-                {
-                    checker.decrement();
-                    latch.countDown();
-                }
-                return new TaskExecutionResult("hey", Maps.<String, String>newHashMap(), Clock.nowUtc());
+                checker.add(task.getTask().getTaskId());
+                Thread.sleep(1000);
             }
+            catch ( InterruptedException e )
+            {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+            finally
+            {
+                checker.decrement();
+                latch.countDown();
+            }
+            return new TaskExecutionResult("hey", Maps.<String, String>newHashMap(), Clock.nowUtc());
         };
     }
 }

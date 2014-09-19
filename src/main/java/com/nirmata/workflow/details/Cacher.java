@@ -16,6 +16,7 @@ import org.apache.curator.utils.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 
@@ -38,44 +39,44 @@ class Cacher implements Closeable
         {
             switch ( event.getType() )
             {
-                default:
+            default:
+            {
+                break;  // NOP
+            }
+
+            case CHILD_ADDED:
+            {
+                DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                log.debug("New run added: " + workflow);
+                PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(workflow.getRunId()), false);
+                if ( completedTasksCaches.putIfAbsent(workflow.getRunId(), taskCache) == null )
                 {
-                    break;  // NOP
+                    taskCache.getListenable().addListener(completedTasksListener, executorService);
+                    taskCache.start(PathChildrenCache.StartMode.NORMAL);
                 }
 
-                case CHILD_ADDED:
-                {
-                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
-                    log.debug("New run added: " + workflow);
-                    PathChildrenCache taskCache = new PathChildrenCache(curator, ZooKeeperConstants.getCompletedTasksParentPath(workflow.getRunId()), false);
-                    if ( completedTasksCaches.putIfAbsent(workflow.getRunId(), taskCache) == null )
-                    {
-                        taskCache.getListenable().addListener(completedTasksListener, executorService);
-                        taskCache.start(PathChildrenCache.StartMode.NORMAL);
-                    }
+                cacherListener.updateAndQueueTasks(Cacher.this, workflow);
+                break;
+            }
 
-                    cacherListener.updateAndQueueTasks(Cacher.this, workflow);
-                    break;
-                }
-
-                case CHILD_REMOVED:
+            case CHILD_REMOVED:
+            {
+                RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                log.debug("Run removed: " + runId);
+                PathChildrenCache cache = completedTasksCaches.remove(runId);
+                if ( cache != null )
                 {
-                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
-                    log.debug("Run removed: " + runId);
-                    PathChildrenCache cache = completedTasksCaches.remove(runId);
-                    if ( cache != null )
-                    {
-                        CloseableUtils.closeQuietly(cache);
-                    }
-                    break;
+                    CloseableUtils.closeQuietly(cache);
                 }
+                break;
+            }
 
-                case CHILD_UPDATED:
-                {
-                    DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
-                    log.debug("Run updated: " + workflow);
-                    cacherListener.updateAndQueueTasks(Cacher.this, workflow);
-                }
+            case CHILD_UPDATED:
+            {
+                DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(event.getData().getData()));
+                log.debug("Run updated: " + workflow);
+                cacherListener.updateAndQueueTasks(Cacher.this, workflow);
+            }
             }
         }
     };
@@ -130,10 +131,7 @@ class Cacher implements Closeable
     @Override
     public void close()
     {
-        for ( PathChildrenCache cache : completedTasksCaches.values() )
-        {
-            CloseableUtils.closeQuietly(cache);
-        }
+        completedTasksCaches.values().forEach(CloseableUtils::closeQuietly);
         CloseableUtils.closeQuietly(runsCache);
     }
 
@@ -153,16 +151,12 @@ class Cacher implements Closeable
 
     boolean scheduleIsActive(ScheduleId scheduleId)
     {
-        for ( ChildData childData : runsCache.getCurrentData() )
-        {
-            DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(childData.getData()));
-            if ( workflow.getScheduleId().equals(scheduleId) )
-            {
-                return true;
-            }
-        }
-
-        return false;
+        Optional<ChildData> any = runsCache
+            .getCurrentData()
+            .stream()
+            .filter(childData -> getDenormalizedWorkflow(fromBytes(childData.getData())).getScheduleId().equals(scheduleId))
+            .findAny();
+        return any.isPresent();
     }
 
     boolean taskIsComplete(RunId runId, TaskId taskId)
