@@ -258,10 +258,12 @@ public class TestJsonSerializer
     {
         String json = Resources.toString(Resources.getResource("big_task_dag.json"), Charset.defaultCharset());
         TaskDagModel taskDag = getTaskDag(fromString(json));
+        JsonNode node = newTaskDag(taskDag);
+        String str = nodeToString(node);
+        System.out.println(str);
 
-        String unJson = nodeToString(newTaskDag(taskDag));
-
-        Assert.assertEquals(json.replaceAll("\\s", ""), unJson.replaceAll("\\s", ""));
+        TaskDagModel unTaskDag = getTaskDag(fromString(str));
+        Assert.assertEquals(taskDag, unTaskDag);
     }
 
     private TaskDagModel makeTaskDag(int remaining)

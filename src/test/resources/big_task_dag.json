@@ -1,18 +1,13 @@
 {
-    "tasks": [],
     "siblings": [
         {
             "tasks": ["Task-1"],
-            "siblings": [],
             "children": [
                 {
                     "tasks": ["Task-2", "Task-3"],
-                    "siblings": [],
                     "children": [
                         {
-                            "tasks": ["Task-4"],
-                            "siblings": [],
-                            "children": []
+                            "tasks": ["Task-4"]
                         }
                     ]
                 }
@@ -20,47 +15,35 @@
         },
 
         {
-            "tasks": ["Task-5"],
-            "siblings": [],
-            "children": []
+            "tasks": ["Task-5"]
         },
 
         {
             "tasks": ["Task-6"],
-            "siblings": [],
             "children": [
                 {
                     "tasks": ["Task-7"],
-                    "siblings": [],
                     "children": [
                         {
-                            "tasks": ["Task-10"],
-                            "siblings": [],
-                            "children": []
+                            "tasks": ["Task-10"]
                         }
                     ]
                 },
 
                 {
                     "tasks": ["Task-8"],
-                    "siblings": [],
                     "children": [
                         {
-                            "tasks": ["Task-11"],
-                            "siblings": [],
-                            "children": []
+                            "tasks": ["Task-11"]
                         }
                     ]
                 },
 
                 {
                     "tasks": ["Task-9"],
-                    "siblings": [],
                     "children": [
                         {
-                            "tasks": ["Task-12"],
-                            "siblings": [],
-                            "children": []
+                            "tasks": ["Task-12"]
                         }
                     ]
                 }
@@ -69,9 +52,7 @@
     ],
     "children": [
         {
-            "tasks": ["Task-13"],
-            "siblings": [],
-            "children": []
+            "tasks": ["Task-13"]
         }
     ]
 }

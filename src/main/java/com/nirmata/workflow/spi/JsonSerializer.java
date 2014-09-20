@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Serializer/deserializer methods for the various models
@@ -102,11 +103,19 @@ public class JsonSerializer
         List<TaskDagModel> siblings = Lists.newArrayList();
         List<TaskDagModel> children = Lists.newArrayList();
 
-        node.get("tasks").forEach(n -> tasks.add(new TaskId(n.asText())));
-        node.get("siblings").forEach(n -> siblings.add(getTaskDag(n)));
-        node.get("children").forEach(n -> children.add(getTaskDag(n)));
+        getChildren(node.get("tasks"), n -> tasks.add(new TaskId(n.asText())));
+        getChildren(node.get("siblings"), n -> siblings.add(getTaskDag(n)));
+        getChildren(node.get("children"), n -> children.add(getTaskDag(n)));
 
         return new TaskDagModel(tasks, siblings, children);
+    }
+
+    private static void getChildren(JsonNode tab, Consumer<JsonNode> action)
+    {
+        if ( tab != null )
+        {
+            tab.forEach(action);
+        }
     }
 
     public static JsonNode newScheduleExecution(ScheduleExecutionModel scheduleExecution)
