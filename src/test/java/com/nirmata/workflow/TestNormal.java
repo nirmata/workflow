@@ -43,7 +43,7 @@ public class TestNormal extends BaseClassForTests
     @Test
     public void testNormal_1x() throws Exception
     {
-        StorageBridge storageBridge = new TestStorageBridge("schedule_1x.json", "tasks.json", "workflows.json");
+        StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json");
 
         Timing timing = new Timing();
         WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
@@ -74,7 +74,7 @@ public class TestNormal extends BaseClassForTests
     @Test
     public void testNormal_2x() throws Exception
     {
-        StorageBridge storageBridge = new TestStorageBridge("schedule_2x.json", "tasks.json", "workflows.json");
+        StorageBridge storageBridge = new MockStorageBridge("schedule_2x.json", "tasks.json", "workflows.json");
 
         Timing timing = new Timing();
         WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);

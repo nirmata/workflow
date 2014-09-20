@@ -43,12 +43,12 @@ public class JsonSerializer
         return mapper;
     }
 
-    public static byte[] toBytes(ObjectNode node)
+    public static byte[] toBytes(JsonNode node)
     {
         return nodeToString(node).getBytes();
     }
 
-    public static String nodeToString(ObjectNode node)
+    public static String nodeToString(JsonNode node)
     {
         try
         {
@@ -79,47 +79,71 @@ public class JsonSerializer
         }
     }
 
-    public static ObjectNode addScheduleExecution(ObjectNode node, ScheduleExecutionModel scheduleExecution)
+    public static JsonNode newTaskDag(TaskDagModel taskDag)
     {
-        ObjectNode scheduleExecutionNode = newNode();
-        scheduleExecutionNode.put("scheduleId", scheduleExecution.getScheduleId().getId());
-        scheduleExecutionNode.put("lastExecutionStartUtc", scheduleExecution.getLastExecutionStartUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        scheduleExecutionNode.put("lastExecutionEndUtc", scheduleExecution.getLastExecutionEndUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        scheduleExecutionNode.put("executionQty", scheduleExecution.getExecutionQty());
-        node.set("scheduleExecution", scheduleExecutionNode);
+        ArrayNode tasksNode = newArrayNode();
+        ArrayNode siblingsNode = newArrayNode();
+        ArrayNode childrenNode = newArrayNode();
+
+        taskDag.getTasks().forEach(taskId -> tasksNode.add(taskId.getId()));
+        taskDag.getSiblings().forEach(d -> siblingsNode.add(newTaskDag(d)));
+        taskDag.getChildren().forEach(d -> childrenNode.add(newTaskDag(d)));
+
+        ObjectNode node = newNode();
+        node.set("tasks", tasksNode);
+        node.set("siblings", siblingsNode);
+        node.set("children", childrenNode);
+        return node;
+    }
+
+    public static TaskDagModel getTaskDag(JsonNode node)
+    {
+        List<TaskId> tasks = Lists.newArrayList();
+        List<TaskDagModel> siblings = Lists.newArrayList();
+        List<TaskDagModel> children = Lists.newArrayList();
+
+        node.get("tasks").forEach(n -> tasks.add(new TaskId(n.asText())));
+        node.get("siblings").forEach(n -> siblings.add(getTaskDag(n)));
+        node.get("children").forEach(n -> children.add(getTaskDag(n)));
+
+        return new TaskDagModel(tasks, siblings, children);
+    }
+
+    public static JsonNode newScheduleExecution(ScheduleExecutionModel scheduleExecution)
+    {
+        ObjectNode node = newNode();
+        node.put("scheduleId", scheduleExecution.getScheduleId().getId());
+        node.put("lastExecutionStartUtc", scheduleExecution.getLastExecutionStartUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("lastExecutionEndUtc", scheduleExecution.getLastExecutionEndUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("executionQty", scheduleExecution.getExecutionQty());
         return node;
     }
 
     public static ScheduleExecutionModel getScheduleExecution(JsonNode node)
     {
-        JsonNode scheduleExecutionNode = node.get("scheduleExecution");
         return new ScheduleExecutionModel
         (
-            new ScheduleId(scheduleExecutionNode.get("scheduleId").asText()),
-            LocalDateTime.parse(scheduleExecutionNode.get("lastExecutionStartUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
-            LocalDateTime.parse(scheduleExecutionNode.get("lastExecutionEndUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
-            scheduleExecutionNode.get("executionQty").asInt()
+            new ScheduleId(node.get("scheduleId").asText()),
+            LocalDateTime.parse(node.get("lastExecutionStartUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
+            LocalDateTime.parse(node.get("lastExecutionEndUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
+            node.get("executionQty").asInt()
         );
     }
 
-    public static ObjectNode addWorkflows(ObjectNode node, List<WorkflowModel> workflows)
+    public static JsonNode newWorkflows(List<WorkflowModel> workflows)
     {
         ArrayNode tab = newArrayNode();
         for ( WorkflowModel workflow : workflows )
         {
-            ObjectNode workflowNode = newNode();
-            addWorkflow(workflowNode, workflow);
-            tab.add(workflowNode);
+            tab.add(newWorkflow(workflow));
         }
-        node.set("workflows", tab);
-        return node;
+        return tab;
     }
 
     public static List<WorkflowModel> getWorkflows(JsonNode node)
     {
         ImmutableList.Builder<WorkflowModel> builder = ImmutableList.builder();
-        JsonNode tab = node.get("workflows");
-        Iterator<JsonNode> elements = tab.elements();
+        Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
             JsonNode next = elements.next();
@@ -128,45 +152,39 @@ public class JsonSerializer
         return builder.build();
     }
 
-    public static ObjectNode addWorkflow(ObjectNode node, WorkflowModel workflow)
+    public static JsonNode newWorkflow(WorkflowModel workflow)
     {
-        ObjectNode workflowNode = newNode();
-        addId(workflowNode, workflow.getWorkflowId());
-        workflowNode.put("name", workflow.getName());
-        addTaskSet(workflowNode, workflow.getTasks());
-        node.set("workflow", workflowNode);
+        ObjectNode node = newNode();
+        addId(node, workflow.getWorkflowId());
+        node.put("name", workflow.getName());
+        node.set("tasksSet", newTaskSet(workflow.getTasks()));
         return node;
     }
 
     public static WorkflowModel getWorkflow(JsonNode node)
     {
-        JsonNode workflowNode = node.get("workflow");
         return new WorkflowModel
         (
-            new WorkflowId(getId(workflowNode)),
-            workflowNode.get("name").asText(),
-            getTaskSet(workflowNode)
+            new WorkflowId(getId(node)),
+            node.get("name").asText(),
+            getTaskSet(node.get("tasksSet"))
         );
     }
 
-    public static ObjectNode addSchedules(ObjectNode node, List<ScheduleModel> schedules)
+    public static JsonNode newSchedules(List<ScheduleModel> schedules)
     {
         ArrayNode tab = newArrayNode();
         for ( ScheduleModel schedule : schedules )
         {
-            ObjectNode scheduleNode = newNode();
-            addSchedule(scheduleNode, schedule);
-            tab.add(scheduleNode);
+            tab.add(newSchedule(schedule));
         }
-        node.set("schedules", tab);
-        return node;
+        return tab;
     }
 
     public static List<ScheduleModel> getSchedules(JsonNode node)
     {
         ImmutableList.Builder<ScheduleModel> builder = ImmutableList.builder();
-        JsonNode tab = node.get("schedules");
-        Iterator<JsonNode> elements = tab.elements();
+        Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
             JsonNode next = elements.next();
@@ -175,27 +193,26 @@ public class JsonSerializer
         return builder.build();
     }
 
-    public static ObjectNode addSchedule(ObjectNode node, ScheduleModel schedule)
+    public static JsonNode newSchedule(ScheduleModel schedule)
     {
-        ObjectNode scheduleNode = newNode();
-        addId(scheduleNode, schedule.getScheduleId());
-        addRepetition(scheduleNode, schedule.getRepetition());
-        scheduleNode.put("workflowId", schedule.getWorkflowId().getId());
-        node.set("schedule", scheduleNode);
+        ObjectNode node = newNode();
+        addId(node, schedule.getScheduleId());
+        node.set("repetition", newRepetition(schedule.getRepetition()));
+        node.put("workflowId", schedule.getWorkflowId().getId());
         return node;
     }
 
     public static ScheduleModel getSchedule(JsonNode node)
     {
-        JsonNode scheduleNode = node.get("schedule");
         return new ScheduleModel
         (
-            new ScheduleId(getId(scheduleNode)),
-            new WorkflowId(scheduleNode.get("workflowId").asText()), getRepetition(scheduleNode)
+            new ScheduleId(getId(node)),
+            new WorkflowId(node.get("workflowId").asText()),
+            getRepetition(node.get("repetition"))
         );
     }
 
-    public static ObjectNode addTaskSet(ObjectNode node, TaskSets taskSets)
+    public static JsonNode newTaskSet(TaskSets taskSets)
     {
         ArrayNode tab = newArrayNode();
         for ( List<TaskId> tasks : taskSets )
@@ -203,52 +220,44 @@ public class JsonSerializer
             ArrayNode tasksTab = newArrayNode();
             for ( TaskId taskId : tasks )
             {
-                ObjectNode idNode = newNode();
-                addId(idNode, taskId);
-                tasksTab.add(idNode);
+                tasksTab.add(taskId.getId());
             }
             tab.add(tasksTab);
         }
-        node.set("taskSet", tab);
-        return node;
+        return tab;
     }
 
     public static TaskSets getTaskSet(JsonNode node)
     {
         List<List<TaskId>> tasks = Lists.newArrayList();
-        JsonNode tab = node.get("taskSet");
-        Iterator<JsonNode> elements = tab.elements();
+        Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
             JsonNode next = elements.next();
             List<TaskId> thisSet = Lists.newArrayList();
             for ( JsonNode idNode : next )
             {
-                thisSet.add(new TaskId(getId(idNode)));
+                thisSet.add(new TaskId(idNode.asText()));
             }
             tasks.add(thisSet);
         }
         return new TaskSets(tasks);
     }
 
-    public static ObjectNode addTasks(ObjectNode node, Collection<TaskModel> tasks)
+    public static JsonNode newTasks(Collection<TaskModel> tasks)
     {
         ArrayNode tab = newArrayNode();
         for ( TaskModel task : tasks )
         {
-            ObjectNode taskNode = newNode();
-            addTask(taskNode, task);
-            tab.add(taskNode);
+            tab.add(newTask(task));
         }
-        node.set("tasks", tab);
-        return node;
+        return tab;
     }
 
     public static List<TaskModel> getTasks(JsonNode node)
     {
         ImmutableList.Builder<TaskModel> builder = ImmutableList.builder();
-        JsonNode tab = node.get("tasks");
-        Iterator<JsonNode> elements = tab.elements();
+        Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
             JsonNode next = elements.next();
@@ -257,110 +266,100 @@ public class JsonSerializer
         return builder.build();
     }
 
-    public static ObjectNode addTask(ObjectNode node, TaskModel task)
+    public static JsonNode newTask(TaskModel task)
     {
-        ObjectNode taskNode = newNode();
-        addId(taskNode, task.getTaskId());
-        taskNode.put("name", task.getName());
-        taskNode.put("code", task.getTaskExecutionCode());
-        taskNode.put("isIdempotent", task.isIdempotent());
-        taskNode.putPOJO("meta", task.getMetaData());
-        node.set("task", taskNode);
+        ObjectNode node = newNode();
+        addId(node, task.getTaskId());
+        node.put("name", task.getName());
+        node.put("code", task.getTaskExecutionCode());
+        node.put("isIdempotent", task.isIdempotent());
+        node.putPOJO("meta", task.getMetaData());
         return node;
     }
 
     public static TaskModel getTask(JsonNode node)
     {
-        JsonNode taskNode = node.get("task");
         return new TaskModel
         (
-            new TaskId(getId(taskNode)),
-            taskNode.get("name").asText(),
-            taskNode.get("code").asText(),
-            taskNode.get("isIdempotent").asBoolean(),
-            getMap(taskNode.get("meta"))
+            new TaskId(getId(node)),
+            node.get("name").asText(),
+            node.get("code").asText(),
+            node.get("isIdempotent").asBoolean(),
+            getMap(node.get("meta"))
         );
     }
 
-    public static ObjectNode addRepetition(ObjectNode node, RepetitionModel repetition)
+    public static JsonNode newRepetition(RepetitionModel repetition)
     {
-        ObjectNode repetitionNode = newNode();
-        repetitionNode.put("duration", repetition.getDuration().toString());
-        repetitionNode.put("type", repetition.getType().name());
-        repetitionNode.put("qty", repetition.getQty());
-        node.set("repetition", repetitionNode);
+        ObjectNode node = newNode();
+        node.put("duration", repetition.getDuration().toString());
+        node.put("type", repetition.getType().name().toLowerCase());
+        node.put("qty", repetition.getQty());
         return node;
     }
 
     public static RepetitionModel getRepetition(JsonNode node)
     {
-        JsonNode repetitionNode = node.get("repetition");
         return new RepetitionModel
         (
-            Duration.valueOf(repetitionNode.get("duration").asText()),
-            RepetitionModel.Type.valueOf(repetitionNode.get("type").asText().toUpperCase()),
-            repetitionNode.get("qty").asInt()
+            Duration.valueOf(node.get("duration").asText()),
+            RepetitionModel.Type.valueOf(node.get("type").asText().toUpperCase()),
+            node.get("qty").asInt()
         );
     }
 
-    public static ObjectNode addTaskExecutionResult(ObjectNode node, TaskExecutionResult taskExecutionResult)
+    public static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)
     {
-        ObjectNode taskExecutionResultNode = newNode();
-        taskExecutionResultNode.put("details", taskExecutionResult.getDetails());
-        taskExecutionResultNode.putPOJO("resultData", taskExecutionResult.getResultData());
-        taskExecutionResultNode.put("completionDateUtc", taskExecutionResult.getCompletionDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        node.set("taskExecutionResult", taskExecutionResultNode);
+        ObjectNode node = newNode();
+        node.put("details", taskExecutionResult.getDetails());
+        node.putPOJO("resultData", taskExecutionResult.getResultData());
+        node.put("completionDateUtc", taskExecutionResult.getCompletionDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         return node;
     }
 
     public static TaskExecutionResult getTaskExecutionResult(JsonNode node)
     {
-        JsonNode taskExecutionResultNode = node.get("taskExecutionResult");
         return new TaskExecutionResult
             (
-                taskExecutionResultNode.get("details").asText(),
-                getMap(taskExecutionResultNode.get("resultData")),
-                LocalDateTime.parse(taskExecutionResultNode.get("completionDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
+                node.get("details").asText(),
+                getMap(node.get("resultData")),
+                LocalDateTime.parse(node.get("completionDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
             );
     }
 
-    public static ObjectNode addExecutableTask(ObjectNode node, ExecutableTaskModel executableTask)
+    public static JsonNode newExecutableTask(ExecutableTaskModel executableTask)
     {
-        ObjectNode executableTaskNode = newNode();
-        executableTaskNode.put("runId", executableTask.getRunId().getId());
-        executableTaskNode.put("scheduleId", executableTask.getScheduleId().getId());
-        addTask(executableTaskNode, executableTask.getTask());
-        node.set("executableTask", executableTaskNode);
+        ObjectNode node = newNode();
+        node.put("runId", executableTask.getRunId().getId());
+        node.put("scheduleId", executableTask.getScheduleId().getId());
+        node.set("task", newTask(executableTask.getTask()));
         return node;
     }
 
     public static ExecutableTaskModel getExecutableTask(JsonNode node)
     {
-        JsonNode executableTaskNode = node.get("executableTask");
         return new ExecutableTaskModel
             (
-                new RunId(executableTaskNode.get("runId").asText()),
-                new ScheduleId(executableTaskNode.get("scheduleId").asText()),
-                getTask(executableTaskNode)
+                new RunId(node.get("runId").asText()),
+                new ScheduleId(node.get("scheduleId").asText()),
+                getTask(node.get("task"))
             );
     }
 
-    public static ObjectNode addStartedTask(ObjectNode node, StartedTaskModel startedTask)
+    public static JsonNode newStartedTask(StartedTaskModel startedTask)
     {
-        ObjectNode startedTaskNode = newNode();
-        startedTaskNode.put("instanceName", startedTask.getInstanceName());
-        startedTaskNode.put("startDateUtc", startedTask.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        node.set("startedTask", startedTaskNode);
+        ObjectNode node = newNode();
+        node.put("instanceName", startedTask.getInstanceName());
+        node.put("startDateUtc", startedTask.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         return node;
     }
 
     public static StartedTaskModel getStartedTask(JsonNode node)
     {
-        JsonNode startedTaskNode = node.get("startedTask");
         return new StartedTaskModel
         (
-            startedTaskNode.get("instanceName").asText(),
-            LocalDateTime.parse(startedTaskNode.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
+            node.get("instanceName").asText(),
+            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
         );
     }
 

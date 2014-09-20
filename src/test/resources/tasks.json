@@ -1,63 +1,49 @@
-{
-    "tasks": [
-        {
-            "task": {
-                "id": "task1",
-                "name": "t1",
-                "code": "code1",
-                "isIdempotent": true,
-                "meta": {}
-            }
-        },
+[
+    {
+        "id": "task1",
+        "name": "t1",
+        "code": "code1",
+        "isIdempotent": true,
+        "meta": {}
+    },
 
-        {
-            "task": {
-                "id": "task2",
-                "name": "t2",
-                "code": "code2",
-                "isIdempotent": true,
-                "meta": {}
-            }
-        },
+    {
+        "id": "task2",
+        "name": "t2",
+        "code": "code2",
+        "isIdempotent": true,
+        "meta": {}
+    },
 
-        {
-            "task": {
-                "id": "task3",
-                "name": "t3",
-                "code": "code3",
-                "isIdempotent": true,
-                "meta": {}
-            }
-        },
+    {
+        "id": "task3",
+        "name": "t3",
+        "code": "code3",
+        "isIdempotent": true,
+        "meta": {}
+    },
 
-        {
-            "task": {
-                "id": "task4",
-                "name": "t4",
-                "code": "code4",
-                "isIdempotent": false,
-                "meta": {}
-            }
-        },
+    {
+        "id": "task4",
+        "name": "t4",
+        "code": "code4",
+        "isIdempotent": false,
+        "meta": {}
+    },
 
-        {
-            "task": {
-                "id": "task5",
-                "name": "t5",
-                "code": "code5",
-                "isIdempotent": false,
-                "meta": {}
-            }
-        },
+    {
+        "id": "task5",
+        "name": "t5",
+        "code": "code5",
+        "isIdempotent": false,
+        "meta": {}
+    },
 
-        {
-            "task": {
-                "id": "task6",
-                "name": "t6",
-                "code": "code6",
-                "isIdempotent": false,
-                "meta": {}
-            }
-        }
-    ]
-}
+    {
+        "id": "task6",
+        "name": "t6",
+        "code": "code6",
+        "isIdempotent": false,
+        "meta": {}
+    }
+]

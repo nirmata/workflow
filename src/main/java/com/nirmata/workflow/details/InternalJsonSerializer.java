@@ -12,14 +12,15 @@ import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class InternalJsonSerializer
 {
-    public static ObjectNode addDenormalizedWorkflow(ObjectNode node, DenormalizedWorkflowModel denormalizedWorkflow)
+    public static ObjectNode newDenormalizedWorkflow(DenormalizedWorkflowModel denormalizedWorkflow)
     {
+        ObjectNode node = newNode();
         addId(node, denormalizedWorkflow.getRunId());
-        addScheduleExecution(node, denormalizedWorkflow.getScheduleExecution());
+        node.set("scheduleExecution", newScheduleExecution(denormalizedWorkflow.getScheduleExecution()));
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
-        addTaskSet(node, denormalizedWorkflow.getTaskSets());
-        addTasks(node, denormalizedWorkflow.getTasks());
+        node.set("tasksSet", newTaskSet(denormalizedWorkflow.getTaskSets()));
+        node.set("tasks", newTasks(denormalizedWorkflow.getTasks()));
         node.put("startDateUtc", denormalizedWorkflow.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
@@ -30,11 +31,11 @@ public class InternalJsonSerializer
         return new DenormalizedWorkflowModel
         (
             new RunId(getId(node)),
-            getScheduleExecution(node),
+            getScheduleExecution(node.get("scheduleExecution")),
             new WorkflowId(node.get("workflowId").asText()),
-            getTasks(node),
+            getTasks(node.get("tasks")),
             node.get("name").asText(),
-            getTaskSet(node),
+            getTaskSet(node.get("tasksSet")),
             LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
             node.get("taskSetsIndex").asInt()
         );

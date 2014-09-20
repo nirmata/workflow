@@ -1,14 +1,17 @@
 package com.nirmata.workflow.spi;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Resources;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +19,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
+import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
 import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -42,8 +45,7 @@ public class TestJsonSerializer
     {
         TaskModel task = makeTask();
 
-        ObjectNode node = newNode();
-        addTask(node, task);
+        JsonNode node = newTask(task);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -79,8 +81,7 @@ public class TestJsonSerializer
         {
             tasks.add(makeTask());
         }
-        ObjectNode node = newNode();
-        addTasks(node, tasks);
+        JsonNode node = newTasks(tasks);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -93,8 +94,7 @@ public class TestJsonSerializer
     {
         TaskSets taskSets = makeTaskSet();
 
-        ObjectNode node = newNode();
-        addTaskSet(node, taskSets);
+        JsonNode node = newTaskSet(taskSets);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -105,10 +105,9 @@ public class TestJsonSerializer
     @Test
     public void testSchedule()
     {
-        ScheduleModel schedule = newSchedule();
+        ScheduleModel schedule = makeSchedule();
 
-        ObjectNode node = newNode();
-        addSchedule(node, schedule);
+        JsonNode node = newSchedule(schedule);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -122,11 +121,10 @@ public class TestJsonSerializer
         List<ScheduleModel> schedules = Lists.newArrayList();
         for ( int i = 0; i < (random.nextInt(9) + 1); ++i )
         {
-            schedules.add(newSchedule());
+            schedules.add(makeSchedule());
         }
 
-        ObjectNode node = newNode();
-        addSchedules(node, schedules);
+        JsonNode node = newSchedules(schedules);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -139,8 +137,7 @@ public class TestJsonSerializer
     {
         WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
 
-        ObjectNode node = newNode();
-        addWorkflow(node, workflow);
+        JsonNode node = newWorkflow(workflow);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -158,8 +155,7 @@ public class TestJsonSerializer
             workflows.add(workflow);
         }
 
-        ObjectNode node = newNode();
-        addWorkflows(node, workflows);
+        JsonNode node = newWorkflows(workflows);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -172,8 +168,7 @@ public class TestJsonSerializer
     {
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
 
-        ObjectNode node = newNode();
-        addScheduleExecution(node, scheduleExecution);
+        JsonNode node = newScheduleExecution(scheduleExecution);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -198,8 +193,7 @@ public class TestJsonSerializer
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
         DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), LocalDateTime.now(), random.nextInt());
 
-        ObjectNode node = newNode();
-        addDenormalizedWorkflow(node, denormalizedWorkflowModel);
+        ObjectNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -212,8 +206,7 @@ public class TestJsonSerializer
     {
         ExecutableTaskModel executableTask = new ExecutableTaskModel(new RunId(), new ScheduleId(), makeTask());
 
-        ObjectNode node = newNode();
-        addExecutableTask(node, executableTask);
+        JsonNode node = newExecutableTask(executableTask);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -228,8 +221,7 @@ public class TestJsonSerializer
         resultData.put("one", "1");
         resultData.put("two", "2");
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(Integer.toString(random.nextInt()), resultData);
-        ObjectNode node = newNode();
-        addTaskExecutionResult(node, taskExecutionResult);
+        JsonNode node = newTaskExecutionResult(taskExecutionResult);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -241,8 +233,7 @@ public class TestJsonSerializer
     public void testStartedTask()
     {
         StartedTaskModel startedTask = new StartedTaskModel("test", LocalDateTime.now());
-        ObjectNode node = newNode();
-        addStartedTask(node, startedTask);
+        JsonNode node = newStartedTask(startedTask);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -250,7 +241,55 @@ public class TestJsonSerializer
         Assert.assertEquals(startedTask, unStartedTask);
     }
 
-    private ScheduleModel newSchedule()
+    @Test
+    public void testTaskDag()
+    {
+        TaskDagModel taskDag = makeTaskDag(random.nextInt(3) + 1);
+        JsonNode node = newTaskDag(taskDag);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        TaskDagModel unTaskDag = getTaskDag(fromString(str));
+        Assert.assertEquals(taskDag, unTaskDag);
+    }
+
+    @Test
+    public void testFileTaskDag() throws Exception
+    {
+        String json = Resources.toString(Resources.getResource("big_task_dag.json"), Charset.defaultCharset());
+        TaskDagModel taskDag = getTaskDag(fromString(json));
+
+        String unJson = nodeToString(newTaskDag(taskDag));
+
+        Assert.assertEquals(json.replaceAll("\\s", ""), unJson.replaceAll("\\s", ""));
+    }
+
+    private TaskDagModel makeTaskDag(int remaining)
+    {
+        List<TaskId> tasks = Lists.newArrayList();
+        List<TaskDagModel> siblings = Lists.newArrayList();
+        List<TaskDagModel> children = Lists.newArrayList();
+
+        for ( int i = 0; i < (random.nextInt(9) + 1); ++i )
+        {
+            tasks.add(new TaskId());
+        }
+        if ( remaining > 0 )
+        {
+            for ( int i = 0; i < (random.nextInt(3) + 1); ++i )
+            {
+                siblings.add(makeTaskDag(remaining - 1));
+            }
+            for ( int i = 0; i < (random.nextInt(3) + 1); ++i )
+            {
+                children.add(makeTaskDag(remaining - 1));
+            }
+        }
+
+        return new TaskDagModel(tasks, siblings, children);
+    }
+
+    private ScheduleModel makeSchedule()
     {
         RepetitionModel.Type type = random.nextBoolean() ? RepetitionModel.Type.ABSOLUTE : RepetitionModel.Type.RELATIVE;
         return new ScheduleModel(new ScheduleId(), new WorkflowId(), new RepetitionModel(new Duration(Math.abs(random.nextInt()), TimeUnit.MINUTES), type, random.nextInt()));

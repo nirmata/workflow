@@ -25,8 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.addDenormalizedWorkflow;
-import static com.nirmata.workflow.spi.JsonSerializer.newNode;
+import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.toBytes;
 
 public class Scheduler implements Closeable
@@ -149,7 +148,7 @@ public class Scheduler implements Closeable
 
     static byte[] toJson(Logger log, DenormalizedWorkflowModel denormalizedWorkflow)
     {
-        byte[] json = toBytes(addDenormalizedWorkflow(newNode(), denormalizedWorkflow));
+        byte[] json = toBytes(newDenormalizedWorkflow(denormalizedWorkflow));
         if ( json.length > ZooKeeperConstants.MAX_PAYLOAD )
         {
             String message = "JSON payload for workflow too big: " + denormalizedWorkflow;

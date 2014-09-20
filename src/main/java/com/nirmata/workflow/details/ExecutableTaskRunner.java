@@ -29,7 +29,7 @@ public class ExecutableTaskRunner
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask);
 
         TaskExecutionResult result = taskExecution.execute();
-        String json = nodeToString(addTaskExecutionResult(newNode(), result));
+        String json = nodeToString(newTaskExecutionResult(result));
         try
         {
             String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTask().getTaskId());

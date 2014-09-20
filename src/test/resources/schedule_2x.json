@@ -1,15 +1,11 @@
-{
-    "schedules": [
-        {
-            "schedule": {
-                "id": "schedule1",
-                "repetition": {
-                    "duration": "10s",
-                    "type": "relative",
-                    "qty": 2
-                },
-                "workflowId": "workflow1"
-            }
-        }
-    ]
-}
+[
+    {
+        "id": "schedule1",
+        "repetition": {
+            "duration": "10s",
+            "type": "relative",
+            "qty": 2
+        },
+        "workflowId": "workflow1"
+    }
+]

@@ -17,14 +17,14 @@ import java.util.Map;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 import static com.nirmata.workflow.spi.JsonSerializer.fromString;
 
-class TestStorageBridge implements StorageBridge
+class MockStorageBridge implements StorageBridge
 {
     private final List<ScheduleModel> schedules;
     private final List<WorkflowModel> workflows;
     private final List<TaskModel> tasks;
     private final Map<ScheduleId, ScheduleExecutionModel> scheduleExecutions;
 
-    public TestStorageBridge(String schedulesFile, String tasksFile, String workflowsFile) throws IOException
+    public MockStorageBridge(String schedulesFile, String tasksFile, String workflowsFile) throws IOException
     {
         scheduleExecutions = Maps.newHashMap();
         schedules = getSchedules(fromString(Resources.toString(Resources.getResource(schedulesFile), Charset.defaultCharset())));

@@ -75,7 +75,7 @@ class CacherListenerImpl implements CacherListener
         try
         {
             StartedTaskModel startedTask = new StartedTaskModel(workflowManager.getConfiguration().getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
-            byte[] data = JsonSerializer.toBytes(JsonSerializer.addStartedTask(JsonSerializer.newNode(), startedTask));
+            byte[] data = JsonSerializer.toBytes(JsonSerializer.newStartedTask(startedTask));
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
             queue.put(new ExecutableTaskModel(workflow.getRunId(), workflow.getScheduleId(), task));
