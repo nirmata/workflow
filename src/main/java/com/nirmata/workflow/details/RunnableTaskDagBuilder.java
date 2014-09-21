@@ -7,6 +7,7 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.JsonSerializer;
+import org.jgrapht.alg.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.traverse.TopologicalOrderIterator;
@@ -42,6 +43,12 @@ public class RunnableTaskDagBuilder
     {
         DefaultDirectedGraph<TaskId, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
         worker(graph, taskDag, null);
+
+        CycleDetector<TaskId, DefaultEdge> cycleDetector = new CycleDetector<>(graph);
+        if ( cycleDetector.detectCycles() )
+        {
+            throw new RuntimeException("The Task DAG contains cycles: " + taskDag);
+        }
 
         List<RunnableTaskDagEntryModel> entries = Lists.newArrayList();
         TopologicalOrderIterator<TaskId, DefaultEdge> orderIterator = new TopologicalOrderIterator(graph);
