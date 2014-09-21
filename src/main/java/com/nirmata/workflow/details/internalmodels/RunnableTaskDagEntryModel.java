@@ -1,19 +1,20 @@
-package com.nirmata.workflow.models;
+package com.nirmata.workflow.details.internalmodels;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import com.google.common.collect.ImmutableSet;
+import com.nirmata.workflow.models.TaskId;
+import java.util.Collection;
 
-public class TaskDagModel
+public class RunnableTaskDagEntryModel
 {
     private final TaskId taskId;
-    private final List<TaskDagModel> children;
+    private final Collection<TaskId> dependencies;
 
-    public TaskDagModel(TaskId taskId, List<TaskDagModel> children)
+    public RunnableTaskDagEntryModel(TaskId taskId, Collection<TaskId> dependencies)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
-        children = Preconditions.checkNotNull(children, "children cannot be null");
-        this.children = ImmutableList.copyOf(children);
+        dependencies = Preconditions.checkNotNull(dependencies, "dependencies cannot be null");
+        this.dependencies = ImmutableSet.copyOf(dependencies);
     }
 
     public TaskId getTaskId()
@@ -21,9 +22,9 @@ public class TaskDagModel
         return taskId;
     }
 
-    public List<TaskDagModel> getChildren()
+    public Collection<TaskId> getDependencies()
     {
-        return children;
+        return dependencies;
     }
 
     @Override
@@ -38,9 +39,9 @@ public class TaskDagModel
             return false;
         }
 
-        TaskDagModel that = (TaskDagModel)o;
+        RunnableTaskDagEntryModel that = (RunnableTaskDagEntryModel)o;
 
-        if ( !children.equals(that.children) )
+        if ( !dependencies.equals(that.dependencies) )
         {
             return false;
         }
@@ -57,16 +58,16 @@ public class TaskDagModel
     public int hashCode()
     {
         int result = taskId.hashCode();
-        result = 31 * result + children.hashCode();
+        result = 31 * result + dependencies.hashCode();
         return result;
     }
 
     @Override
     public String toString()
     {
-        return "TaskDagModel{" +
+        return "RunnableTaskDagEntryModel{" +
             "taskId=" + taskId +
-            ", children=" + children +
+            ", dependencies=" + dependencies +
             '}';
     }
 }

@@ -7,6 +7,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
@@ -14,13 +16,13 @@ import org.testng.annotations.Test;
 import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
-import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
+import static com.nirmata.workflow.details.InternalJsonSerializer.*;
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
 public class TestJsonSerializer
@@ -119,7 +121,8 @@ public class TestJsonSerializer
     public void testSchedules()
     {
         List<ScheduleModel> schedules = Lists.newArrayList();
-        for ( int i = 0; i < (random.nextInt(9) + 1); ++i )
+        int qty = random.nextInt(9) + 1;
+        for ( int i = 0; i < qty; ++i )
         {
             schedules.add(makeSchedule());
         }
@@ -149,7 +152,8 @@ public class TestJsonSerializer
     public void testWorkflows()
     {
         List<WorkflowModel> workflows = Lists.newArrayList();
-        for ( int i = 0; i < random.nextInt(10); ++i )
+        int qty = random.nextInt(10) + 1;
+        for ( int i = 0; i < qty; ++i )
         {
             WorkflowModel workflow = new WorkflowModel(new WorkflowId(), Integer.toString(random.nextInt()), makeTaskSet());
             workflows.add(workflow);
@@ -193,7 +197,7 @@ public class TestJsonSerializer
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
         DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), LocalDateTime.now(), random.nextInt());
 
-        ObjectNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
+        JsonNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);
         System.out.println(str);
 
@@ -266,29 +270,44 @@ public class TestJsonSerializer
         Assert.assertEquals(taskDag, unTaskDag);
     }
 
+    @Test
+    public void testRunnableTaskDag() throws Exception
+    {
+        List<RunnableTaskDagEntryModel> entries = Lists.newArrayList();
+        int qty = random.nextInt(3) + 1;
+        for ( int i = 0; i < qty; ++i )
+        {
+            List<TaskId> dependencies = Lists.newArrayList();
+            int jQty = random.nextInt(3) + 1;
+            for ( int j = 0; j < jQty; ++j )
+            {
+                dependencies.add(new TaskId());
+            }
+            entries.add(new RunnableTaskDagEntryModel(new TaskId(), dependencies));
+        }
+        RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagModel(entries);
+        JsonNode node = newRunnableTaskDagModel(runnableTaskDag);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        RunnableTaskDagModel unRunnableTaskDag = getRunnableTaskDagModel(fromString(str));
+        Assert.assertEquals(runnableTaskDag, unRunnableTaskDag);
+    }
+
     private TaskDagModel makeTaskDag(int remaining)
     {
-        List<TaskId> tasks = Lists.newArrayList();
-        List<TaskDagModel> siblings = Lists.newArrayList();
         List<TaskDagModel> children = Lists.newArrayList();
 
-        for ( int i = 0; i < (random.nextInt(9) + 1); ++i )
-        {
-            tasks.add(new TaskId());
-        }
         if ( remaining > 0 )
         {
-            for ( int i = 0; i < (random.nextInt(3) + 1); ++i )
-            {
-                siblings.add(makeTaskDag(remaining - 1));
-            }
-            for ( int i = 0; i < (random.nextInt(3) + 1); ++i )
+            int qty = random.nextInt(3) + 1;
+            for ( int i = 0; i < qty; ++i )
             {
                 children.add(makeTaskDag(remaining - 1));
             }
         }
 
-        return new TaskDagModel(tasks, siblings, children);
+        return new TaskDagModel(new TaskId(), children);
     }
 
     private ScheduleModel makeSchedule()

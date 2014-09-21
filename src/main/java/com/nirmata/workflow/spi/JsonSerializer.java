@@ -19,7 +19,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Serializer/deserializer methods for the various models
@@ -82,40 +81,25 @@ public class JsonSerializer
 
     public static JsonNode newTaskDag(TaskDagModel taskDag)
     {
-        ArrayNode tasksNode = newArrayNode();
-        ArrayNode siblingsNode = newArrayNode();
         ArrayNode childrenNode = newArrayNode();
-
-        taskDag.getTasks().forEach(taskId -> tasksNode.add(taskId.getId()));
-        taskDag.getSiblings().forEach(d -> siblingsNode.add(newTaskDag(d)));
         taskDag.getChildren().forEach(d -> childrenNode.add(newTaskDag(d)));
 
         ObjectNode node = newNode();
-        node.set("tasks", tasksNode);
-        node.set("siblings", siblingsNode);
+        node.put("taskId", taskDag.getTaskId().getId());
         node.set("children", childrenNode);
         return node;
     }
 
     public static TaskDagModel getTaskDag(JsonNode node)
     {
-        List<TaskId> tasks = Lists.newArrayList();
-        List<TaskDagModel> siblings = Lists.newArrayList();
         List<TaskDagModel> children = Lists.newArrayList();
-
-        getChildren(node.get("tasks"), n -> tasks.add(new TaskId(n.asText())));
-        getChildren(node.get("siblings"), n -> siblings.add(getTaskDag(n)));
-        getChildren(node.get("children"), n -> children.add(getTaskDag(n)));
-
-        return new TaskDagModel(tasks, siblings, children);
-    }
-
-    private static void getChildren(JsonNode tab, Consumer<JsonNode> action)
-    {
-        if ( tab != null )
+        JsonNode childrenNode = node.get("children");
+        if ( (childrenNode != null) && (childrenNode.size() > 0) )
         {
-            tab.forEach(action);
+            childrenNode.forEach(n -> children.add(getTaskDag(n)));
         }
+
+        return new TaskDagModel(new TaskId(node.get("taskId").asText()), children);
     }
 
     public static JsonNode newScheduleExecution(ScheduleExecutionModel scheduleExecution)

@@ -1,58 +1,98 @@
 {
-    "siblings": [
-        {
-            "tasks": ["Task-1"],
-            "children": [
-                {
-                    "tasks": ["Task-2", "Task-3"],
-                    "children": [
-                        {
-                            "tasks": ["Task-4"]
-                        }
-                    ]
-                }
-            ]
-        },
-
-        {
-            "tasks": ["Task-5"]
-        },
-
-        {
-            "tasks": ["Task-6"],
-            "children": [
-                {
-                    "tasks": ["Task-7"],
-                    "children": [
-                        {
-                            "tasks": ["Task-10"]
-                        }
-                    ]
-                },
-
-                {
-                    "tasks": ["Task-8"],
-                    "children": [
-                        {
-                            "tasks": ["Task-11"]
-                        }
-                    ]
-                },
-
-                {
-                    "tasks": ["Task-9"],
-                    "children": [
-                        {
-                            "tasks": ["Task-12"]
-                        }
-                    ]
-                }
-            ]
-        }
-    ],
+    "taskId": "",
     "children": [
         {
-            "tasks": ["Task-13"]
+            "taskId": "task-1",
+            "children": [
+                {
+                    "taskId": "task-2",
+                    "children": [
+                        {
+                            "taskId": "task-4",
+                            "children": [
+                                {
+                                    "taskId": "task-13",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    "taskId": "task-3",
+                    "children": [
+                        {
+                            "taskId": "task-4",
+                            "children": [
+                                {
+                                    "taskId": "task-13",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+
+        {
+            "taskId": "task-5",
+            "children": [
+                {
+                    "taskId": "task-13"
+                }
+            ]
+        },
+
+        {
+            "taskId": "task-6",
+            "children": [
+                {
+                    "taskId": "task-7",
+                    "children": [
+                        {
+                            "taskId": "task-10",
+                            "children": [
+                                {
+                                    "taskId": "task-13",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    "taskId": "task-8",
+                    "children": [
+                        {
+                            "taskId": "task-11",
+                            "children": [
+                                {
+                                    "taskId": "task-13",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    "taskId": "task-9",
+                    "children": [
+                        {
+                            "taskId": "task-12",
+                            "children": [
+                                {
+                                    "taskId": "task-13",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
