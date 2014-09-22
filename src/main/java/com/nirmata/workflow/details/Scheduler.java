@@ -112,6 +112,7 @@ public class Scheduler implements Closeable
             throw new RuntimeException(message);
         }
         List<TaskModel> tasks = Lists.newArrayList();
+/*
         for ( List<TaskId> thisSet : workflow.getTasks() )
         {
             for ( TaskId taskId : thisSet )
@@ -125,9 +126,10 @@ public class Scheduler implements Closeable
                 }
                 tasks.add(task);
             }
-        }
+        } TODO
+*/
         TaskDagModel taskDagModel = new TaskDagModel(new TaskId(), Lists.newArrayList());   // TODO
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDagModel, workflow.getTasks(), LocalDateTime.now(Clock.systemUTC()), 0);
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDagModel, LocalDateTime.now(Clock.systemUTC()), 0);
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try

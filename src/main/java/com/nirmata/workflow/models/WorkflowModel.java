@@ -9,17 +9,16 @@ public class WorkflowModel
 {
     private final WorkflowId workflowId;
     private final String name;
-    private final TaskSets tasks;
+    private final TaskDagId taskDagId;
 
     /**
      * @param workflowId the workflow Id
      * @param name workflow name (for display only)
-     * @param tasks task sets
+     * @param taskDagId the dag to use
      */
-    public WorkflowModel(WorkflowId workflowId, String name, TaskSets tasks)
+    public WorkflowModel(WorkflowId workflowId, String name, TaskDagId taskDagId)
     {
-        tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
-        this.tasks = tasks;
+        this.taskDagId = Preconditions.checkNotNull(taskDagId, "taskDagId cannot be null");
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
     }
@@ -34,9 +33,9 @@ public class WorkflowModel
         return name;
     }
 
-    public TaskSets getTasks()
+    public TaskDagId getTaskDagId()
     {
-        return tasks;
+        return taskDagId;
     }
 
     @Override
@@ -57,7 +56,7 @@ public class WorkflowModel
         {
             return false;
         }
-        if ( !tasks.equals(that.tasks) )
+        if ( !taskDagId.equals(that.taskDagId) )
         {
             return false;
         }
@@ -75,7 +74,7 @@ public class WorkflowModel
     {
         int result = workflowId.hashCode();
         result = 31 * result + name.hashCode();
-        result = 31 * result + tasks.hashCode();
+        result = 31 * result + taskDagId.hashCode();
         return result;
     }
 
@@ -85,7 +84,7 @@ public class WorkflowModel
         return "WorkflowModel{" +
             "workflowId=" + workflowId +
             ", name='" + name + '\'' +
-            ", tasks=" + tasks +
+            ", taskDagId=" + taskDagId +
             '}';
     }
 }

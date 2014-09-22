@@ -4,18 +4,18 @@ import com.google.common.base.Preconditions;
 
 public class TaskDagContainerModel
 {
-    private final DagId dagId;
+    private final TaskDagId taskDagId;
     private final TaskDagModel dag;
 
-    public TaskDagContainerModel(DagId dagId, TaskDagModel dag)
+    public TaskDagContainerModel(TaskDagId taskDagId, TaskDagModel dag)
     {
-        this.dagId = Preconditions.checkNotNull(dagId, "dagId cannot be null");
+        this.taskDagId = Preconditions.checkNotNull(taskDagId, "dagId cannot be null");
         this.dag = Preconditions.checkNotNull(dag, "dag cannot be null");
     }
 
-    public DagId getDagId()
+    public TaskDagId getTaskDagId()
     {
-        return dagId;
+        return taskDagId;
     }
 
     public TaskDagModel getDag()
@@ -42,7 +42,7 @@ public class TaskDagContainerModel
             return false;
         }
         //noinspection RedundantIfStatement
-        if ( !dagId.equals(that.dagId) )
+        if ( !taskDagId.equals(that.taskDagId) )
         {
             return false;
         }
@@ -53,7 +53,7 @@ public class TaskDagContainerModel
     @Override
     public int hashCode()
     {
-        int result = dagId.hashCode();
+        int result = taskDagId.hashCode();
         result = 31 * result + dag.hashCode();
         return result;
     }
@@ -62,7 +62,7 @@ public class TaskDagContainerModel
     public String toString()
     {
         return "TaskDagContainerModel{" +
-            "dagId=" + dagId +
+            "dagId=" + taskDagId +
             ", dag=" + dag +
             '}';
     }

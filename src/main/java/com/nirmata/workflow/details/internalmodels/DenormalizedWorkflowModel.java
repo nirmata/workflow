@@ -6,7 +6,6 @@ import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.TaskSets;
 import com.nirmata.workflow.models.WorkflowId;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,12 +17,11 @@ public class DenormalizedWorkflowModel
     private final WorkflowId workflowId;
     private final List<TaskModel> tasks;
     private final String name;
-    private final TaskSets taskSets;
     private final int taskSetsIndex;
     private final TaskDagModel taskDag;
     private final LocalDateTime startDateUtc;
 
-    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskDagModel taskDag, TaskSets taskSets, LocalDateTime startDateUtc, int taskSetsIndex)
+    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskDagModel taskDag, LocalDateTime startDateUtc, int taskSetsIndex)
     {
         this.taskDag = Preconditions.checkNotNull(taskDag, "taskDag cannot be null");
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
@@ -32,7 +30,6 @@ public class DenormalizedWorkflowModel
         this.taskSetsIndex = taskSetsIndex;
         this.tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
-        this.taskSets = Preconditions.checkNotNull(taskSets, "taskSets cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
     }
 
@@ -69,11 +66,6 @@ public class DenormalizedWorkflowModel
     public String getName()
     {
         return name;
-    }
-
-    public TaskSets getTaskSets()
-    {
-        return taskSets;
     }
 
     public LocalDateTime getStartDateUtc()
@@ -124,10 +116,6 @@ public class DenormalizedWorkflowModel
         {
             return false;
         }
-        if ( !taskSets.equals(that.taskSets) )
-        {
-            return false;
-        }
         if ( !tasks.equals(that.tasks) )
         {
             return false;
@@ -149,7 +137,6 @@ public class DenormalizedWorkflowModel
         result = 31 * result + workflowId.hashCode();
         result = 31 * result + tasks.hashCode();
         result = 31 * result + name.hashCode();
-        result = 31 * result + taskSets.hashCode();
         result = 31 * result + taskSetsIndex;
         result = 31 * result + taskDag.hashCode();
         result = 31 * result + startDateUtc.hashCode();
@@ -165,7 +152,6 @@ public class DenormalizedWorkflowModel
             ", workflowId=" + workflowId +
             ", tasks=" + tasks +
             ", name='" + name + '\'' +
-            ", taskSets=" + taskSets +
             ", taskSetsIndex=" + taskSetsIndex +
             ", taskDag=" + taskDag +
             ", startDateUtc=" + startDateUtc +

@@ -135,7 +135,7 @@ public class TestJsonSerializer
     @Test
     public void testWorkflow()
     {
-        WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
+        WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", new TaskDagId());
 
         JsonNode node = newWorkflow(workflow);
         String str = nodeToString(node);
@@ -152,7 +152,7 @@ public class TestJsonSerializer
         int qty = random.nextInt(10) + 1;
         for ( int i = 0; i < qty; ++i )
         {
-            WorkflowModel workflow = new WorkflowModel(new WorkflowId(), Integer.toString(random.nextInt()), makeTaskSet());
+            WorkflowModel workflow = new WorkflowModel(new WorkflowId(), Integer.toString(random.nextInt()), new TaskDagId());
             workflows.add(workflow);
         }
 
@@ -180,20 +180,14 @@ public class TestJsonSerializer
     @Test
     public void testDenormalizedWorkflow() throws Exception
     {
-        WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", makeTaskSet());
+        WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", new TaskDagId());
         List<TaskModel> tasks = Lists.newArrayList();
 
-        for ( List<TaskId> taskSet : workflow.getTasks() )
-        {
-            for ( TaskId taskId : taskSet )
-            {
-                tasks.add(makeTask(taskId));
-            }
-        }
+        // TODO
 
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
         TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDag, workflow.getTasks(), LocalDateTime.now(), random.nextInt());
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDag, LocalDateTime.now(), random.nextInt());
 
         JsonNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);

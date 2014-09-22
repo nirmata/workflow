@@ -2,27 +2,6 @@
     {
         "id": "workflow1",
         "name": "whatever",
-        "taskDag": {
-            "tasks": ["task1", "task2"],
-            "siblings": [],
-            "children": [
-                {
-                    "tasks": ["task3", "task4", "task5"],
-                    "siblings": [],
-                    "children": [
-                        {
-                            "tasks": ["task6"],
-                            "siblings": [],
-                            "children": []
-                        }
-                    ]
-                }
-            ]
-        },
-        "tasksSet": [
-            ["task1", "task2"],
-            ["task3", "task4", "task5"],
-            ["task6"]
-        ]
+        "taskDagId": "dag1"
     }
 ]

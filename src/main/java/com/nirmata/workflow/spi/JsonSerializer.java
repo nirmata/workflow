@@ -150,7 +150,7 @@ public class JsonSerializer
         ObjectNode node = newNode();
         addId(node, workflow.getWorkflowId());
         node.put("name", workflow.getName());
-        node.set("tasksSet", newTaskSet(workflow.getTasks()));
+        node.put("taskDagId", workflow.getTaskDagId().getId());
         return node;
     }
 
@@ -160,7 +160,7 @@ public class JsonSerializer
         (
             new WorkflowId(getId(node)),
             node.get("name").asText(),
-            getTaskSet(node.get("tasksSet"))
+            new TaskDagId(node.get("taskDagId").asText())
         );
     }
 
@@ -359,14 +359,14 @@ public class JsonSerializer
     public static JsonNode newTaskDagContainer(TaskDagContainerModel taskDagContainer)
     {
         ObjectNode node = newNode();
-        node.put("dagId", taskDagContainer.getDagId().getId());
-        node.set("dag", newTaskDag(taskDagContainer.getDag()));
+        addId(node, taskDagContainer.getTaskDagId());
+        node.set("taskDag", newTaskDag(taskDagContainer.getDag()));
         return node;
     }
 
     public static TaskDagContainerModel getTaskDagContainer(JsonNode node)
     {
-        return new TaskDagContainerModel(new DagId(node.get("dagId").asText()), getTaskDag(node.get("dag")));
+        return new TaskDagContainerModel(new TaskDagId(getId(node)), getTaskDag(node.get("taskDag")));
     }
 
     public static JsonNode newTaskDagContainers(List<TaskDagContainerModel> containers)

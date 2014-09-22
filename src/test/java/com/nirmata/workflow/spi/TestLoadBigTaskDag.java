@@ -2,7 +2,7 @@ package com.nirmata.workflow.spi;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
-import com.nirmata.workflow.models.DagId;
+import com.nirmata.workflow.models.TaskDagId;
 import com.nirmata.workflow.models.TaskDagContainerModel;
 import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskId;
@@ -21,8 +21,8 @@ public class TestLoadBigTaskDag
     {
         TaskDagModel dag1 = buildDag1();
         TaskDagModel dag2 = new TaskDagModel(new TaskId("2-1"), Lists.newArrayList());
-        TaskDagContainerModel model1 = new TaskDagContainerModel(new DagId("dag-1"), dag1);
-        TaskDagContainerModel model2 = new TaskDagContainerModel(new DagId("dag-2"), dag2);
+        TaskDagContainerModel model1 = new TaskDagContainerModel(new TaskDagId("dag-1"), dag1);
+        TaskDagContainerModel model2 = new TaskDagContainerModel(new TaskDagId("dag-2"), dag2);
         List<TaskDagContainerModel> expectedContainers = Arrays.asList(model1, model2);
 
         String json = Resources.toString(Resources.getResource("big_task_dag.json"), Charset.defaultCharset());

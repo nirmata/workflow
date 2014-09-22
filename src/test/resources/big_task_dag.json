@@ -1,7 +1,7 @@
 [
     {
-        "dagId": "dag-1",
-        "dag": {
+        "id": "dag-1",
+        "taskDag": {
             "taskId": "",
             "children": [
                 {
@@ -102,8 +102,8 @@
     },
 
     {
-        "dagId": "dag-2",
-        "dag": {
+        "id": "dag-2",
+        "taskDag": {
             "taskId": "2-1",
             "children": []
         }

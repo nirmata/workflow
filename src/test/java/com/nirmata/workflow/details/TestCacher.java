@@ -71,7 +71,7 @@ public class TestCacher extends BaseClassForTests
             tasksSets.add(Arrays.asList(taskId));
             TaskSets taskSets = new TaskSets(tasksSets);
             TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
-            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskDag, taskSets, LocalDateTime.now(), 0);
+            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskDag, LocalDateTime.now(), 0);
             byte[] json = toBytes(newDenormalizedWorkflow(denormalizedWorkflow));
             client.create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
 

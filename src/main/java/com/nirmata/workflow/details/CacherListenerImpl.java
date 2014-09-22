@@ -34,6 +34,7 @@ class CacherListenerImpl implements CacherListener
         ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), TaskModel::getTaskId);
         int taskSetsIndex = workflow.getTaskSetsIndex();
         int completedQty = 0;
+/* TODO
         List<TaskId> thisTasks = workflow.getTaskSets().get(taskSetsIndex);
         for ( TaskId taskId : thisTasks )
         {
@@ -57,7 +58,7 @@ class CacherListenerImpl implements CacherListener
 
         if ( completedQty == thisTasks.size() )
         {
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskDag(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
+            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskDag(), workflow.getStartDateUtc(), taskSetsIndex + 1);
             if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
             {
                 completeSchedule(newWorkflow);
@@ -67,6 +68,7 @@ class CacherListenerImpl implements CacherListener
                 cacher.updateSchedule(newWorkflow);
             }
         }
+*/
     }
 
     private void queueTask(DenormalizedWorkflowModel workflow, TaskModel task)
