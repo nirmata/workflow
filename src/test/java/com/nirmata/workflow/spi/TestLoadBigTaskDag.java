@@ -12,6 +12,8 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.nirmata.workflow.spi.JsonSerializer.*;
+
 public class TestLoadBigTaskDag
 {
     @Test
@@ -24,10 +26,13 @@ public class TestLoadBigTaskDag
         List<TaskDagContainerModel> expectedContainers = Arrays.asList(model1, model2);
 
         String json = Resources.toString(Resources.getResource("big_task_dag.json"), Charset.defaultCharset());
-        List<TaskDagContainerModel> loadedContainers = JsonSerializer.getTaskDagContainers(JsonSerializer.fromString(json));
+        List<TaskDagContainerModel> loadedContainers = getTaskDagContainers(fromString(json));
         System.out.println(loadedContainers);
 
         Assert.assertEquals(expectedContainers, loadedContainers);
+
+        List<TaskDagContainerModel> reloadedContainers = getTaskDagContainers(fromString(nodeToString(newTaskDagContainers(expectedContainers))));
+        Assert.assertEquals(reloadedContainers, loadedContainers);
     }
 
     private TaskDagModel buildDag1()

@@ -6,6 +6,7 @@ import com.google.common.io.Resources;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
+import com.nirmata.workflow.models.TaskDagContainerModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.StorageBridge;
@@ -15,21 +16,22 @@ import java.util.List;
 import java.util.Map;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
-import static com.nirmata.workflow.spi.JsonSerializer.fromString;
 
 class MockStorageBridge implements StorageBridge
 {
     private final List<ScheduleModel> schedules;
     private final List<WorkflowModel> workflows;
     private final List<TaskModel> tasks;
+    private final List<TaskDagContainerModel> taskContainers;
     private final Map<ScheduleId, ScheduleExecutionModel> scheduleExecutions;
 
-    public MockStorageBridge(String schedulesFile, String tasksFile, String workflowsFile) throws IOException
+    public MockStorageBridge(String schedulesFile, String tasksFile, String workflowsFile, String taskDagContainersFile) throws IOException
     {
         scheduleExecutions = Maps.newHashMap();
         schedules = getSchedules(fromString(Resources.toString(Resources.getResource(schedulesFile), Charset.defaultCharset())));
         tasks = getTasks(fromString(Resources.toString(Resources.getResource(tasksFile), Charset.defaultCharset())));
         workflows = getWorkflows(fromString(Resources.toString(Resources.getResource(workflowsFile), Charset.defaultCharset())));
+        taskContainers = getTaskDagContainers(fromString(Resources.toString(Resources.getResource(taskDagContainersFile), Charset.defaultCharset())));
     }
 
     @Override
@@ -48,6 +50,12 @@ class MockStorageBridge implements StorageBridge
     public List<TaskModel> getTaskModels()
     {
         return tasks;
+    }
+
+    @Override
+    public List<TaskDagContainerModel> getTaskDagContainerModels()
+    {
+        return taskContainers;
     }
 
     @Override

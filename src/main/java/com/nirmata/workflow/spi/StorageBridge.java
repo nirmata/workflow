@@ -2,6 +2,7 @@ package com.nirmata.workflow.spi;
 
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleModel;
+import com.nirmata.workflow.models.TaskDagContainerModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import java.util.List;
@@ -39,6 +40,13 @@ public interface StorageBridge
      * @return executions
      */
     public List<ScheduleExecutionModel> getScheduleExecutions();
+
+    /**
+     * Return the current task dag containers
+     *
+     * @return containers
+     */
+    public List<TaskDagContainerModel> getTaskDagContainerModels();
 
     /**
      * Update the value for an execution

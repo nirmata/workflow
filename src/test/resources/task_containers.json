@@ -1,0 +1,79 @@
+[
+    {
+        "dagId": "dag1",
+        "dag": {
+            "taskId":"",
+            "children": [
+                {
+                    "taskId":"task1",
+                    "children": [
+                        {
+                            "taskId":"task3",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId":"task4",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId":"task5",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+
+                {
+                    "taskId":"task2",
+                    "children": [
+                        {
+                            "taskId":"task3",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId":"task4",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId":"task5",
+                            "children": [
+                                {
+                                    "taskId":"task6",
+                                    "children": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+]
