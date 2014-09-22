@@ -1,18 +1,14 @@
 package com.nirmata.workflow.details;
 
 import com.google.common.collect.Lists;
-import com.google.common.io.Files;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.spi.JsonSerializer;
 import org.jgrapht.alg.CycleDetector;
 import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.traverse.TopologicalOrderIterator;
-import java.io.File;
-import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,19 +16,6 @@ import java.util.stream.Collectors;
 public class RunnableTaskDagBuilder
 {
     private final TaskDagModel taskDag;
-
-    public static void main(String[] args) throws Exception
-    {
-        String json = Files.toString(new File("/Users/jordanzimmerman/dev/nirmata/workflow/src/test/resources/big_task_dag.json"), Charset.defaultCharset());
-        TaskDagModel taskDag = JsonSerializer.getTaskDag(JsonSerializer.fromString(json));
-
-        RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagBuilder(taskDag).build();
-        for ( RunnableTaskDagEntryModel entry : runnableTaskDag.getEntries() )
-        {
-            System.out.println(entry.getTaskId().getId());
-            System.out.println("\t" + entry.getDependencies());
-        }
-    }
 
     public RunnableTaskDagBuilder(TaskDagModel taskDag)
     {

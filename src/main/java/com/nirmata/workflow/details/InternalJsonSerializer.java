@@ -26,6 +26,7 @@ public class InternalJsonSerializer
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
         node.set("tasksSet", newTaskSet(denormalizedWorkflow.getTaskSets()));
+        node.set("taskDag", newTaskDag(denormalizedWorkflow.getTaskDag()));
         node.set("tasks", newTasks(denormalizedWorkflow.getTasks()));
         node.put("startDateUtc", denormalizedWorkflow.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
@@ -41,6 +42,7 @@ public class InternalJsonSerializer
             new WorkflowId(node.get("workflowId").asText()),
             getTasks(node.get("tasks")),
             node.get("name").asText(),
+            getTaskDag(node.get("taskDag")),
             getTaskSet(node.get("tasksSet")),
             LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
             node.get("taskSetsIndex").asInt()

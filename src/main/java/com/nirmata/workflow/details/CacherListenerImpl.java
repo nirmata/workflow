@@ -57,7 +57,7 @@ class CacherListenerImpl implements CacherListener
 
         if ( completedQty == thisTasks.size() )
         {
-            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
+            DenormalizedWorkflowModel newWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getTaskDag(), workflow.getTaskSets(), workflow.getStartDateUtc(), taskSetsIndex + 1);
             if ( newWorkflow.getTaskSetsIndex() >= workflow.getTaskSets().size() )
             {
                 completeSchedule(newWorkflow);

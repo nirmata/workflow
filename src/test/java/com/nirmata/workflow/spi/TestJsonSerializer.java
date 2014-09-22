@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.io.Resources;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
@@ -13,10 +12,8 @@ import com.nirmata.workflow.models.*;
 import io.airlift.units.Duration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -195,7 +192,8 @@ public class TestJsonSerializer
         }
 
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), workflow.getTasks(), LocalDateTime.now(), random.nextInt());
+        TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDag, workflow.getTasks(), LocalDateTime.now(), random.nextInt());
 
         JsonNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);
@@ -249,19 +247,6 @@ public class TestJsonSerializer
     public void testTaskDag()
     {
         TaskDagModel taskDag = makeTaskDag(random.nextInt(3) + 1);
-        JsonNode node = newTaskDag(taskDag);
-        String str = nodeToString(node);
-        System.out.println(str);
-
-        TaskDagModel unTaskDag = getTaskDag(fromString(str));
-        Assert.assertEquals(taskDag, unTaskDag);
-    }
-
-    @Test
-    public void testFileTaskDag() throws Exception
-    {
-        String json = Resources.toString(Resources.getResource("big_task_dag.json"), Charset.defaultCharset());
-        TaskDagModel taskDag = getTaskDag(fromString(json));
         JsonNode node = newTaskDag(taskDag);
         String str = nodeToString(node);
         System.out.println(str);

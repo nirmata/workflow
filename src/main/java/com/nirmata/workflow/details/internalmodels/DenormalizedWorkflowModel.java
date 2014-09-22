@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
 import com.nirmata.workflow.models.WorkflowId;
@@ -19,10 +20,12 @@ public class DenormalizedWorkflowModel
     private final String name;
     private final TaskSets taskSets;
     private final int taskSetsIndex;
+    private final TaskDagModel taskDag;
     private final LocalDateTime startDateUtc;
 
-    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskSets taskSets, LocalDateTime startDateUtc, int taskSetsIndex)
+    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, List<TaskModel> tasks, String name, TaskDagModel taskDag, TaskSets taskSets, LocalDateTime startDateUtc, int taskSetsIndex)
     {
+        this.taskDag = Preconditions.checkNotNull(taskDag, "taskDag cannot be null");
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         this.scheduleExecution = Preconditions.checkNotNull(scheduleExecution, "scheduleExecution cannot be null");
         this.workflowId = Preconditions.checkNotNull(workflowId, "workflowId cannot be null");
@@ -31,6 +34,11 @@ public class DenormalizedWorkflowModel
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
         this.taskSets = Preconditions.checkNotNull(taskSets, "taskSets cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
+    }
+
+    public TaskDagModel getTaskDag()
+    {
+        return taskDag;
     }
 
     public RunId getRunId()
@@ -112,6 +120,10 @@ public class DenormalizedWorkflowModel
         {
             return false;
         }
+        if ( !taskDag.equals(that.taskDag) )
+        {
+            return false;
+        }
         if ( !taskSets.equals(that.taskSets) )
         {
             return false;
@@ -139,6 +151,7 @@ public class DenormalizedWorkflowModel
         result = 31 * result + name.hashCode();
         result = 31 * result + taskSets.hashCode();
         result = 31 * result + taskSetsIndex;
+        result = 31 * result + taskDag.hashCode();
         result = 31 * result + startDateUtc.hashCode();
         return result;
     }
@@ -154,6 +167,7 @@ public class DenormalizedWorkflowModel
             ", name='" + name + '\'' +
             ", taskSets=" + taskSets +
             ", taskSetsIndex=" + taskSetsIndex +
+            ", taskDag=" + taskDag +
             ", startDateUtc=" + startDateUtc +
             '}';
     }

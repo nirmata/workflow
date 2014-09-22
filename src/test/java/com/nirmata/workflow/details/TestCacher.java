@@ -6,6 +6,7 @@ import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.TaskSets;
@@ -69,7 +70,8 @@ public class TestCacher extends BaseClassForTests
             List<List<TaskId>> tasksSets = Lists.newArrayList();
             tasksSets.add(Arrays.asList(taskId));
             TaskSets taskSets = new TaskSets(tasksSets);
-            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskSets, LocalDateTime.now(), 0);
+            TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
+            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskDag, taskSets, LocalDateTime.now(), 0);
             byte[] json = toBytes(newDenormalizedWorkflow(denormalizedWorkflow));
             client.create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
 

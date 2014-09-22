@@ -356,6 +356,39 @@ public class JsonSerializer
         );
     }
 
+    public static JsonNode newTaskDagContainer(TaskDagContainerModel taskDagContainer)
+    {
+        ObjectNode node = newNode();
+        node.put("dagId", taskDagContainer.getDagId().getId());
+        node.set("dag", newTaskDag(taskDagContainer.getDag()));
+        return node;
+    }
+
+    public static TaskDagContainerModel getTaskDagContainer(JsonNode node)
+    {
+        return new TaskDagContainerModel(new DagId(node.get("dagId").asText()), getTaskDag(node.get("dag")));
+    }
+
+    public static JsonNode newTaskDagContainers(List<TaskDagContainerModel> containers)
+    {
+        ArrayNode tab = newArrayNode();
+        for ( TaskDagContainerModel taskDagContainer : containers )
+        {
+            tab.add(newTaskDagContainer(taskDagContainer));
+        }
+        return tab;
+    }
+
+    public static List<TaskDagContainerModel> getTaskDagContainers(JsonNode node)
+    {
+        List<TaskDagContainerModel> containers = Lists.newArrayList();
+        for ( JsonNode n : node )
+        {
+            containers.add(getTaskDagContainer(n));
+        }
+        return containers;
+    }
+
     public static void addId(ObjectNode node, Id id)
     {
         node.put("id", id.getId());

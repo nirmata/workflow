@@ -1,18 +1,38 @@
-{
-    "taskId": "",
-    "children": [
-        {
-            "taskId": "task-1",
+[
+    {
+        "dagId": "dag-1",
+        "dag": {
+            "taskId": "",
             "children": [
                 {
-                    "taskId": "task-2",
+                    "taskId": "task-1",
                     "children": [
                         {
-                            "taskId": "task-4",
+                            "taskId": "task-2",
                             "children": [
                                 {
-                                    "taskId": "task-13",
-                                    "children": []
+                                    "taskId": "task-4",
+                                    "children": [
+                                        {
+                                            "taskId": "task-13",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId": "task-3",
+                            "children": [
+                                {
+                                    "taskId": "task-4",
+                                    "children": [
+                                        {
+                                            "taskId": "task-13",
+                                            "children": []
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -20,73 +40,58 @@
                 },
 
                 {
-                    "taskId": "task-3",
+                    "taskId": "task-5",
                     "children": [
                         {
-                            "taskId": "task-4",
-                            "children": [
-                                {
-                                    "taskId": "task-13",
-                                    "children": []
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        },
-
-        {
-            "taskId": "task-5",
-            "children": [
-                {
-                    "taskId": "task-13"
-                }
-            ]
-        },
-
-        {
-            "taskId": "task-6",
-            "children": [
-                {
-                    "taskId": "task-7",
-                    "children": [
-                        {
-                            "taskId": "task-10",
-                            "children": [
-                                {
-                                    "taskId": "task-13",
-                                    "children": []
-                                }
-                            ]
+                            "taskId": "task-13"
                         }
                     ]
                 },
 
                 {
-                    "taskId": "task-8",
+                    "taskId": "task-6",
                     "children": [
                         {
-                            "taskId": "task-11",
+                            "taskId": "task-7",
                             "children": [
                                 {
-                                    "taskId": "task-13",
-                                    "children": []
+                                    "taskId": "task-10",
+                                    "children": [
+                                        {
+                                            "taskId": "task-13",
+                                            "children": []
+                                        }
+                                    ]
                                 }
                             ]
-                        }
-                    ]
-                },
+                        },
 
-                {
-                    "taskId": "task-9",
-                    "children": [
                         {
-                            "taskId": "task-12",
+                            "taskId": "task-8",
                             "children": [
                                 {
-                                    "taskId": "task-13",
-                                    "children": []
+                                    "taskId": "task-11",
+                                    "children": [
+                                        {
+                                            "taskId": "task-13",
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+
+                        {
+                            "taskId": "task-9",
+                            "children": [
+                                {
+                                    "taskId": "task-12",
+                                    "children": [
+                                        {
+                                            "taskId": "task-13",
+                                            "children": []
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -94,5 +99,13 @@
                 }
             ]
         }
-    ]
-}
+    },
+
+    {
+        "dagId": "dag-2",
+        "dag": {
+            "taskId": "2-1",
+            "children": []
+        }
+    }
+]
