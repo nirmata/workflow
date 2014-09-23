@@ -19,6 +19,7 @@ import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.utils.CloseableUtils;
+import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ public class Scheduler implements Closeable
     private final WorkflowManager workflowManager;
     private final LeaderSelector leaderSelector;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
+    private final EnsurePath ensureCompletedRunPath;
 
     private enum State
     {
@@ -65,6 +67,8 @@ public class Scheduler implements Closeable
         };
         leaderSelector = new LeaderSelector(workflowManager.getCurator(), ZooKeeperConstants.getSchedulerLeaderPath(), listener);
         leaderSelector.autoRequeue();
+
+        ensureCompletedRunPath = workflowManager.getCurator().newNamespaceAwareEnsurePath(ZooKeeperConstants.getCompletedRunParentPath());
     }
 
     public void start()
@@ -123,8 +127,6 @@ public class Scheduler implements Closeable
 
     private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
-        // TODO - check if schedule is already running
-
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
         {
@@ -181,14 +183,31 @@ public class Scheduler implements Closeable
 
     private void completeWorkflow(DenormalizedWorkflowModel workflow)
     {
+        try
+        {
+            ensureCompletedRunPath.ensure(workflowManager.getCurator().getZookeeperClient());
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not ensure run path";
+            log.error(message, e);
+            throw new RuntimeException(message);
+        }
+
         ScheduleExecutionModel scheduleExecution = workflow.getScheduleExecution();
         ScheduleExecutionModel updatedScheduleExecution = new ScheduleExecutionModel(scheduleExecution.getScheduleId(), workflow.getStartDateUtc(), LocalDateTime.now(Clock.systemUTC()), scheduleExecution.getExecutionQty() + 1);
         workflowManager.getStorageBridge().updateScheduleExecution(updatedScheduleExecution);
 
         String completedRunPath = ZooKeeperConstants.getCompletedRunPath(workflow.getRunId());
+        String runPath = ZooKeeperConstants.getRunPath(workflow.getRunId());
         try
         {
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(completedRunPath, toJson(log, workflow));
+            workflowManager.getCurator().inTransaction()
+                .delete().forPath(runPath)
+                .and()
+                .create().forPath(completedRunPath, toJson(log, workflow))
+                .and().commit();
+            log.info("Workflow completed: " + workflow);
         }
         catch ( KeeperException.NodeExistsException e )
         {
@@ -337,7 +356,7 @@ public class Scheduler implements Closeable
         {
             Thread.currentThread().interrupt();
         }
-        catch ( Exception e )
+        catch ( Throwable e )
         {
             log.error("Exception while running scheduler", e);
         }
