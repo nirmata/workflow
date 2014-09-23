@@ -2,19 +2,18 @@ package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
-import com.nirmata.workflow.models.RunId;
-import com.nirmata.workflow.models.ScheduleExecutionModel;
-import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.ScheduleModel;
-import com.nirmata.workflow.models.TaskDagModel;
-import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.WorkflowModel;
+import com.nirmata.workflow.models.*;
+import com.nirmata.workflow.queue.Queue;
+import com.nirmata.workflow.spi.JsonSerializer;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.cache.ChildData;
+import org.apache.curator.framework.recipes.cache.PathChildrenCache;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
@@ -26,9 +25,14 @@ import java.io.Closeable;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
+import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
 import static com.nirmata.workflow.spi.JsonSerializer.toBytes;
 
 public class Scheduler implements Closeable
@@ -75,13 +79,13 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void startNewTasks(Cacher cacher)
+    private void checkStartNewRuns(PathChildrenCache runsCache, PathChildrenCache completedTasksCache)
     {
         StateCache localStateCache = workflowManager.getStateCache();    // save local value so we're safe if master state cache changes
 
         for ( ScheduleId scheduleId : localStateCache.getSchedules().keySet() )
         {
-            if ( !cacher.scheduleIsActive(scheduleId) )
+            if ( !scheduleIsActive(runsCache, scheduleId) )
             {
                 ScheduleModel schedule = localStateCache.getSchedules().get(scheduleId);
                 if ( schedule != null )
@@ -93,7 +97,7 @@ public class Scheduler implements Closeable
                     }
                     if ( schedule.shouldExecuteNow(scheduleExecution) )
                     {
-                        startWorkflow(scheduleExecution, schedule, localStateCache);
+                        startWorkflow(runsCache, completedTasksCache, scheduleExecution, schedule, localStateCache);
                     }
                 }
                 else
@@ -104,7 +108,17 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
+    private boolean scheduleIsActive(PathChildrenCache runsCache, ScheduleId scheduleId)
+    {
+        Optional<ChildData> any = runsCache
+            .getCurrentData()
+            .stream()
+            .filter(childData -> getDenormalizedWorkflow(fromBytes(childData.getData())).getScheduleId().equals(scheduleId))
+            .findAny();
+        return any.isPresent();
+    }
+
+    private void startWorkflow(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
@@ -144,6 +158,8 @@ public class Scheduler implements Closeable
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
             log.info("Started workflow: " + schedule.getWorkflowId());
             workflowManager.notifyScheduleStarted(schedule.getScheduleId());
+
+            updateTasks(runsCache, completedTasksCache, denormalizedWorkflow.getRunId());
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
@@ -155,6 +171,62 @@ public class Scheduler implements Closeable
             log.error("Could not create workflow node: " + workflow, e);
             throw new RuntimeException(e);
         }
+    }
+
+    private void updateTasks(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, RunId runId)
+    {
+        String path = ZooKeeperConstants.getRunPath(runId);
+        ChildData currentData = runsCache.getCurrentData(path);
+        if ( currentData == null )
+        {
+            String message = "Notified run not found in cache: " + runId;
+            log.warn(message);
+            throw new RuntimeException(message);
+        }
+
+        DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(currentData.getData()));
+        workflow.getRunnableTaskDag().getEntries().forEach(entry -> {
+            TaskId taskId = entry.getTaskId();
+            if ( taskId.isValid() && !taskIsComplete(completedTasksCache, runId, taskId) )
+            {
+                boolean allDependenciesAreComplete = entry.getDependencies().stream().allMatch(id -> taskIsComplete(completedTasksCache, runId, id));
+                if ( allDependenciesAreComplete )
+                {
+                    queueTask(runId, workflow.getScheduleId(), workflow.getTasks().get(taskId));
+                }
+            }
+        });
+    }
+
+    private void queueTask(RunId runId, ScheduleId scheduleId, TaskModel task)
+    {
+        String path = ZooKeeperConstants.getStartedTaskPath(runId, task.getTaskId());
+        try
+        {
+            StartedTaskModel startedTask = new StartedTaskModel(workflowManager.getConfiguration().getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
+            byte[] data = JsonSerializer.toBytes(JsonSerializer.newStartedTask(startedTask));
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
+            Queue queue = task.isIdempotent() ? workflowManager.getIdempotentTaskQueue() : workflowManager.getNonIdempotentTaskQueue();
+            queue.put(new ExecutableTaskModel(runId, scheduleId, task));
+            log.info("Queued task: " + task);
+        }
+        catch ( KeeperException.NodeExistsException ignore )
+        {
+            log.debug("Task already queued: " + task);
+            // race due to caching latency - task already started
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not start task " + task;
+            log.error(message, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean taskIsComplete(PathChildrenCache completedTasksCache, RunId runId, TaskId taskId)
+    {
+        String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
+        return (completedTasksCache.getCurrentData(completedTaskPath) != null);
     }
 
     static byte[] toJson(Logger log, DenormalizedWorkflowModel denormalizedWorkflow)
@@ -171,14 +243,32 @@ public class Scheduler implements Closeable
 
     private void takeLeadership()
     {
-        Cacher cacher = new Cacher(workflowManager.getCurator(), new CacherListenerImpl(workflowManager));
+        PathChildrenCache completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTasksParentPath(), false);
+        PathChildrenCache runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunsParentPath(), true);
+        long lastRunCheck = 0;
         try
         {
-            cacher.start();
+            BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
+            completedTasksCache.getListenable().addListener((client, event) -> {
+                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                {
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
+                    updatedRunIds.add(runId);
+                }
+            });
+            completedTasksCache.start();
+            runsCache.start();
+
             while ( !Thread.currentThread().isInterrupted() )
             {
-                Thread.sleep(workflowManager.getConfiguration().getSchedulerSleepMs());
-                startNewTasks(cacher);
+                RunId runId = updatedRunIds.poll(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
+                updateTasks(runsCache, completedTasksCache, runId);
+
+                if ( (System.currentTimeMillis() - lastRunCheck) >= workflowManager.getConfiguration().getSchedulerSleepMs() )
+                {
+                    checkStartNewRuns(runsCache, completedTasksCache);
+                    lastRunCheck = System.currentTimeMillis();
+                }
             }
         }
         catch ( InterruptedException dummy )
@@ -191,7 +281,8 @@ public class Scheduler implements Closeable
         }
         finally
         {
-            CloseableUtils.closeQuietly(cacher);
+            CloseableUtils.closeQuietly(completedTasksCache);
+            CloseableUtils.closeQuietly(runsCache);
         }
     }
 }

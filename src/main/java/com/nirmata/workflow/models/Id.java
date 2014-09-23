@@ -25,6 +25,11 @@ public class Id
         return id;
     }
 
+    public boolean isValid()
+    {
+        return (id.length() > 0);
+    }
+
     @Override
     public boolean equals(Object o)
     {

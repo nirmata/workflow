@@ -1,5 +1,6 @@
 package com.nirmata.workflow.details;
 
+import com.google.common.base.Splitter;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.utils.ZKPaths;
@@ -15,6 +16,8 @@ public class ZooKeeperConstants
     private static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
     private static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
     private static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
+
+    private static final String SEPARATOR = "|";
 
     public static final int MAX_PAYLOAD = 0xfffff;  // see "jute.maxbuffer" at http://zookeeper.apache.org/doc/r3.3.1/zookeeperAdmin.html
 
@@ -98,6 +101,17 @@ public class ZooKeeperConstants
     private static String getRunsWorkParentPath(RunId runId)
     {
         return ZKPaths.makePath(RUNS_WORK_PATH, runId.getId());
+    }
+
+    public static String getCompletedTasksParentPath()
+    {
+        return COMPLETED_TASKS_PATH;
+    }
+
+    public static String getRunIdFromCompletedTasksPath(String path)
+    {
+        String n = ZKPaths.getNodeFromPath(path);
+        return Splitter.on(SEPARATOR).splitToList(n).get(0);
     }
 
     public static String getCompletedTasksParentPath(RunId runId)
