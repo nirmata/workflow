@@ -31,10 +31,10 @@ class CacherListenerImpl implements CacherListener
     @Override
     public void updateAndQueueTasks(Cacher cacher, DenormalizedWorkflowModel workflow)
     {
+/* TODO
         ImmutableMap<TaskId, TaskModel> tasks = Maps.uniqueIndex(workflow.getTasks(), TaskModel::getTaskId);
         int taskSetsIndex = workflow.getTaskSetsIndex();
         int completedQty = 0;
-/* TODO
         List<TaskId> thisTasks = workflow.getTaskSets().get(taskSetsIndex);
         for ( TaskId taskId : thisTasks )
         {

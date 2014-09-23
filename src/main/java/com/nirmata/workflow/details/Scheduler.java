@@ -1,9 +1,11 @@
 package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
@@ -23,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
@@ -111,25 +113,30 @@ public class Scheduler implements Closeable
             log.error(message);
             throw new RuntimeException(message);
         }
-        List<TaskModel> tasks = Lists.newArrayList();
-/*
-        for ( List<TaskId> thisSet : workflow.getTasks() )
+
+        TaskDagModel taskDag = localStateCache.getTaskDagContainers().get(workflow.getTaskDagId());
+        if ( taskDag == null )
         {
-            for ( TaskId taskId : thisSet )
+            String message = "Expected taskDag not found in StateCache. TaskDagId: " + workflow.getTaskDagId();
+            log.error(message);
+            throw new RuntimeException(message);
+        }
+
+        Map<TaskId, TaskModel> tasks = Maps.newHashMap();
+        RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagBuilder(taskDag).build();
+        for ( RunnableTaskDagEntryModel entry : runnableTaskDag.getEntries() )
+        {
+            TaskModel task = localStateCache.getTasks().get(entry.getTaskId());
+            if ( task == null )
             {
-                TaskModel task = localStateCache.getTasks().get(taskId);
-                if ( task == null )
-                {
-                    String message = "Expected task not found in StateCache. TaskId: " + taskId;
-                    log.error(message);
-                    throw new RuntimeException(message);
-                }
-                tasks.add(task);
+                String message = "Expected task not found in StateCache. TaskId: " + entry.getTaskId();
+                log.error(message);
+                throw new RuntimeException(message);
             }
-        } TODO
-*/
-        TaskDagModel taskDagModel = new TaskDagModel(new TaskId(), Lists.newArrayList());   // TODO
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDagModel, LocalDateTime.now(Clock.systemUTC()), 0);
+            tasks.put(task.getTaskId(), task);
+        }
+
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now(Clock.systemUTC()));
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try

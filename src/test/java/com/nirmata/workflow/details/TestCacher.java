@@ -3,13 +3,12 @@ package com.nirmata.workflow.details;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
-import com.nirmata.workflow.models.TaskDagModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
-import com.nirmata.workflow.models.TaskSets;
 import com.nirmata.workflow.models.WorkflowId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import org.apache.curator.framework.CuratorFramework;
@@ -69,13 +68,14 @@ public class TestCacher extends BaseClassForTests
             List<TaskModel> tasks = Arrays.asList(new TaskModel(taskId, "test-task", "test", true));
             List<List<TaskId>> tasksSets = Lists.newArrayList();
             tasksSets.add(Arrays.asList(taskId));
-            TaskSets taskSets = new TaskSets(tasksSets);
-            TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
-            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", taskDag, LocalDateTime.now(), 0);
+            RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagModel(Lists.newArrayList());  // TODO
+/*
+            DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, new WorkflowId(), tasks, "test", runnableTaskDag, LocalDateTime.now());
             byte[] json = toBytes(newDenormalizedWorkflow(denormalizedWorkflow));
             client.create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
 
             Assert.assertTrue(timing.awaitLatch(latch));
+*/
         }
         finally
         {

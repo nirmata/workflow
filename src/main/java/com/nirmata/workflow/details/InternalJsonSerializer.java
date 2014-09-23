@@ -25,10 +25,9 @@ public class InternalJsonSerializer
         node.set("scheduleExecution", newScheduleExecution(denormalizedWorkflow.getScheduleExecution()));
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
-        node.set("taskDag", newTaskDag(denormalizedWorkflow.getTaskDag()));
+        node.set("runnableTaskDag", newRunnableTaskDag(denormalizedWorkflow.getRunnableTaskDag()));
         node.set("tasks", newTasks(denormalizedWorkflow.getTasks()));
         node.put("startDateUtc", denormalizedWorkflow.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        node.put("taskSetsIndex", denormalizedWorkflow.getTaskSetsIndex());
         return node;
     }
 
@@ -41,9 +40,8 @@ public class InternalJsonSerializer
             new WorkflowId(node.get("workflowId").asText()),
             getTasks(node.get("tasks")),
             node.get("name").asText(),
-            getTaskDag(node.get("taskDag")),
-            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
-            node.get("taskSetsIndex").asInt()
+            getRunnableTaskDag(node.get("runnableTaskDag")),
+            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
         );
     }
 
@@ -72,7 +70,7 @@ public class InternalJsonSerializer
         return new RunnableTaskDagEntryModel(taskId, dependencies);
     }
 
-    public static JsonNode newRunnableTaskDagModel(RunnableTaskDagModel runnableTaskDag)
+    public static JsonNode newRunnableTaskDag(RunnableTaskDagModel runnableTaskDag)
     {
         ArrayNode tab = newArrayNode();
         for ( RunnableTaskDagEntryModel entry : runnableTaskDag.getEntries() )
@@ -82,7 +80,7 @@ public class InternalJsonSerializer
         return tab;
     }
 
-    public static RunnableTaskDagModel getRunnableTaskDagModel(JsonNode node)
+    public static RunnableTaskDagModel getRunnableTaskDag(JsonNode node)
     {
         List<RunnableTaskDagEntryModel> entries = Lists.newArrayList();
         for ( JsonNode child : node )

@@ -12,6 +12,7 @@ import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
+import com.nirmata.workflow.models.TaskDagContainerModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
@@ -248,11 +249,12 @@ public class WorkflowManager implements Closeable
 
     private void updateState()
     {
-        List<ScheduleModel> scheduleModels = storageBridge.getScheduleModels();
-        List<TaskModel> taskModels = storageBridge.getTaskModels();
-        List<WorkflowModel> workflowModels = storageBridge.getWorkflowModels();
+        List<ScheduleModel> schedules = storageBridge.getScheduleModels();
+        List<TaskModel> tasks = storageBridge.getTaskModels();
+        List<WorkflowModel> workflows = storageBridge.getWorkflowModels();
         List<ScheduleExecutionModel> scheduleExecutions = storageBridge.getScheduleExecutions();
-        stateCache.set(new StateCache(scheduleModels, scheduleExecutions, taskModels, workflowModels));
+        List<TaskDagContainerModel> taskDagContainers = storageBridge.getTaskDagContainerModels();
+        stateCache.set(new StateCache(schedules, scheduleExecutions, tasks, workflows, taskDagContainers));
     }
 
     private List<QueueConsumer> makeTaskConsumers(QueueFactory queueFactory, WorkflowManagerConfiguration configuration)

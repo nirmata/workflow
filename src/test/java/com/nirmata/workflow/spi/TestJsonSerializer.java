@@ -14,6 +14,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -74,17 +75,18 @@ public class TestJsonSerializer
     @Test
     public void testTasks()
     {
-        List<TaskModel> tasks = Lists.newArrayList();
+        Map<TaskId, TaskModel> tasks = Maps.newHashMap();
         int qty = random.nextInt(100);
         for ( int i = 0; i < qty; ++i )
         {
-            tasks.add(makeTask());
+            TaskModel task = makeTask();
+            tasks.put(task.getTaskId(), task);
         }
         JsonNode node = newTasks(tasks);
         String str = nodeToString(node);
         System.out.println(str);
 
-        List<TaskModel> unTasks = getTasks(fromString(str));
+        Map<TaskId, TaskModel> unTasks = getTasks(fromString(str));
         Assert.assertEquals(tasks, unTasks);
     }
 
@@ -181,13 +183,23 @@ public class TestJsonSerializer
     public void testDenormalizedWorkflow() throws Exception
     {
         WorkflowModel workflow = new WorkflowModel(new WorkflowId(), "iqlrhawlksFN", new TaskDagId());
-        List<TaskModel> tasks = Lists.newArrayList();
+        Map<TaskId, TaskModel> tasks = Maps.newHashMap();
 
-        // TODO
+        List<RunnableTaskDagEntryModel> entries = Lists.newArrayList();
+
+        int qty = random.nextInt(5) + 1;
+        for ( int i = 0; i < qty; ++i )
+        {
+            TaskModel task = makeTask();
+            tasks.put(task.getTaskId(), task);
+
+            Collection<TaskId> dependencies = Arrays.asList(new TaskId(), new TaskId(), new TaskId());
+            entries.add(new RunnableTaskDagEntryModel(task.getTaskId(), dependencies));
+        }
 
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
-        TaskDagModel taskDag = new TaskDagModel(new TaskId(), Lists.newArrayList());    // TODO
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), taskDag, LocalDateTime.now(), random.nextInt());
+        RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagModel(entries);
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now());
 
         JsonNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);
@@ -265,11 +277,11 @@ public class TestJsonSerializer
             entries.add(new RunnableTaskDagEntryModel(new TaskId(), dependencies));
         }
         RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagModel(entries);
-        JsonNode node = newRunnableTaskDagModel(runnableTaskDag);
+        JsonNode node = newRunnableTaskDag(runnableTaskDag);
         String str = nodeToString(node);
         System.out.println(str);
 
-        RunnableTaskDagModel unRunnableTaskDag = getRunnableTaskDagModel(fromString(str));
+        RunnableTaskDagModel unRunnableTaskDag = getRunnableTaskDag(fromString(str));
         Assert.assertEquals(runnableTaskDag, unRunnableTaskDag);
     }
 

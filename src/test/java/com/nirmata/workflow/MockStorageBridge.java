@@ -1,5 +1,6 @@
 package com.nirmata.workflow;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
@@ -7,6 +8,7 @@ import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskDagContainerModel;
+import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowModel;
 import com.nirmata.workflow.spi.StorageBridge;
@@ -21,7 +23,7 @@ class MockStorageBridge implements StorageBridge
 {
     private final List<ScheduleModel> schedules;
     private final List<WorkflowModel> workflows;
-    private final List<TaskModel> tasks;
+    private final Map<TaskId, TaskModel> tasks;
     private final List<TaskDagContainerModel> taskContainers;
     private final Map<ScheduleId, ScheduleExecutionModel> scheduleExecutions;
 
@@ -49,7 +51,7 @@ class MockStorageBridge implements StorageBridge
     @Override
     public List<TaskModel> getTaskModels()
     {
-        return tasks;
+        return ImmutableList.copyOf(tasks.values());
     }
 
     @Override

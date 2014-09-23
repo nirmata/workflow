@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.*;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -237,24 +237,27 @@ public class JsonSerializer
         return new TaskSets(tasks);
     }
 
-    public static JsonNode newTasks(Collection<TaskModel> tasks)
+    public static JsonNode newTasks(Map<TaskId, TaskModel> tasks)
     {
         ArrayNode tab = newArrayNode();
-        for ( TaskModel task : tasks )
+        for ( Map.Entry<TaskId, TaskModel> task : tasks.entrySet() )
         {
-            tab.add(newTask(task));
+            ObjectNode node = newNode();
+            addId(node, task.getKey());
+            node.set("task", newTask(task.getValue()));
+            tab.add(node);
         }
         return tab;
     }
 
-    public static List<TaskModel> getTasks(JsonNode node)
+    public static Map<TaskId, TaskModel> getTasks(JsonNode node)
     {
-        ImmutableList.Builder<TaskModel> builder = ImmutableList.builder();
+        ImmutableMap.Builder<TaskId, TaskModel> builder = ImmutableMap.builder();
         Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
-            JsonNode next = elements.next();
-            builder.add(getTask(next));
+            JsonNode n = elements.next();
+            builder.put(new TaskId(getId(n)), getTask(n.get("task")));
         }
         return builder.build();
     }
