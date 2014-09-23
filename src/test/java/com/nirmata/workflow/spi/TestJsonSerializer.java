@@ -2,7 +2,6 @@ package com.nirmata.workflow.spi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
@@ -31,7 +30,9 @@ public class TestJsonSerializer
     public void testId()
     {
         ObjectNode node = newNode();
-        Id id = new Id(){};
+        Id id = new Id()
+        {
+        };
         addId(node, id);
         String str = nodeToString(node);
         System.out.println(str);
@@ -64,7 +65,7 @@ public class TestJsonSerializer
         if ( random.nextBoolean() )
         {
             int qty = random.nextInt(25);
-            for ( int i = 0; i < qty; ++i  )
+            for ( int i = 0; i < qty; ++i )
             {
                 metaData.put(Integer.toString(i), "" + random.nextInt());
             }
@@ -75,32 +76,18 @@ public class TestJsonSerializer
     @Test
     public void testTasks()
     {
-        Map<TaskId, TaskModel> tasks = Maps.newHashMap();
+        List<TaskModel> tasks = Lists.newArrayList();
         int qty = random.nextInt(100);
         for ( int i = 0; i < qty; ++i )
         {
-            TaskModel task = makeTask();
-            tasks.put(task.getTaskId(), task);
+            tasks.add(makeTask());
         }
         JsonNode node = newTasks(tasks);
         String str = nodeToString(node);
         System.out.println(str);
 
-        Map<TaskId, TaskModel> unTasks = getTasks(fromString(str));
+        List<TaskModel> unTasks = getTasks(fromString(str));
         Assert.assertEquals(tasks, unTasks);
-    }
-
-    @Test
-    public void testTaskSet()
-    {
-        TaskSets taskSets = makeTaskSet();
-
-        JsonNode node = newTaskSet(taskSets);
-        String str = nodeToString(node);
-        System.out.println(str);
-
-        TaskSets unTaskSets = getTaskSet(fromString(str));
-        Assert.assertEquals(taskSets, unTaskSets);
     }
 
     @Test
@@ -305,14 +292,5 @@ public class TestJsonSerializer
     {
         RepetitionModel.Type type = random.nextBoolean() ? RepetitionModel.Type.ABSOLUTE : RepetitionModel.Type.RELATIVE;
         return new ScheduleModel(new ScheduleId(), new WorkflowId(), new RepetitionModel(new Duration(Math.abs(random.nextInt()), TimeUnit.MINUTES), type, random.nextInt()));
-    }
-
-    private TaskSets makeTaskSet()
-    {
-        List<TaskId> ids1 = Arrays.asList(new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId(), new TaskId());
-        List<TaskId> ids2 = Arrays.asList(new TaskId(), new TaskId(), new TaskId(), new TaskId());
-        List<TaskId> ids3 = Arrays.asList(new TaskId());
-        List<List<TaskId>> tasks = ImmutableList.of(ids1, ids2, ids3);
-        return new TaskSets(tasks);
     }
 }

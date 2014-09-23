@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
@@ -26,9 +27,11 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
@@ -79,7 +82,7 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void checkStartNewRuns(PathChildrenCache runsCache, PathChildrenCache completedTasksCache)
+    private void checkStartNewRuns(PathChildrenCache runsCache)
     {
         StateCache localStateCache = workflowManager.getStateCache();    // save local value so we're safe if master state cache changes
 
@@ -97,7 +100,7 @@ public class Scheduler implements Closeable
                     }
                     if ( schedule.shouldExecuteNow(scheduleExecution) )
                     {
-                        startWorkflow(runsCache, completedTasksCache, scheduleExecution, schedule, localStateCache);
+                        startWorkflow(scheduleExecution, schedule, localStateCache);
                     }
                 }
                 else
@@ -118,8 +121,10 @@ public class Scheduler implements Closeable
         return any.isPresent();
     }
 
-    private void startWorkflow(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
+    private void startWorkflow(ScheduleExecutionModel scheduleExecution, ScheduleModel schedule, StateCache localStateCache)
     {
+        // TODO - check if schedule is already running
+
         WorkflowModel workflow = localStateCache.getWorkflows().get(schedule.getWorkflowId());
         if ( workflow == null )
         {
@@ -140,14 +145,17 @@ public class Scheduler implements Closeable
         RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagBuilder(taskDag).build();
         for ( RunnableTaskDagEntryModel entry : runnableTaskDag.getEntries() )
         {
-            TaskModel task = localStateCache.getTasks().get(entry.getTaskId());
-            if ( task == null )
+            if ( entry.getTaskId().isValid() )
             {
-                String message = "Expected task not found in StateCache. TaskId: " + entry.getTaskId();
-                log.error(message);
-                throw new RuntimeException(message);
+                TaskModel task = localStateCache.getTasks().get(entry.getTaskId());
+                if ( task == null )
+                {
+                    String message = "Expected task not found in StateCache. TaskId: " + entry.getTaskId();
+                    log.error(message);
+                    throw new RuntimeException(message);
+                }
+                tasks.put(task.getTaskId(), task);
             }
-            tasks.put(task.getTaskId(), task);
         }
 
         DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now(Clock.systemUTC()));
@@ -158,8 +166,6 @@ public class Scheduler implements Closeable
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
             log.info("Started workflow: " + schedule.getWorkflowId());
             workflowManager.notifyScheduleStarted(schedule.getScheduleId());
-
-            updateTasks(runsCache, completedTasksCache, denormalizedWorkflow.getRunId());
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
@@ -173,7 +179,29 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void updateTasks(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, RunId runId)
+    private void completeWorkflow(DenormalizedWorkflowModel workflow)
+    {
+        ScheduleExecutionModel scheduleExecution = workflow.getScheduleExecution();
+        ScheduleExecutionModel updatedScheduleExecution = new ScheduleExecutionModel(scheduleExecution.getScheduleId(), workflow.getStartDateUtc(), LocalDateTime.now(Clock.systemUTC()), scheduleExecution.getExecutionQty() + 1);
+        workflowManager.getStorageBridge().updateScheduleExecution(updatedScheduleExecution);
+
+        String completedRunPath = ZooKeeperConstants.getCompletedRunPath(workflow.getRunId());
+        try
+        {
+            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(completedRunPath, toJson(log, workflow));
+        }
+        catch ( KeeperException.NodeExistsException e )
+        {
+            log.debug("Workflow already completed: " + workflow);
+        }
+        catch ( Exception e )
+        {
+            log.error("Could not create completed run node: " + workflow, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void updateTasks(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, PathChildrenCache startedTasksCache, RunId runId)
     {
         String path = ZooKeeperConstants.getRunPath(runId);
         ChildData currentData = runsCache.getCurrentData(path);
@@ -184,10 +212,16 @@ public class Scheduler implements Closeable
             throw new RuntimeException(message);
         }
 
+        Set<TaskId> completedTasks = Sets.newHashSet();
         DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(currentData.getData()));
         workflow.getRunnableTaskDag().getEntries().forEach(entry -> {
             TaskId taskId = entry.getTaskId();
-            if ( taskId.isValid() && !taskIsComplete(completedTasksCache, runId, taskId) )
+            boolean taskIsComplete = taskIsComplete(completedTasksCache, runId, taskId);
+            if ( taskIsComplete )
+            {
+                completedTasks.add(taskId);
+            }
+            if ( taskId.isValid() && !taskIsComplete && !taskIsStarted(startedTasksCache, runId, taskId) )
             {
                 boolean allDependenciesAreComplete = entry.getDependencies().stream().allMatch(id -> taskIsComplete(completedTasksCache, runId, id));
                 if ( allDependenciesAreComplete )
@@ -196,6 +230,12 @@ public class Scheduler implements Closeable
                 }
             }
         });
+
+        Set<TaskId> entries = workflow.getRunnableTaskDag().getEntries().stream().map(RunnableTaskDagEntryModel::getTaskId).collect(Collectors.toSet());
+        if ( completedTasks.equals(entries))
+        {
+            completeWorkflow(workflow);
+        }
     }
 
     private void queueTask(RunId runId, ScheduleId scheduleId, TaskModel task)
@@ -223,8 +263,18 @@ public class Scheduler implements Closeable
         }
     }
 
+    private boolean taskIsStarted(PathChildrenCache startedTasksCache, RunId runId, TaskId taskId)
+    {
+        String startedTaskPath = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
+        return (startedTasksCache.getCurrentData(startedTaskPath) != null);
+    }
+
     private boolean taskIsComplete(PathChildrenCache completedTasksCache, RunId runId, TaskId taskId)
     {
+        if ( !taskId.isValid() )
+        {
+            return true;
+        }
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
         return (completedTasksCache.getCurrentData(completedTaskPath) != null);
     }
@@ -244,8 +294,9 @@ public class Scheduler implements Closeable
     private void takeLeadership()
     {
         PathChildrenCache completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTasksParentPath(), false);
+        PathChildrenCache startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
         PathChildrenCache runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunsParentPath(), true);
-        long lastRunCheck = 0;
+        long lastRunCheckMs = 0;
         try
         {
             BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
@@ -256,18 +307,29 @@ public class Scheduler implements Closeable
                     updatedRunIds.add(runId);
                 }
             });
+            runsCache.getListenable().addListener((client, event) -> {
+                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                {
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                    updatedRunIds.add(runId);
+                }
+            });
             completedTasksCache.start();
             runsCache.start();
+            startedTasksCache.start();
 
             while ( !Thread.currentThread().isInterrupted() )
             {
                 RunId runId = updatedRunIds.poll(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
-                updateTasks(runsCache, completedTasksCache, runId);
-
-                if ( (System.currentTimeMillis() - lastRunCheck) >= workflowManager.getConfiguration().getSchedulerSleepMs() )
+                if ( runId != null )
                 {
-                    checkStartNewRuns(runsCache, completedTasksCache);
-                    lastRunCheck = System.currentTimeMillis();
+                    updateTasks(runsCache, completedTasksCache, startedTasksCache, runId);
+                }
+
+                if ( (System.currentTimeMillis() - lastRunCheckMs) >= workflowManager.getConfiguration().getSchedulerSleepMs() )
+                {
+                    checkStartNewRuns(runsCache);
+                    lastRunCheckMs = System.currentTimeMillis();
                 }
             }
         }
@@ -282,6 +344,7 @@ public class Scheduler implements Closeable
         finally
         {
             CloseableUtils.closeQuietly(completedTasksCache);
+            CloseableUtils.closeQuietly(startedTasksCache);
             CloseableUtils.closeQuietly(runsCache);
         }
     }

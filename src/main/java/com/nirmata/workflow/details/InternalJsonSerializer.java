@@ -9,10 +9,13 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
+import com.nirmata.workflow.models.TaskModel;
 import com.nirmata.workflow.models.WorkflowId;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -26,7 +29,7 @@ public class InternalJsonSerializer
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
         node.set("runnableTaskDag", newRunnableTaskDag(denormalizedWorkflow.getRunnableTaskDag()));
-        node.set("tasks", newTasks(denormalizedWorkflow.getTasks()));
+        node.set("tasks", newTasks(denormalizedWorkflow.getTasks().values()));
         node.put("startDateUtc", denormalizedWorkflow.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         return node;
     }
@@ -38,7 +41,7 @@ public class InternalJsonSerializer
             new RunId(getId(node)),
             getScheduleExecution(node.get("scheduleExecution")),
             new WorkflowId(node.get("workflowId").asText()),
-            getTasks(node.get("tasks")),
+            getTasks(node.get("tasks")).stream().collect(Collectors.toMap(TaskModel::getTaskId, Function.<TaskModel>identity())),
             node.get("name").asText(),
             getRunnableTaskDag(node.get("runnableTaskDag")),
             LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)

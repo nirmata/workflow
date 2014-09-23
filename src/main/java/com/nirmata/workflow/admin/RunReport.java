@@ -63,6 +63,7 @@ public class RunReport
 
     private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, LocalDateTime> builder)
     {
+/* TODO
         String path = ZooKeeperConstants.getStartedTasksParentPath(runId);
         try
         {
@@ -84,10 +85,12 @@ public class RunReport
             log.error("Could not build running tasks for run: " + runId, e);
             throw new RuntimeException(e);
         }
+*/
     }
 
     private void getCompletedTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, TaskExecutionResult> builder)
     {
+/* TODO
         String path = ZooKeeperConstants.getCompletedTasksParentPath(runId);
         try
         {
@@ -109,6 +112,7 @@ public class RunReport
             log.error("Could not build completed tasks for run: " + runId, e);
             throw new RuntimeException(e);
         }
+*/
     }
 
     private DenormalizedWorkflowModel init(CuratorFramework curator, RunId runId)

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.*;
@@ -16,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -205,59 +205,24 @@ public class JsonSerializer
         );
     }
 
-    public static JsonNode newTaskSet(TaskSets taskSets)
+    public static JsonNode newTasks(Collection<TaskModel> tasks)
     {
         ArrayNode tab = newArrayNode();
-        for ( List<TaskId> tasks : taskSets )
+        for ( TaskModel task : tasks )
         {
-            ArrayNode tasksTab = newArrayNode();
-            for ( TaskId taskId : tasks )
-            {
-                tasksTab.add(taskId.getId());
-            }
-            tab.add(tasksTab);
+            tab.add(newTask(task));
         }
         return tab;
     }
 
-    public static TaskSets getTaskSet(JsonNode node)
+    public static List<TaskModel> getTasks(JsonNode node)
     {
-        List<List<TaskId>> tasks = Lists.newArrayList();
-        Iterator<JsonNode> elements = node.elements();
-        while ( elements.hasNext() )
-        {
-            JsonNode next = elements.next();
-            List<TaskId> thisSet = Lists.newArrayList();
-            for ( JsonNode idNode : next )
-            {
-                thisSet.add(new TaskId(idNode.asText()));
-            }
-            tasks.add(thisSet);
-        }
-        return new TaskSets(tasks);
-    }
-
-    public static JsonNode newTasks(Map<TaskId, TaskModel> tasks)
-    {
-        ArrayNode tab = newArrayNode();
-        for ( Map.Entry<TaskId, TaskModel> task : tasks.entrySet() )
-        {
-            ObjectNode node = newNode();
-            addId(node, task.getKey());
-            node.set("task", newTask(task.getValue()));
-            tab.add(node);
-        }
-        return tab;
-    }
-
-    public static Map<TaskId, TaskModel> getTasks(JsonNode node)
-    {
-        ImmutableMap.Builder<TaskId, TaskModel> builder = ImmutableMap.builder();
+        ImmutableList.Builder<TaskModel> builder = ImmutableList.builder();
         Iterator<JsonNode> elements = node.elements();
         while ( elements.hasNext() )
         {
             JsonNode n = elements.next();
-            builder.put(new TaskId(getId(n)), getTask(n.get("task")));
+            builder.add(getTask(n));
         }
         return builder.build();
     }

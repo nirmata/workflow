@@ -9,7 +9,6 @@ public class ZooKeeperConstants
 {
     private static final String SCHEDULER_LEADER_PATH = "/scheduler-leader";
     private static final String RUNS_PATH = "/runs";
-    private static final String RUNS_WORK_PATH = "/runs-work";
     private static final String COMPLETED_RUNS_PARENT_PATH = "/completed-runs";
     private static final String COMPLETED_TASKS_PATH = "/tasks-completed";
     private static final String STARTED_TASKS_PATH = "/tasks-started";
@@ -37,7 +36,7 @@ public class ZooKeeperConstants
         System.out.println();
 
         System.out.println("getRunIdFromRunPath:\t\t\t\t" + getRunIdFromRunPath(runPath));
-        System.out.println("getRunIdFromCompletedTaskPath:\t\t" + getRunIdFromCompletedTaskPath(completedTaskPath));
+        System.out.println("getRunIdFromCompletedTasksPath:\t\t" + getRunIdFromCompletedTasksPath(completedTaskPath));
         System.out.println();
 
         System.out.println("getSchedulerLeaderPath:\t\t\t\t" + getSchedulerLeaderPath());
@@ -48,7 +47,7 @@ public class ZooKeeperConstants
         System.out.println("getNonIdempotentTasksQueuePath:\t\t" + getNonIdempotentTasksQueuePath());
         System.out.println("getCompletedRunParentPath:\t\t\t" + getCompletedRunParentPath());
         System.out.println("getCompletedRunPath:\t\t\t\t" + getCompletedRunPath(runId));
-        System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTasksParentPath(runId));
+        System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTasksParentPath());
         System.out.println("getCompletedTaskPath:\t\t\t\t" + completedTaskPath);
         System.out.println("getStartedTaskPath:\t\t\t\t\t" + getStartedTaskPath(runId, taskId));
     }
@@ -98,11 +97,6 @@ public class ZooKeeperConstants
         return ZKPaths.makePath(COMPLETED_RUNS_PARENT_PATH, runId.getId());
     }
 
-    private static String getRunsWorkParentPath(RunId runId)
-    {
-        return ZKPaths.makePath(RUNS_WORK_PATH, runId.getId());
-    }
-
     public static String getCompletedTasksParentPath()
     {
         return COMPLETED_TASKS_PATH;
@@ -114,38 +108,24 @@ public class ZooKeeperConstants
         return Splitter.on(SEPARATOR).splitToList(n).get(0);
     }
 
-    public static String getCompletedTasksParentPath(RunId runId)
-    {
-        return ZKPaths.makePath(getRunsWorkParentPath(runId), COMPLETED_TASKS_PATH);
-    }
-
     public static String getCompletedTaskPath(RunId runId, TaskId taskId)
     {
-        return ZKPaths.makePath(getCompletedTasksParentPath(runId), taskId.getId());
+        return ZKPaths.makePath(getCompletedTasksParentPath(), makeRunTask(runId, taskId));
     }
 
-    public static String getTaskIdFromCompletedTaskPath(String path)
+    public static String getStartedTasksParentPath()
     {
-        ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(path);
-        return pathAndNode.getNode();
-    }
-
-    public static String getRunIdFromCompletedTaskPath(String path)
-    {
-        ZKPaths.PathAndNode pathAndNode = ZKPaths.getPathAndNode(path);
-        ZKPaths.PathAndNode parentPathAndNode = ZKPaths.getPathAndNode(pathAndNode.getPath());
-        ZKPaths.PathAndNode grandParentPathAndNode = ZKPaths.getPathAndNode(parentPathAndNode.getPath());
-        return grandParentPathAndNode.getNode();
-    }
-
-    public static String getStartedTasksParentPath(RunId runId)
-    {
-        return ZKPaths.makePath(getRunsWorkParentPath(runId), STARTED_TASKS_PATH);
+        return STARTED_TASKS_PATH;
     }
 
     public static String getStartedTaskPath(RunId runId, TaskId taskId)
     {
-        String parentPath = getStartedTasksParentPath(runId);
-        return ZKPaths.makePath(parentPath, taskId.getId());
+        String parentPath = getStartedTasksParentPath();
+        return ZKPaths.makePath(parentPath, makeRunTask(runId, taskId));
+    }
+
+    private static String makeRunTask(RunId runId, TaskId taskId)
+    {
+        return runId.getId() + SEPARATOR + taskId.getId();
     }
 }

@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.nirmata.workflow.spi.JsonSerializer.*;
 
@@ -31,7 +33,7 @@ class MockStorageBridge implements StorageBridge
     {
         scheduleExecutions = Maps.newHashMap();
         schedules = getSchedules(fromString(Resources.toString(Resources.getResource(schedulesFile), Charset.defaultCharset())));
-        tasks = getTasks(fromString(Resources.toString(Resources.getResource(tasksFile), Charset.defaultCharset())));
+        tasks = getTasks(fromString(Resources.toString(Resources.getResource(tasksFile), Charset.defaultCharset()))).stream().collect(Collectors.toMap(TaskModel::getTaskId, Function.<TaskModel>identity()));
         workflows = getWorkflows(fromString(Resources.toString(Resources.getResource(workflowsFile), Charset.defaultCharset())));
         taskContainers = getTaskDagContainers(fromString(Resources.toString(Resources.getResource(taskDagContainersFile), Charset.defaultCharset())));
     }
