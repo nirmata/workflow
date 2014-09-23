@@ -2,6 +2,7 @@ package com.nirmata.workflow.details.internalmodels;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.nirmata.workflow.details.WorkflowStatus;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleExecutionModel;
 import com.nirmata.workflow.models.ScheduleId;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class DenormalizedWorkflowModel
 {
     private final RunId runId;
+    private final WorkflowStatus status;
     private final ScheduleExecutionModel scheduleExecution;
     private final WorkflowId workflowId;
     private final Map<TaskId, TaskModel> tasks;
@@ -21,9 +23,10 @@ public class DenormalizedWorkflowModel
     private final RunnableTaskDagModel runnableTaskDag;
     private final LocalDateTime startDateUtc;
 
-    public DenormalizedWorkflowModel(RunId runId, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, Map<TaskId, TaskModel> tasks, String name, RunnableTaskDagModel runnableTaskDag, LocalDateTime startDateUtc)
+    public DenormalizedWorkflowModel(RunId runId, WorkflowStatus status, ScheduleExecutionModel scheduleExecution, WorkflowId workflowId, Map<TaskId, TaskModel> tasks, String name, RunnableTaskDagModel runnableTaskDag, LocalDateTime startDateUtc)
     {
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
+        this.status = Preconditions.checkNotNull(status, "status cannot be null");
         this.runnableTaskDag = Preconditions.checkNotNull(runnableTaskDag, "runnableTaskDag cannot be null");
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         this.scheduleExecution = Preconditions.checkNotNull(scheduleExecution, "scheduleExecution cannot be null");
@@ -36,6 +39,11 @@ public class DenormalizedWorkflowModel
     public RunnableTaskDagModel getRunnableTaskDag()
     {
         return runnableTaskDag;
+    }
+
+    public WorkflowStatus getStatus()
+    {
+        return status;
     }
 
     public RunId getRunId()
@@ -107,6 +115,10 @@ public class DenormalizedWorkflowModel
         {
             return false;
         }
+        if ( status != that.status )
+        {
+            return false;
+        }
         if ( !tasks.equals(that.tasks) )
         {
             return false;
@@ -124,6 +136,7 @@ public class DenormalizedWorkflowModel
     public int hashCode()
     {
         int result = runId.hashCode();
+        result = 31 * result + status.hashCode();
         result = 31 * result + scheduleExecution.hashCode();
         result = 31 * result + workflowId.hashCode();
         result = 31 * result + tasks.hashCode();
@@ -138,6 +151,7 @@ public class DenormalizedWorkflowModel
     {
         return "DenormalizedWorkflowModel{" +
             "runId=" + runId +
+            ", status=" + status +
             ", scheduleExecution=" + scheduleExecution +
             ", workflowId=" + workflowId +
             ", tasks=" + tasks +

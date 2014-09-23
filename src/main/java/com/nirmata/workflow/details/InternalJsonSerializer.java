@@ -25,6 +25,7 @@ public class InternalJsonSerializer
     {
         ObjectNode node = newNode();
         addId(node, denormalizedWorkflow.getRunId());
+        node.put("status", denormalizedWorkflow.getStatus().name().toLowerCase());
         node.set("scheduleExecution", newScheduleExecution(denormalizedWorkflow.getScheduleExecution()));
         node.put("workflowId", denormalizedWorkflow.getWorkflowId().getId());
         node.put("name", denormalizedWorkflow.getName());
@@ -39,6 +40,7 @@ public class InternalJsonSerializer
         return new DenormalizedWorkflowModel
         (
             new RunId(getId(node)),
+            WorkflowStatus.valueOf(node.get("status").asText().toUpperCase()),
             getScheduleExecution(node.get("scheduleExecution")),
             new WorkflowId(node.get("workflowId").asText()),
             getTasks(node.get("tasks")).stream().collect(Collectors.toMap(TaskModel::getTaskId, Function.<TaskModel>identity())),

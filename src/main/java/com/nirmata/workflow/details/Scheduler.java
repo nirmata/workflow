@@ -160,7 +160,7 @@ public class Scheduler implements Closeable
             }
         }
 
-        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now(Clock.systemUTC()));
+        DenormalizedWorkflowModel denormalizedWorkflow = new DenormalizedWorkflowModel(new RunId(), WorkflowStatus.RUNNING, scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now(Clock.systemUTC()));
         byte[] json = toJson(log, denormalizedWorkflow);
 
         try
@@ -202,11 +202,13 @@ public class Scheduler implements Closeable
         String runPath = ZooKeeperConstants.getRunPath(workflow.getRunId());
         try
         {
+            DenormalizedWorkflowModel completedWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), WorkflowStatus.COMPLETED, workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getRunnableTaskDag(), workflow.getStartDateUtc());
             workflowManager.getCurator().inTransaction()
-                .delete().forPath(runPath)
+                    .delete().forPath(runPath)
                 .and()
-                .create().forPath(completedRunPath, toJson(log, workflow))
-                .and().commit();
+                    .create().forPath(completedRunPath, toJson(log, completedWorkflow))
+                .and()
+                    .commit();
             log.info("Workflow completed: " + workflow);
         }
         catch ( KeeperException.NodeExistsException e )

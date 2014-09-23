@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.nirmata.workflow.details.WorkflowStatus;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagEntryModel;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
@@ -186,7 +187,7 @@ public class TestJsonSerializer
 
         ScheduleExecutionModel scheduleExecution = new ScheduleExecutionModel(new ScheduleId(), LocalDateTime.now(), LocalDateTime.now(), random.nextInt());
         RunnableTaskDagModel runnableTaskDag = new RunnableTaskDagModel(entries);
-        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now());
+        DenormalizedWorkflowModel denormalizedWorkflowModel = new DenormalizedWorkflowModel(new RunId(), WorkflowStatus.RUNNING, scheduleExecution, workflow.getWorkflowId(), tasks, workflow.getName(), runnableTaskDag, LocalDateTime.now());
 
         JsonNode node = newDenormalizedWorkflow(denormalizedWorkflowModel);
         String str = nodeToString(node);
