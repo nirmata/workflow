@@ -197,8 +197,9 @@ public class RunReport
         }
         catch ( Exception e )
         {
-            log.error("Could not build completed tasks for run: " + runId, e);
-            throw new RuntimeException(e);
+            String message = "Could not build completed tasks for run: " + runId;
+            log.error(message, e);
+            throw new RuntimeException(message, e);
         }
     }
 

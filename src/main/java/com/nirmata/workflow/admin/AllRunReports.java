@@ -52,8 +52,9 @@ public class AllRunReports
         }
         catch ( Exception e )
         {
-            log.error("Could not read from path: " + path, e);
-            throw new RuntimeException(e);
+            String message = "Could not read from path: " + path;
+            log.error(message, e);
+            throw new RuntimeException(message, e);
         }
     }
 }

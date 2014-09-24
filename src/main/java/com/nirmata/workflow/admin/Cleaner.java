@@ -46,7 +46,7 @@ public class Cleaner
                 {
                     String message = "Could not delete path: " + deletePath;
                     log.error(message, e);
-                    throw new RuntimeException(e);
+                    throw new RuntimeException(message, e);
                 }
             });
         }
@@ -58,7 +58,7 @@ public class Cleaner
         {
             String message = "Could not read from path: " + path;
             log.error(message, e);
-            throw new RuntimeException(e);
+            throw new RuntimeException(message, e);
         }
     }
 }

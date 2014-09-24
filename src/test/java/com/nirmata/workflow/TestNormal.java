@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import com.nirmata.workflow.admin.AllRunReports;
 import com.nirmata.workflow.admin.Cleaner;
 import com.nirmata.workflow.admin.RunReport;
+import com.nirmata.workflow.admin.Stopper;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.WorkflowStatus;
 import com.nirmata.workflow.details.ZooKeeperConstants;
@@ -230,6 +231,47 @@ public class TestNormal extends BaseClassForTests
             AllRunReports allRunReports = new AllRunReports(curator);
             Assert.assertEquals(allRunReports.getReports().size(), 1);
             Assert.assertEquals(allRunReports.getReports().values().iterator().next(), report);
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testStopper() throws Exception
+    {
+        StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json", "task_containers.json");
+
+        Timing timing = new Timing();
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(1);
+        CountDownLatch canceledLatch = new CountDownLatch(1);
+        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge)
+        {
+            @Override
+            protected Scheduler makeScheduler()
+            {
+                return new Scheduler(this)
+                {
+                    @Override
+                    protected void debugNoteCanceledWorkflow()
+                    {
+                        canceledLatch.countDown();
+                    }
+                };
+            }
+        };
+        workflowManager.start();
+        try
+        {
+            timing.awaitLatch(taskExecutor.getLatch());
+            Stopper stopper = new Stopper(workflowManager);
+            AllRunReports allRunReports = new AllRunReports(curator);
+            Assert.assertEquals(allRunReports.getReports().size(), 1);
+            Assert.assertTrue(stopper.stop(allRunReports.getReports().keySet().iterator().next()));
+
+            Assert.assertTrue(timing.awaitLatch(canceledLatch));
         }
         finally
         {

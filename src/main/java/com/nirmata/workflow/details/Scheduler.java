@@ -196,7 +196,7 @@ public class Scheduler implements Closeable
         log.info("Workflow completed: " + workflow);
     }
 
-    private void completeWorkflow(DenormalizedWorkflowModel workflow, WorkflowStatus workflowStatus)
+    public static boolean completeWorkflow(Scheduler scheduler, Logger log, WorkflowManager workflowManager, DenormalizedWorkflowModel workflow, WorkflowStatus workflowStatus)
     {
         ScheduleExecutionModel scheduleExecution = workflow.getScheduleExecution();
         ScheduleExecutionModel updatedScheduleExecution = new ScheduleExecutionModel(scheduleExecution.getScheduleId(), workflow.getStartDateUtc(), LocalDateTime.now(Clock.systemUTC()), scheduleExecution.getExecutionQty() + 1);
@@ -213,7 +213,11 @@ public class Scheduler implements Closeable
                     .create().forPath(completedRunPath, toJson(log, completedWorkflow))
                 .and()
                     .commit();
-            logWorkflowCompleted(workflow);
+            if ( scheduler != null )
+            {
+                scheduler.logWorkflowCompleted(workflow);
+            }
+            return true;
         }
         catch ( KeeperException.NodeExistsException e )
         {
@@ -224,6 +228,12 @@ public class Scheduler implements Closeable
             log.error("Could not create completed run node: " + workflow, e);
             throw new RuntimeException(e);
         }
+        return false;
+    }
+
+    @VisibleForTesting
+    protected void debugNoteCanceledWorkflow()
+    {
     }
 
     private void cancelWorkflow(PathChildrenCache runsCache, RunId runId)
@@ -231,7 +241,7 @@ public class Scheduler implements Closeable
         DenormalizedWorkflowModel workflow = getDenormalizedWorkflowModel(runsCache, runId);
         if ( workflow != null ) // otherwise, it's cache latency
         {
-            completeWorkflow(workflow, WorkflowStatus.FAILED_INTERNAL);
+            completeWorkflow(this, log, workflowManager, workflow, WorkflowStatus.FAILED_INTERNAL);
         }
         else
         {
@@ -244,6 +254,7 @@ public class Scheduler implements Closeable
         DenormalizedWorkflowModel workflow = getDenormalizedWorkflowModel(runsCache, runId);
         if ( workflow == null )
         {
+            debugNoteCanceledWorkflow();
             return; // it must have been canceled
         }
 
@@ -268,7 +279,7 @@ public class Scheduler implements Closeable
         Set<TaskId> entries = workflow.getRunnableTaskDag().getEntries().stream().map(RunnableTaskDagEntryModel::getTaskId).collect(Collectors.toSet());
         if ( completedTasks.equals(entries))
         {
-            completeWorkflow(workflow, WorkflowStatus.COMPLETED);
+            completeWorkflow(this, log, workflowManager, workflow, WorkflowStatus.COMPLETED);
         }
     }
 
