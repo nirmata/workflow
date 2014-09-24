@@ -108,6 +108,12 @@ public class ZooKeeperConstants
         return Splitter.on(SEPARATOR).splitToList(n).get(0);
     }
 
+    public static String getTaskIdFromCompletedTasksPath(String path)
+    {
+        String n = ZKPaths.getNodeFromPath(path);
+        return Splitter.on(SEPARATOR).splitToList(n).get(1);
+    }
+
     public static String getCompletedTaskPath(RunId runId, TaskId taskId)
     {
         return ZKPaths.makePath(getCompletedTasksParentPath(), makeRunTask(runId, taskId));

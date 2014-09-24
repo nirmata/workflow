@@ -1,8 +1,9 @@
 package com.nirmata.workflow;
 
 import com.google.common.collect.Sets;
+import com.nirmata.workflow.admin.RunReport;
 import com.nirmata.workflow.details.Scheduler;
-import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.StorageBridge;
@@ -16,10 +17,13 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TestNormal extends BaseClassForTests
 {
@@ -120,6 +124,47 @@ public class TestNormal extends BaseClassForTests
             sets = taskExecutor.getChecker().getSets();
             Assert.assertEquals(sets, expectedSets);
             taskExecutor.getChecker().assertNoDuplicates();
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testRunReport() throws IOException
+    {
+        StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json", "task_containers.json");
+
+        Timing timing = new Timing();
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
+        AtomicInteger counter = new AtomicInteger(0);
+        AtomicReference<RunReport> runReport = new AtomicReference<>();
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6)
+        {
+            @Override
+            protected void doRun(ExecutableTaskModel task) throws InterruptedException
+            {
+                if ( counter.incrementAndGet() == 3 )
+                {
+                    runReport.set(new RunReport(curator, task.getRunId()));
+                }
+                super.doRun(task);
+            }
+        };
+        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
+        workflowManager.start();
+        try
+        {
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            RunReport report = runReport.get();
+            Assert.assertTrue(report.isValid());
+            Assert.assertTrue(report.getCompletedTasks().containsKey(new TaskId("task1")));
+            Assert.assertTrue(report.getCompletedTasks().containsKey(new TaskId("task2")));
+            Assert.assertTrue(report.getRunningTasks().containsKey(new TaskId("task3")));
+            Assert.assertTrue(!report.getRunningTasks().containsKey(new TaskId("task1")));
+            Assert.assertTrue(!report.getRunningTasks().containsKey(new TaskId("task2")));
         }
         finally
         {

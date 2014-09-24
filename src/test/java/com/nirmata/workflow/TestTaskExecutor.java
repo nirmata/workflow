@@ -43,7 +43,7 @@ class TestTaskExecutor implements TaskExecutor
             try
             {
                 checker.add(task.getTask().getTaskId());
-                Thread.sleep(1000);
+                doRun(task);
             }
             catch ( InterruptedException e )
             {
@@ -57,5 +57,10 @@ class TestTaskExecutor implements TaskExecutor
             }
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "hey", Maps.<String, String>newHashMap());
         };
+    }
+
+    protected void doRun(ExecutableTaskModel task) throws InterruptedException
+    {
+        Thread.sleep(1000);
     }
 }

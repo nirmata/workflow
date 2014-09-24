@@ -8,10 +8,12 @@ import com.nirmata.workflow.models.StartedTaskModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.TaskExecutionResult;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -23,21 +25,24 @@ public class RunReport
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DenormalizedWorkflowModel workflow;
     private final Map<TaskId, TaskExecutionResult> completedTasks;
-    private final Map<TaskId, LocalDateTime> runningTasks;
+    private final Map<TaskId, StartedTaskModel> runningTasks;
 
     public RunReport(CuratorFramework curator, RunId runId)
     {
         ImmutableMap.Builder<TaskId, TaskExecutionResult> completedTasksBuilder = ImmutableMap.builder();
-        ImmutableMap.Builder<TaskId, LocalDateTime> runningTasksBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<TaskId, StartedTaskModel> runningTasksBuilder = ImmutableMap.builder();
 
         workflow = init(curator, runId);
         if ( isValid() )
         {
             getCompletedTasks(curator, runId, completedTasksBuilder);
-            getRunningTasks(curator, runId, runningTasksBuilder);
         }
 
         completedTasks = completedTasksBuilder.build();
+        if ( isValid() )
+        {
+            getRunningTasks(curator, runId, runningTasksBuilder, completedTasks.keySet());
+        }
         runningTasks = runningTasksBuilder.build();
     }
 
@@ -51,7 +56,7 @@ public class RunReport
         return completedTasks;
     }
 
-    public Map<TaskId, LocalDateTime> getRunningTasks()
+    public Map<TaskId, StartedTaskModel> getRunningTasks()
     {
         return runningTasks;
     }
@@ -61,19 +66,25 @@ public class RunReport
         return (workflow != null);
     }
 
-    private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, LocalDateTime> builder)
+    private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, StartedTaskModel> builder, Collection<TaskId> completedTaskIds)
     {
-/* TODO
-        String path = ZooKeeperConstants.getStartedTasksParentPath(runId);
+        String path = ZooKeeperConstants.getStartedTasksParentPath();
         try
         {
             List<String> children = curator.getChildren().forPath(path);
-            for ( String taskIdStr : children )
+            for ( String name : children )
             {
-                TaskId taskId = new TaskId(taskIdStr);
-                byte[] bytes = curator.getData().forPath(ZooKeeperConstants.getStartedTaskPath(runId, taskId));
-                StartedTaskModel result = getStartedTask(fromBytes(bytes));
-                builder.put(taskId, result.getStartDateUtc());
+                RunId thisRunId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(ZKPaths.makePath(path, name)));
+                if ( thisRunId.equals(runId) )
+                {
+                    TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(ZKPaths.makePath(path, name)));
+                    if ( !completedTaskIds.contains(taskId) )
+                    {
+                        byte[] bytes = curator.getData().forPath(ZooKeeperConstants.getStartedTaskPath(runId, taskId));
+                        StartedTaskModel result = getStartedTask(fromBytes(bytes));
+                        builder.put(taskId, result);
+                    }
+                }
             }
         }
         catch ( KeeperException.NoNodeException dummy )
@@ -85,22 +96,24 @@ public class RunReport
             log.error("Could not build running tasks for run: " + runId, e);
             throw new RuntimeException(e);
         }
-*/
     }
 
     private void getCompletedTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, TaskExecutionResult> builder)
     {
-/* TODO
-        String path = ZooKeeperConstants.getCompletedTasksParentPath(runId);
+        String path = ZooKeeperConstants.getCompletedTasksParentPath();
         try
         {
             List<String> children = curator.getChildren().forPath(path);
-            for ( String taskIdStr : children )
+            for ( String name : children )
             {
-                TaskId taskId = new TaskId(taskIdStr);
-                byte[] bytes = curator.getData().forPath(ZooKeeperConstants.getCompletedTaskPath(runId, taskId));
-                TaskExecutionResult result = getTaskExecutionResult(fromBytes(bytes));
-                builder.put(taskId, result);
+                RunId thisRunId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(ZKPaths.makePath(path, name)));
+                if ( thisRunId.equals(runId) )
+                {
+                    TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(ZKPaths.makePath(path, name)));
+                    byte[] bytes = curator.getData().forPath(ZooKeeperConstants.getCompletedTaskPath(runId, taskId));
+                    TaskExecutionResult result = getTaskExecutionResult(fromBytes(bytes));
+                    builder.put(taskId, result);
+                }
             }
         }
         catch ( KeeperException.NoNodeException dummy )
@@ -112,7 +125,6 @@ public class RunReport
             log.error("Could not build completed tasks for run: " + runId, e);
             throw new RuntimeException(e);
         }
-*/
     }
 
     private DenormalizedWorkflowModel init(CuratorFramework curator, RunId runId)
