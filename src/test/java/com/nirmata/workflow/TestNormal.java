@@ -1,6 +1,7 @@
 package com.nirmata.workflow;
 
 import com.google.common.collect.Sets;
+import com.nirmata.workflow.admin.AllRunReports;
 import com.nirmata.workflow.admin.RunReport;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.WorkflowStatus;
@@ -18,7 +19,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -175,6 +175,10 @@ public class TestNormal extends BaseClassForTests
             Assert.assertTrue(report.getStatus() == WorkflowStatus.COMPLETED);
             Assert.assertEquals(report.getRunningTasks().size(), 0);
             Assert.assertEquals(report.getCompletedTasks().size(), 6);
+
+            AllRunReports allRunReports = new AllRunReports(curator);
+            Assert.assertEquals(allRunReports.getReports().size(), 1);
+            Assert.assertEquals(allRunReports.getReports().values().iterator().next(), report);
         }
         finally
         {

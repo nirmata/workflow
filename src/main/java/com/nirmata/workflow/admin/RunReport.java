@@ -85,6 +85,62 @@ public class RunReport
         return runId;
     }
 
+    @Override
+    public boolean equals(Object o)
+    {
+        if ( this == o )
+        {
+            return true;
+        }
+        if ( o == null || getClass() != o.getClass() )
+        {
+            return false;
+        }
+
+        RunReport runReport = (RunReport)o;
+
+        if ( !completedTasks.equals(runReport.completedTasks) )
+        {
+            return false;
+        }
+        if ( !runId.equals(runReport.runId) )
+        {
+            return false;
+        }
+        if ( !runningTasks.equals(runReport.runningTasks) )
+        {
+            return false;
+        }
+        //noinspection RedundantIfStatement
+        if ( workflow != null ? !workflow.equals(runReport.workflow) : runReport.workflow != null )
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int result = workflow != null ? workflow.hashCode() : 0;
+        result = 31 * result + completedTasks.hashCode();
+        result = 31 * result + runningTasks.hashCode();
+        result = 31 * result + runId.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "RunReport{" +
+            "workflow=" + workflow +
+            ", completedTasks=" + completedTasks +
+            ", runningTasks=" + runningTasks +
+            ", runId=" + runId +
+            '}';
+    }
+
     private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, StartedTaskModel> builder, Collection<TaskId> completedTaskIds)
     {
         String path = ZooKeeperConstants.getStartedTasksParentPath();
