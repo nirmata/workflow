@@ -3,6 +3,7 @@ package com.nirmata.workflow;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.admin.RunReport;
 import com.nirmata.workflow.details.Scheduler;
+import com.nirmata.workflow.details.WorkflowStatus;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
@@ -132,7 +133,7 @@ public class TestNormal extends BaseClassForTests
     }
 
     @Test
-    public void testRunReport() throws IOException
+    public void testRunReport() throws Exception
     {
         StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json", "task_containers.json");
 
@@ -160,11 +161,20 @@ public class TestNormal extends BaseClassForTests
 
             RunReport report = runReport.get();
             Assert.assertTrue(report.isValid());
+            Assert.assertTrue(report.getStatus() == WorkflowStatus.RUNNING);
             Assert.assertTrue(report.getCompletedTasks().containsKey(new TaskId("task1")));
             Assert.assertTrue(report.getCompletedTasks().containsKey(new TaskId("task2")));
             Assert.assertTrue(report.getRunningTasks().containsKey(new TaskId("task3")));
             Assert.assertTrue(!report.getRunningTasks().containsKey(new TaskId("task1")));
             Assert.assertTrue(!report.getRunningTasks().containsKey(new TaskId("task2")));
+
+            timing.sleepABit(); // allow workflow to finish
+
+            report = new RunReport(curator, report.getRunId());
+            Assert.assertTrue(report.isValid());
+            Assert.assertTrue(report.getStatus() == WorkflowStatus.COMPLETED);
+            Assert.assertEquals(report.getRunningTasks().size(), 0);
+            Assert.assertEquals(report.getCompletedTasks().size(), 6);
         }
         finally
         {

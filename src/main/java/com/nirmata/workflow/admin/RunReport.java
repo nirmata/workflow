@@ -1,6 +1,7 @@
 package com.nirmata.workflow.admin;
 
 import com.google.common.collect.ImmutableMap;
+import com.nirmata.workflow.details.WorkflowStatus;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.RunId;
@@ -26,13 +27,21 @@ public class RunReport
     private final DenormalizedWorkflowModel workflow;
     private final Map<TaskId, TaskExecutionResult> completedTasks;
     private final Map<TaskId, StartedTaskModel> runningTasks;
+    private final RunId runId;
 
     public RunReport(CuratorFramework curator, RunId runId)
     {
+        this.runId = runId;
         ImmutableMap.Builder<TaskId, TaskExecutionResult> completedTasksBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<TaskId, StartedTaskModel> runningTasksBuilder = ImmutableMap.builder();
 
-        workflow = init(curator, runId);
+        DenormalizedWorkflowModel localWorkflow = loadRunning(curator, runId);
+        if ( localWorkflow == null )
+        {
+            localWorkflow = loadCompleted(curator, runId);
+        }
+
+        workflow = localWorkflow;
         if ( isValid() )
         {
             getCompletedTasks(curator, runId, completedTasksBuilder);
@@ -64,6 +73,16 @@ public class RunReport
     public boolean isValid()
     {
         return (workflow != null);
+    }
+
+    public WorkflowStatus getStatus()
+    {
+        return isValid() ? workflow.getStatus() : null;
+    }
+
+    public RunId getRunId()
+    {
+        return runId;
     }
 
     private void getRunningTasks(CuratorFramework curator, RunId runId, ImmutableMap.Builder<TaskId, StartedTaskModel> builder, Collection<TaskId> completedTaskIds)
@@ -127,17 +146,28 @@ public class RunReport
         }
     }
 
-    private DenormalizedWorkflowModel init(CuratorFramework curator, RunId runId)
+    private DenormalizedWorkflowModel loadCompleted(CuratorFramework curator, RunId runId)
+    {
+        String completedRunPath = ZooKeeperConstants.getCompletedRunPath(runId);
+        return getDenormalizedWorkflowModel(curator, runId, completedRunPath);
+    }
+
+    private DenormalizedWorkflowModel loadRunning(CuratorFramework curator, RunId runId)
     {
         String runPath = ZooKeeperConstants.getRunPath(runId);
+        return getDenormalizedWorkflowModel(curator, runId, runPath);
+    }
+
+    private DenormalizedWorkflowModel getDenormalizedWorkflowModel(CuratorFramework curator, RunId runId, String runPath)
+    {
         try
         {
             byte[] bytes = curator.getData().forPath(runPath);
             return getDenormalizedWorkflow(fromBytes(bytes));
         }
-        catch ( KeeperException.NodeExistsException dummy )
+        catch ( KeeperException.NoNodeException dummy )
         {
-            // puts report in invalid state
+            // ignore
         }
         catch ( Exception e )
         {
