@@ -269,9 +269,13 @@ public class TestNormal extends BaseClassForTests
             Stopper stopper = new Stopper(workflowManager);
             AllRunReports allRunReports = new AllRunReports(curator);
             Assert.assertEquals(allRunReports.getReports().size(), 1);
-            Assert.assertTrue(stopper.stop(allRunReports.getReports().keySet().iterator().next()));
+            RunId runId = allRunReports.getReports().keySet().iterator().next();
+            Assert.assertTrue(stopper.stop(runId));
 
             Assert.assertTrue(timing.awaitLatch(canceledLatch));
+
+            RunReport runReport = new RunReport(curator, runId);
+            Assert.assertEquals(runReport.getStatus(), WorkflowStatus.FORCE_FAILED);
         }
         finally
         {
