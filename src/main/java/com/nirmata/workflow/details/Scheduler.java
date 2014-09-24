@@ -190,6 +190,12 @@ public class Scheduler implements Closeable
         log.info("Started workflow: " + schedule.getWorkflowId());
     }
 
+    @VisibleForTesting
+    protected void logWorkflowCompleted(DenormalizedWorkflowModel workflow)
+    {
+        log.info("Workflow completed: " + workflow);
+    }
+
     private void completeWorkflow(DenormalizedWorkflowModel workflow, WorkflowStatus workflowStatus)
     {
         ScheduleExecutionModel scheduleExecution = workflow.getScheduleExecution();
@@ -207,7 +213,7 @@ public class Scheduler implements Closeable
                     .create().forPath(completedRunPath, toJson(log, completedWorkflow))
                 .and()
                     .commit();
-            log.info("Workflow completed: " + workflow);
+            logWorkflowCompleted(workflow);
         }
         catch ( KeeperException.NodeExistsException e )
         {

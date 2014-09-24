@@ -72,6 +72,11 @@ public class ZooKeeperConstants
         return ZKPaths.getPathAndNode(path).getNode();
     }
 
+    public static String getRunIdFromCompletedRunPath(String path)
+    {
+        return getRunIdFromRunPath(path);
+    }
+
     public static String getIdempotentTasksQueuePath()
     {
         return IDEMPOTENT_TASKS_QUEUE_PATH;
@@ -128,6 +133,11 @@ public class ZooKeeperConstants
     {
         String parentPath = getStartedTasksParentPath();
         return ZKPaths.makePath(parentPath, makeRunTask(runId, taskId));
+    }
+
+    public static String getRunIdFromStartedTasksPath(String path)
+    {
+        return getRunIdFromCompletedTasksPath(path);
     }
 
     private static String makeRunTask(RunId runId, TaskId taskId)

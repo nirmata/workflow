@@ -1,11 +1,16 @@
 package com.nirmata.workflow;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.admin.AllRunReports;
+import com.nirmata.workflow.admin.Cleaner;
 import com.nirmata.workflow.admin.RunReport;
 import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.details.WorkflowStatus;
+import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.details.internalmodels.DenormalizedWorkflowModel;
 import com.nirmata.workflow.models.ExecutableTaskModel;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.StorageBridge;
@@ -130,6 +135,52 @@ public class TestNormal extends BaseClassForTests
         {
             CloseableUtils.closeQuietly(workflowManager);
         }
+    }
+
+    @Test
+    public void testCleaner() throws Exception
+    {
+        StorageBridge storageBridge = new MockStorageBridge("schedule_2x.json", "tasks.json", "workflows.json", "task_containers.json");
+
+        Timing timing = new Timing();
+        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
+        final CountDownLatch scheduleLatch = new CountDownLatch(2);
+        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge)
+        {
+            @Override
+            protected Scheduler makeScheduler()
+            {
+                return new Scheduler(this)
+                {
+                    @Override
+                    protected void logWorkflowCompleted(DenormalizedWorkflowModel workflow)
+                    {
+                        super.logWorkflowCompleted(workflow);
+                        scheduleLatch.countDown();
+                    }
+                };
+            }
+        };
+        workflowManager.start();
+        Assert.assertTrue(timing.awaitLatch(scheduleLatch));
+
+        AllRunReports allRunReports = new AllRunReports(curator);
+        Assert.assertEquals(allRunReports.getReports().size(), 2);
+
+        Cleaner cleaner = new Cleaner(curator);
+        List<RunId> runIds = Lists.newArrayList(allRunReports.getReports().keySet());
+        cleaner.clean(runIds.get(0));
+        Assert.assertTrue(curator.checkExists().forPath(ZooKeeperConstants.getRunsParentPath()).getNumChildren() == 0); // all schedules are complete
+        Assert.assertTrue(curator.checkExists().forPath(ZooKeeperConstants.getCompletedRunParentPath()).getNumChildren() > 0);
+        Assert.assertTrue(curator.checkExists().forPath(ZooKeeperConstants.getStartedTasksParentPath()).getNumChildren() > 0);
+        Assert.assertTrue(curator.checkExists().forPath(ZooKeeperConstants.getCompletedTasksParentPath()).getNumChildren() > 0);
+
+        cleaner.clean(runIds.get(1));
+        Assert.assertEquals(curator.checkExists().forPath(ZooKeeperConstants.getRunsParentPath()).getNumChildren(), 0);
+        Assert.assertEquals(curator.checkExists().forPath(ZooKeeperConstants.getCompletedRunParentPath()).getNumChildren(), 0);
+        Assert.assertEquals(curator.checkExists().forPath(ZooKeeperConstants.getStartedTasksParentPath()).getNumChildren(), 0);
+        Assert.assertEquals(curator.checkExists().forPath(ZooKeeperConstants.getCompletedTasksParentPath()).getNumChildren(), 0);
     }
 
     @Test
