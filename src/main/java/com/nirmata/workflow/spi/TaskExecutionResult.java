@@ -14,24 +14,28 @@ public class TaskExecutionResult
     private final String details;
     private final Map<String, String> resultData;
     private final LocalDateTime completionDateUtc;
+    private final TaskExecutionStatus status;
 
     /**
+     * @param status result status
      * @param details task-specific details
      * @param resultData task-specific fields/values
      */
-    public TaskExecutionResult(String details, Map<String, String> resultData)
+    public TaskExecutionResult(TaskExecutionStatus status, String details, Map<String, String> resultData)
     {
-        this(details, resultData, LocalDateTime.now(Clock.systemUTC()));
+        this(status, details, resultData, LocalDateTime.now(Clock.systemUTC()));
     }
 
     /**
+     * @param status result status
      * @param details task-specific details
      * @param resultData task-specific fields/values
      * @param completionDateUtc date of completion
      */
-    public TaskExecutionResult(String details, Map<String, String> resultData, LocalDateTime completionDateUtc)
+    public TaskExecutionResult(TaskExecutionStatus status, String details, Map<String, String> resultData, LocalDateTime completionDateUtc)
     {
         resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
+        this.status = Preconditions.checkNotNull(status, "status cannot be null");
         this.completionDateUtc = Preconditions.checkNotNull(completionDateUtc, "completionDateUtc cannot be null");
         this.details = Preconditions.checkNotNull(details, "details cannot be null");
         this.resultData = ImmutableMap.copyOf(resultData);
@@ -50,6 +54,11 @@ public class TaskExecutionResult
     public LocalDateTime getCompletionDateUtc()
     {
         return completionDateUtc;
+    }
+
+    public TaskExecutionStatus getStatus()
+    {
+        return status;
     }
 
     @Override
@@ -74,8 +83,12 @@ public class TaskExecutionResult
         {
             return false;
         }
-        //noinspection RedundantIfStatement
         if ( !resultData.equals(that.resultData) )
+        {
+            return false;
+        }
+        //noinspection RedundantIfStatement
+        if ( status != that.status )
         {
             return false;
         }
@@ -89,6 +102,7 @@ public class TaskExecutionResult
         int result = details.hashCode();
         result = 31 * result + resultData.hashCode();
         result = 31 * result + completionDateUtc.hashCode();
+        result = 31 * result + status.hashCode();
         return result;
     }
 
@@ -99,6 +113,7 @@ public class TaskExecutionResult
             "details='" + details + '\'' +
             ", resultData=" + resultData +
             ", completionDateUtc=" + completionDateUtc +
+            ", status=" + status +
             '}';
     }
 }

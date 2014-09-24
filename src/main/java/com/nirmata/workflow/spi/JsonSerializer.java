@@ -272,6 +272,7 @@ public class JsonSerializer
     public static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)
     {
         ObjectNode node = newNode();
+        node.put("status", taskExecutionResult.getStatus().name().toLowerCase());
         node.put("details", taskExecutionResult.getDetails());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
         node.put("completionDateUtc", taskExecutionResult.getCompletionDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
@@ -282,6 +283,7 @@ public class JsonSerializer
     {
         return new TaskExecutionResult
             (
+                TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
                 node.get("details").asText(),
                 getMap(node.get("resultData")),
                 LocalDateTime.parse(node.get("completionDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)

@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.nirmata.workflow.models.ExecutableTaskModel;
 import com.nirmata.workflow.spi.TaskExecution;
 import com.nirmata.workflow.spi.TaskExecutionResult;
+import com.nirmata.workflow.spi.TaskExecutionStatus;
 import com.nirmata.workflow.spi.TaskExecutor;
 import java.util.concurrent.CountDownLatch;
 
@@ -54,7 +55,7 @@ class TestTaskExecutor implements TaskExecutor
                 checker.decrement();
                 latch.countDown();
             }
-            return new TaskExecutionResult("hey", Maps.<String, String>newHashMap());
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "hey", Maps.<String, String>newHashMap());
         };
     }
 }

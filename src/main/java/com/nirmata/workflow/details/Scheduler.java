@@ -11,6 +11,8 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDagModel;
 import com.nirmata.workflow.models.*;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.spi.JsonSerializer;
+import com.nirmata.workflow.spi.TaskExecutionResult;
+import com.nirmata.workflow.spi.TaskExecutionStatus;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 import static com.nirmata.workflow.details.InternalJsonSerializer.getDenormalizedWorkflow;
 import static com.nirmata.workflow.details.InternalJsonSerializer.newDenormalizedWorkflow;
 import static com.nirmata.workflow.spi.JsonSerializer.fromBytes;
+import static com.nirmata.workflow.spi.JsonSerializer.getTaskExecutionResult;
 import static com.nirmata.workflow.spi.JsonSerializer.toBytes;
 
 public class Scheduler implements Closeable
@@ -181,7 +184,7 @@ public class Scheduler implements Closeable
         }
     }
 
-    private void completeWorkflow(DenormalizedWorkflowModel workflow)
+    private void completeWorkflow(DenormalizedWorkflowModel workflow, WorkflowStatus workflowStatus)
     {
         try
         {
@@ -202,7 +205,7 @@ public class Scheduler implements Closeable
         String runPath = ZooKeeperConstants.getRunPath(workflow.getRunId());
         try
         {
-            DenormalizedWorkflowModel completedWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), WorkflowStatus.COMPLETED, workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getRunnableTaskDag(), workflow.getStartDateUtc());
+            DenormalizedWorkflowModel completedWorkflow = new DenormalizedWorkflowModel(workflow.getRunId(), workflowStatus, workflow.getScheduleExecution(), workflow.getWorkflowId(), workflow.getTasks(), workflow.getName(), workflow.getRunnableTaskDag(), workflow.getStartDateUtc());
             workflowManager.getCurator().inTransaction()
                     .delete().forPath(runPath)
                 .and()
@@ -222,19 +225,28 @@ public class Scheduler implements Closeable
         }
     }
 
+    private void cancelWorkflow(PathChildrenCache runsCache, RunId runId)
+    {
+        DenormalizedWorkflowModel workflow = getDenormalizedWorkflowModel(runsCache, runId);
+        if ( workflow != null ) // otherwise, it's cache latency
+        {
+            completeWorkflow(workflow, WorkflowStatus.FAILED_INTERNAL);
+        }
+        else
+        {
+            log.debug("Workflow already canceled: " + runId);
+        }
+    }
+
     private void updateTasks(PathChildrenCache runsCache, PathChildrenCache completedTasksCache, PathChildrenCache startedTasksCache, RunId runId)
     {
-        String path = ZooKeeperConstants.getRunPath(runId);
-        ChildData currentData = runsCache.getCurrentData(path);
-        if ( currentData == null )
+        DenormalizedWorkflowModel workflow = getDenormalizedWorkflowModel(runsCache, runId);
+        if ( workflow == null )
         {
-            String message = "Notified run not found in cache: " + runId;
-            log.warn(message);
-            throw new RuntimeException(message);
+            return; // it must have been canceled
         }
-
+        
         Set<TaskId> completedTasks = Sets.newHashSet();
-        DenormalizedWorkflowModel workflow = getDenormalizedWorkflow(fromBytes(currentData.getData()));
         workflow.getRunnableTaskDag().getEntries().forEach(entry -> {
             TaskId taskId = entry.getTaskId();
             boolean taskIsComplete = taskIsComplete(completedTasksCache, runId, taskId);
@@ -255,8 +267,15 @@ public class Scheduler implements Closeable
         Set<TaskId> entries = workflow.getRunnableTaskDag().getEntries().stream().map(RunnableTaskDagEntryModel::getTaskId).collect(Collectors.toSet());
         if ( completedTasks.equals(entries))
         {
-            completeWorkflow(workflow);
+            completeWorkflow(workflow, WorkflowStatus.COMPLETED);
         }
+    }
+
+    private DenormalizedWorkflowModel getDenormalizedWorkflowModel(PathChildrenCache runsCache, RunId runId)
+    {
+        String path = ZooKeeperConstants.getRunPath(runId);
+        ChildData currentData = runsCache.getCurrentData(path);
+        return (currentData != null) ? getDenormalizedWorkflow(fromBytes(currentData.getData())) : null;
     }
 
     private void queueTask(RunId runId, ScheduleId scheduleId, TaskModel task)
@@ -314,25 +333,27 @@ public class Scheduler implements Closeable
 
     private void takeLeadership()
     {
-        PathChildrenCache completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTasksParentPath(), false);
+        PathChildrenCache completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTasksParentPath(), true);
         PathChildrenCache startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
         PathChildrenCache runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunsParentPath(), true);
         long lastRunCheckMs = 0;
         try
         {
-            BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
+            BlockingQueue<RunIdWithStatus> updatedRunIds = Queues.newLinkedBlockingQueue();
             completedTasksCache.getListenable().addListener((client, event) -> {
                 if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
                 {
+                    TaskExecutionResult taskExecutionResult = getTaskExecutionResult(fromBytes(event.getData().getData()));
                     RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
-                    updatedRunIds.add(runId);
+                    updatedRunIds.add(new RunIdWithStatus(runId, taskExecutionResult.getStatus()));
+                    completedTasksCache.clearDataBytes(event.getData().getPath());
                 }
             });
             runsCache.getListenable().addListener((client, event) -> {
                 if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
                 {
                     RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
-                    updatedRunIds.add(runId);
+                    updatedRunIds.add(new RunIdWithStatus(runId, TaskExecutionStatus.SUCCESS));
                 }
             });
             completedTasksCache.start();
@@ -341,10 +362,17 @@ public class Scheduler implements Closeable
 
             while ( !Thread.currentThread().isInterrupted() )
             {
-                RunId runId = updatedRunIds.poll(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
-                if ( runId != null )
+                RunIdWithStatus idWithStatus = updatedRunIds.poll(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
+                if ( idWithStatus != null )
                 {
-                    updateTasks(runsCache, completedTasksCache, startedTasksCache, runId);
+                    if ( idWithStatus.getStatus() == TaskExecutionStatus.FAILED_STOP )
+                    {
+                        cancelWorkflow(runsCache, idWithStatus.getRunId());
+                    }
+                    else
+                    {
+                        updateTasks(runsCache, completedTasksCache, startedTasksCache, idWithStatus.getRunId());
+                    }
                 }
 
                 if ( (System.currentTimeMillis() - lastRunCheckMs) >= workflowManager.getConfiguration().getSchedulerSleepMs() )
