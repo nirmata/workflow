@@ -1,7 +1,9 @@
 package com.nirmata.workflow;
 
 import com.google.common.collect.Sets;
+import com.nirmata.workflow.details.Scheduler;
 import com.nirmata.workflow.models.ScheduleId;
+import com.nirmata.workflow.models.ScheduleModel;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.spi.StorageBridge;
 import org.apache.curator.framework.CuratorFramework;
@@ -80,27 +82,22 @@ public class TestNormal extends BaseClassForTests
         WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
         TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
         final CountDownLatch scheduleLatch = new CountDownLatch(2);
-        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
-        WorkflowManagerListener listener = new WorkflowManagerListener()
+        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge)
         {
             @Override
-            public void notifyScheduleStarted(ScheduleId scheduleId)
+            protected Scheduler makeScheduler()
             {
-                scheduleLatch.countDown();
-            }
-
-            @Override
-            public void notifyTaskExecuted(ScheduleId scheduleId, TaskId taskId)
-            {
-
-            }
-
-            @Override
-            public void notifyScheduleCompleted(ScheduleId scheduleId)
-            {
+                return new Scheduler(this)
+                {
+                    @Override
+                    protected void logWorkflowStarted(ScheduleModel schedule)
+                    {
+                        super.logWorkflowStarted(schedule);
+                        scheduleLatch.countDown();
+                    }
+                };
             }
         };
-        workflowManager.getListenable().addListener(listener);
         workflowManager.start();
         try
         {

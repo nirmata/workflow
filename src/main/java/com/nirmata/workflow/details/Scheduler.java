@@ -1,5 +1,6 @@
 package com.nirmata.workflow.details;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
@@ -169,8 +170,7 @@ public class Scheduler implements Closeable
         try
         {
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(ZooKeeperConstants.getRunPath(denormalizedWorkflow.getRunId()), json);
-            log.info("Started workflow: " + schedule.getWorkflowId());
-            workflowManager.notifyScheduleStarted(schedule.getScheduleId());
+            logWorkflowStarted(schedule);
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
@@ -184,19 +184,14 @@ public class Scheduler implements Closeable
         }
     }
 
+    @VisibleForTesting
+    protected void logWorkflowStarted(ScheduleModel schedule)
+    {
+        log.info("Started workflow: " + schedule.getWorkflowId());
+    }
+
     private void completeWorkflow(DenormalizedWorkflowModel workflow, WorkflowStatus workflowStatus)
     {
-        try
-        {
-            ensureCompletedRunPath.ensure(workflowManager.getCurator().getZookeeperClient());
-        }
-        catch ( Exception e )
-        {
-            String message = "Could not ensure run path";
-            log.error(message, e);
-            throw new RuntimeException(message);
-        }
-
         ScheduleExecutionModel scheduleExecution = workflow.getScheduleExecution();
         ScheduleExecutionModel updatedScheduleExecution = new ScheduleExecutionModel(scheduleExecution.getScheduleId(), workflow.getStartDateUtc(), LocalDateTime.now(Clock.systemUTC()), scheduleExecution.getExecutionQty() + 1);
         workflowManager.getStorageBridge().updateScheduleExecution(updatedScheduleExecution);
@@ -245,7 +240,7 @@ public class Scheduler implements Closeable
         {
             return; // it must have been canceled
         }
-        
+
         Set<TaskId> completedTasks = Sets.newHashSet();
         workflow.getRunnableTaskDag().getEntries().forEach(entry -> {
             TaskId taskId = entry.getTaskId();
@@ -362,6 +357,8 @@ public class Scheduler implements Closeable
 
             while ( !Thread.currentThread().isInterrupted() )
             {
+                ensurePaths();
+
                 RunIdWithStatus idWithStatus = updatedRunIds.poll(workflowManager.getConfiguration().getSchedulerSleepMs(), TimeUnit.MILLISECONDS);
                 if ( idWithStatus != null )
                 {
@@ -395,6 +392,19 @@ public class Scheduler implements Closeable
             CloseableUtils.closeQuietly(completedTasksCache);
             CloseableUtils.closeQuietly(startedTasksCache);
             CloseableUtils.closeQuietly(runsCache);
+        }
+    }
+
+    private void ensurePaths()
+    {
+        try
+        {
+            ensureCompletedRunPath.ensure(workflowManager.getCurator().getZookeeperClient());
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not ensure paths";
+            log.error(message, e);
         }
     }
 }
