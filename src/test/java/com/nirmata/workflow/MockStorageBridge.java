@@ -63,13 +63,13 @@ class MockStorageBridge implements StorageBridge
     }
 
     @Override
-    public List<ScheduleExecutionModel> getScheduleExecutions()
+    public synchronized List<ScheduleExecutionModel> getScheduleExecutions()
     {
         return Lists.newArrayList(scheduleExecutions.values());
     }
 
     @Override
-    public void updateScheduleExecution(ScheduleExecutionModel scheduleExecution)
+    public synchronized void updateScheduleExecution(ScheduleExecutionModel scheduleExecution)
     {
         scheduleExecutions.put(scheduleExecution.getScheduleId(), scheduleExecution);
     }

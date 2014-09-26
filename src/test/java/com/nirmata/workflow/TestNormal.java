@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,10 +61,10 @@ public class TestNormal extends BaseClassForTests
         StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json", "task_containers.json");
 
         Timing timing = new Timing();
-        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
         TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
-        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge);
-        workflowManager.start();
+        WorkflowRunner workflow = new WorkflowRunner(storageBridge, taskExecutor, new CountDownLatch(1));
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.submit(workflow);
         try
         {
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
@@ -80,7 +82,91 @@ public class TestNormal extends BaseClassForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            executorService.shutdownNow();
+            CloseableUtils.closeQuietly(workflow.getWorkflowManager());
+        }
+    }
+
+    private class WorkflowRunner implements Runnable
+    {
+        private final WorkflowManager workflowManager;
+
+        private WorkflowRunner(StorageBridge storageBridge, TestTaskExecutor taskExecutor, CountDownLatch scheduleLatch)
+        {
+            WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
+            workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge)
+            {
+                @Override
+                protected Scheduler makeScheduler()
+                {
+                    return new Scheduler(this)
+                    {
+                        @Override
+                        protected void logWorkflowStarted(ScheduleModel schedule)
+                        {
+                            super.logWorkflowStarted(schedule);
+                            scheduleLatch.countDown();
+                        }
+                    };
+                }
+            };
+        }
+
+        public WorkflowManager getWorkflowManager()
+        {
+            return workflowManager;
+        }
+
+        @Override
+        public void run()
+        {
+            workflowManager.start();
+            try
+            {
+                Thread.currentThread().join();
+            }
+            catch ( InterruptedException e )
+            {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    @Test
+    public void testNormalMultiClient_1x() throws Exception
+    {
+        final int CLIENT_QTY = 10;
+
+        StorageBridge storageBridge = new MockStorageBridge("schedule_1x.json", "tasks.json", "workflows.json", "task_containers.json");
+
+        Timing timing = new Timing();
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
+        ExecutorService executorService = Executors.newFixedThreadPool(CLIENT_QTY);
+        List<WorkflowRunner> workflows = Lists.newArrayList();
+        for ( int i = 0; i < CLIENT_QTY; ++i )
+        {
+            workflows.add(new WorkflowRunner(storageBridge, taskExecutor, new CountDownLatch(1)));
+        }
+        workflows.forEach(executorService::submit);
+        try
+        {
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+
+            taskExecutor.getChecker().assertNoDuplicates();
+        }
+        finally
+        {
+            executorService.shutdownNow();
+            workflows.forEach(w -> CloseableUtils.closeQuietly(w.getWorkflowManager()));
         }
     }
 
@@ -90,26 +176,11 @@ public class TestNormal extends BaseClassForTests
         StorageBridge storageBridge = new MockStorageBridge("schedule_2x.json", "tasks.json", "workflows.json", "task_containers.json");
 
         Timing timing = new Timing();
-        WorkflowManagerConfiguration configuration = new WorkflowManagerConfigurationImpl(1000, 1000, 10, 10);
         TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
         final CountDownLatch scheduleLatch = new CountDownLatch(2);
-        WorkflowManager workflowManager = new WorkflowManager(curator, configuration, taskExecutor, storageBridge)
-        {
-            @Override
-            protected Scheduler makeScheduler()
-            {
-                return new Scheduler(this)
-                {
-                    @Override
-                    protected void logWorkflowStarted(ScheduleModel schedule)
-                    {
-                        super.logWorkflowStarted(schedule);
-                        scheduleLatch.countDown();
-                    }
-                };
-            }
-        };
-        workflowManager.start();
+        WorkflowRunner workflow = new WorkflowRunner(storageBridge, taskExecutor, scheduleLatch);
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.submit(workflow);
         try
         {
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
@@ -134,7 +205,54 @@ public class TestNormal extends BaseClassForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            executorService.shutdownNow();
+            CloseableUtils.closeQuietly(workflow.getWorkflowManager());
+        }
+    }
+
+    @Test
+    public void testNormalMultiClient_2x() throws Exception
+    {
+        final int CLIENT_QTY = 10;
+
+        StorageBridge storageBridge = new MockStorageBridge("schedule_2x.json", "tasks.json", "workflows.json", "task_containers.json");
+
+        Timing timing = new Timing();
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
+        final CountDownLatch scheduleLatch = new CountDownLatch(2);
+        ExecutorService executorService = Executors.newFixedThreadPool(CLIENT_QTY);
+        List<WorkflowRunner> workflows = Lists.newArrayList();
+        for ( int i = 0; i < CLIENT_QTY; ++i )
+        {
+            workflows.add(new WorkflowRunner(storageBridge, taskExecutor, scheduleLatch));
+        }
+        workflows.forEach(executorService::submit);
+        try
+        {
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+            taskExecutor.getChecker().assertNoDuplicates();
+            taskExecutor.reset();
+
+            Assert.assertTrue(timing.awaitLatch(scheduleLatch));
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            sets = taskExecutor.getChecker().getSets();
+            Assert.assertEquals(sets, expectedSets);
+            taskExecutor.getChecker().assertNoDuplicates();
+        }
+        finally
+        {
+            executorService.shutdownNow();
+            workflows.forEach(w -> CloseableUtils.closeQuietly(w.getWorkflowManager()));
         }
     }
 
