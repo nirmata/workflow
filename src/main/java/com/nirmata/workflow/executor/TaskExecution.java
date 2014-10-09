@@ -1,4 +1,4 @@
-package com.nirmata.workflow.spi;
+package com.nirmata.workflow.executor;
 
 /**
  * Represents an execution task
