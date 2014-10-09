@@ -1,11 +1,11 @@
 package com.nirmata.workflow.queue;
 
-import com.nirmata.workflow.WorkflowManager;
+import com.nirmata.workflow.details.WorkflowManagerImpl;
 
 public interface QueueFactory
 {
-    public Queue createIdempotentQueue(WorkflowManager workflowManager);
-    public Queue createNonIdempotentQueue(WorkflowManager workflowManager);
-    public QueueConsumer createIdempotentQueueConsumer(WorkflowManager workflowManager);
-    public QueueConsumer createNonIdempotentQueueConsumer(WorkflowManager workflowManager);
+    public Queue createIdempotentQueue(WorkflowManagerImpl workflowManager);
+    public Queue createNonIdempotentQueue(WorkflowManagerImpl workflowManager);
+    public QueueConsumer createIdempotentQueueConsumer(WorkflowManagerImpl workflowManager);
+    public QueueConsumer createNonIdempotentQueueConsumer(WorkflowManagerImpl workflowManager);
 }

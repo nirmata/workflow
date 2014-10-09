@@ -5,15 +5,22 @@ import com.google.common.base.Preconditions;
 public class TaskType
 {
     private final String type;
+    private final boolean isIdempotent;
 
-    public TaskType(String type)
+    public TaskType(String type, boolean isIdempotent)
     {
+        this.isIdempotent = isIdempotent;
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
     }
 
     public String getType()
     {
         return type;
+    }
+
+    public boolean isIdempotent()
+    {
+        return isIdempotent;
     }
 
     @Override
@@ -30,6 +37,10 @@ public class TaskType
 
         TaskType taskType = (TaskType)o;
 
+        if ( isIdempotent != taskType.isIdempotent )
+        {
+            return false;
+        }
         //noinspection RedundantIfStatement
         if ( !type.equals(taskType.type) )
         {
@@ -42,7 +53,9 @@ public class TaskType
     @Override
     public int hashCode()
     {
-        return type.hashCode();
+        int result = type.hashCode();
+        result = 31 * result + (isIdempotent ? 1 : 0);
+        return result;
     }
 
     @Override
@@ -50,6 +63,7 @@ public class TaskType
     {
         return "TaskType{" +
             "type='" + type + '\'' +
+            ", isIdempotent=" + isIdempotent +
             '}';
     }
 }

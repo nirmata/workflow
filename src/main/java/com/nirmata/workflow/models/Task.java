@@ -9,20 +9,25 @@ public class Task
 {
     private final TaskId taskId;
     private final TaskType taskType;
-    private final boolean isIdempotent;
     private final List<Task> childrenTasks;
+    private final boolean isExecutable;
 
-    public Task(TaskId taskId, TaskType taskType, boolean isIdempotent)
+    public Task(TaskId taskId, TaskType taskType)
     {
-        this(taskId, taskType, isIdempotent, Lists.newArrayList());
+        this(taskId, taskType, Lists.newArrayList(), true);
     }
 
-    public Task(TaskId taskId, TaskType taskType, boolean isIdempotent, List<Task> childrenTasks)
+    public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks)
+    {
+        this(taskId, taskType, childrenTasks, true);
+    }
+
+    public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks, boolean isExecutable)
     {
         childrenTasks = Preconditions.checkNotNull(childrenTasks, "childrenTasks cannot be null");
+        this.isExecutable = isExecutable;
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.taskType = Preconditions.checkNotNull(taskType, "taskType cannot be null");
-        this.isIdempotent = isIdempotent;
 
         this.childrenTasks = ImmutableList.copyOf(childrenTasks);
     }
@@ -42,9 +47,9 @@ public class Task
         return taskType;
     }
 
-    public boolean isIdempotent()
+    public boolean isExecutable()
     {
-        return isIdempotent;
+        return isExecutable;
     }
 
     @Override
@@ -61,7 +66,7 @@ public class Task
 
         Task task = (Task)o;
 
-        if ( isIdempotent != task.isIdempotent )
+        if ( isExecutable != task.isExecutable )
         {
             return false;
         }
@@ -87,8 +92,8 @@ public class Task
     {
         int result = taskId.hashCode();
         result = 31 * result + taskType.hashCode();
-        result = 31 * result + (isIdempotent ? 1 : 0);
         result = 31 * result + childrenTasks.hashCode();
+        result = 31 * result + (isExecutable ? 1 : 0);
         return result;
     }
 
@@ -98,8 +103,8 @@ public class Task
         return "Task{" +
             "taskId=" + taskId +
             ", taskType=" + taskType +
-            ", isIdempotent=" + isIdempotent +
             ", childrenTasks=" + childrenTasks +
+            ", isExecutable=" + isExecutable +
             '}';
     }
 }

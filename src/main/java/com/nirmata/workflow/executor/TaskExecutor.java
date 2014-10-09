@@ -7,6 +7,7 @@ import com.nirmata.workflow.models.TaskType;
 /**
  * Factory for creating task executions
  */
+@FunctionalInterface
 public interface TaskExecutor
 {
     public TaskExecution newTaskExecution(RunId runId, TaskId taskId, TaskType taskType);

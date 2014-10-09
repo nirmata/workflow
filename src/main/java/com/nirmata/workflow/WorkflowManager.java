@@ -12,7 +12,7 @@ public interface WorkflowManager extends Closeable
 
     public RunId submitTask(Task task);
 
-    public RunId submitSubTask(Task task, RunId parentRunId, TaskId parentTaskId);
+    public RunId submitSubTask(Task task, RunId mainRunId, TaskId mainTaskId);
 
     public Map<String, String> getTaskData(RunId runId, TaskId taskId);
 }
