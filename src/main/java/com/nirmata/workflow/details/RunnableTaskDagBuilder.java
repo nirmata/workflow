@@ -18,15 +18,18 @@ import java.util.stream.Collectors;
 public class RunnableTaskDagBuilder
 {
     private final List<RunnableTaskDag> entries;
-    private final Map<TaskId, ExecutableTask> tasks;
+    private final Map<TaskId, ExecutableTask> executableTasks;
+    private final Map<TaskId, Task> tasks;
 
     public RunnableTaskDagBuilder(Task task)
     {
         ImmutableList.Builder<RunnableTaskDag> entriesBuilder = ImmutableList.builder();
-        ImmutableMap.Builder<TaskId, ExecutableTask> tasksBuilder = ImmutableMap.builder();
-        build(task, entriesBuilder, tasksBuilder);
+        ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder = ImmutableMap.builder();
+        ImmutableMap.Builder<TaskId, Task> tasksBuilder = ImmutableMap.builder();
+        build(task, entriesBuilder, executableTasksBuilder, tasksBuilder);
 
         entries = entriesBuilder.build();
+        executableTasks = executableTasksBuilder.build();
         tasks = tasksBuilder.build();
     }
 
@@ -35,15 +38,20 @@ public class RunnableTaskDagBuilder
         return entries;
     }
 
-    public Map<TaskId, ExecutableTask> getTasks()
+    public Map<TaskId, ExecutableTask> getExecutableTasks()
+    {
+        return executableTasks;
+    }
+
+    public Map<TaskId, Task> getTasks()
     {
         return tasks;
     }
 
-    private void build(Task task, ImmutableList.Builder<RunnableTaskDag> entriesBuilder, ImmutableMap.Builder<TaskId, ExecutableTask> tasksBuilder)
+    private void build(Task task, ImmutableList.Builder<RunnableTaskDag> entriesBuilder, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
     {
         DefaultDirectedGraph<TaskId, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        worker(graph, task, null, tasksBuilder);
+        worker(graph, task, null, executableTasksBuilder, tasksBuilder);
 
         CycleDetector<TaskId, DefaultEdge> cycleDetector = new CycleDetector<>(graph);
         if ( cycleDetector.detectCycles() )
@@ -65,15 +73,16 @@ public class RunnableTaskDagBuilder
         }
     }
 
-    private static void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> tasksBuilder)
+    private static void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
     {
-        tasksBuilder.put(task.getTaskId(), new ExecutableTask(task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
+        executableTasksBuilder.put(task.getTaskId(), new ExecutableTask(task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
+        tasksBuilder.put(task.getTaskId(), task);
 
         graph.addVertex(task.getTaskId());
         if ( parentId != null )
         {
             graph.addEdge(parentId, task.getTaskId());
         }
-        task.getChildrenTasks().forEach(child -> worker(graph, child, task.getTaskId(), tasksBuilder));
+        task.getChildrenTasks().forEach(child -> worker(graph, child, task.getTaskId(), executableTasksBuilder, tasksBuilder));
     }
 }

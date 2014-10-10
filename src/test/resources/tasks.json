@@ -1,49 +1,88 @@
-[
-    {
-        "id": "task1",
-        "name": "t1",
-        "code": "code1",
-        "isIdempotent": true,
-        "meta": {}
-    },
+{
+    "rootTaskId": "root",
+    "tasks": [
+        {
+            "taskId": "root",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": false,
+            "childrenTaskIds": ["task1", "task2"]
+        },
 
-    {
-        "id": "task2",
-        "name": "t2",
-        "code": "code2",
-        "isIdempotent": true,
-        "meta": {}
-    },
+        {
+            "taskId": "task1",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": ["task3", "task4", "task5"]
+        },
 
-    {
-        "id": "task3",
-        "name": "t3",
-        "code": "code3",
-        "isIdempotent": true,
-        "meta": {}
-    },
+        {
+            "taskId": "task2",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": ["task3", "task4", "task5"]
+        },
 
-    {
-        "id": "task4",
-        "name": "t4",
-        "code": "code4",
-        "isIdempotent": false,
-        "meta": {}
-    },
+        {
+            "taskId": "task3",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": ["task6"]
+        },
 
-    {
-        "id": "task5",
-        "name": "t5",
-        "code": "code5",
-        "isIdempotent": false,
-        "meta": {}
-    },
+        {
+            "taskId": "task4",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": ["task6"]
+        },
 
-    {
-        "id": "task6",
-        "name": "t6",
-        "code": "code6",
-        "isIdempotent": false,
-        "meta": {}
-    }
-]
+        {
+            "taskId": "task5",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": ["task6"]
+        },
+
+        {
+            "taskId": "task6",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "isExecutable": true,
+            "childrenTaskIds": []
+        }
+    ]
+}

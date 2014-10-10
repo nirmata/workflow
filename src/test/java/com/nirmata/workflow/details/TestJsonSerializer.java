@@ -1,16 +1,22 @@
 package com.nirmata.workflow.details;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.Resources;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -18,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.nirmata.workflow.details.JsonSerializer.*;
@@ -104,6 +111,45 @@ public class TestJsonSerializer
 
         TaskType unTaskType = getTaskType(fromString(str));
         Assert.assertEquals(taskType, unTaskType);
+    }
+
+    @Test
+    public void testTask()
+    {
+        Task task = randomTask(0);
+        JsonNode node = newTask(task);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        Task unTask = getTask(fromString(str));
+        Assert.assertEquals(task, unTask);
+    }
+
+    @Test
+    public void testLoadedTask() throws IOException
+    {
+        TaskType taskType = new TaskType("test", "1", true);
+        Task task6 = new Task(new TaskId("task6"), taskType, true);
+        Task task5 = new Task(new TaskId("task5"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
+        Task task4 = new Task(new TaskId("task4"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
+        Task task3 = new Task(new TaskId("task3"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
+        Task task2 = new Task(new TaskId("task2"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap(), true);
+        Task task1 = new Task(new TaskId("task1"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap(), true);
+        Task task = new Task(new TaskId("root"), taskType, Lists.newArrayList(task1, task2), Maps.newHashMap(), false);
+
+        String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
+        Task unTask = getTask(fromString(json));
+
+        Assert.assertEquals(task, unTask);
+    }
+
+    private Task randomTask(int index)
+    {
+        List<Task> childrenTasks = Lists.newArrayList();
+        boolean shouldHaveChildren = (index == 0) || ((index < 2) && random.nextBoolean());
+        int childrenQty = shouldHaveChildren ? random.nextInt(5) : 0;
+        IntStream.range(0, childrenQty).forEach(i -> childrenTasks.add(randomTask(index + 1)));
+        return new Task(new TaskId(), randomTaskType(), childrenTasks, randomMap(), random.nextBoolean());
     }
 
     private TaskType randomTaskType()

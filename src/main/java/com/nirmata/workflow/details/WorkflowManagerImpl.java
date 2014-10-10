@@ -97,7 +97,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
-        RunnableTask runnableTask = new RunnableTask(builder.getTasks(), builder.getEntries(), LocalDateTime.now(), null);
+        RunnableTask runnableTask = new RunnableTask(builder.getExecutableTasks(), builder.getEntries(), LocalDateTime.now(), null);
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
@@ -153,7 +153,7 @@ public class WorkflowManagerImpl implements WorkflowManager
     private void excecuteTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
     {
         log.info("Executing task: " + executableTask);
-        TaskExecution taskExecution = null;// TODO taskExecutor.newTaskExecution(executableTask);
+        TaskExecution taskExecution = taskExecutor.newTaskExecution()
 
         TaskExecutionResult result = taskExecution.execute();
         String json = "";// TODO nodeToString(newTaskExecutionResult(result));
@@ -174,7 +174,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
         specs.forEach(spec -> {
             IntStream.range(0, spec.getQty()).forEach(i -> {
-                QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), null);
+                QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), spec.getTaskType());
                 builder.add(consumer);
             });
         });

@@ -129,6 +129,10 @@ class Scheduler
             return; // it must have been canceled
         }
         RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
+        if ( runnableTask.getCompletionTime().isPresent() )
+        {
+            return;
+        }
 
         if ( hasCanceledTasks(runId, runnableTask) )
         {

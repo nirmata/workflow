@@ -92,7 +92,6 @@ public class ExecutableTask
             "taskId=" + taskId +
             ", taskType=" + taskType +
             ", metaData=" + metaData +
-            ", isExecutable=" + isExecutable +
             '}';
     }
 }

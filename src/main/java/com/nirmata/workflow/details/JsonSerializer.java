@@ -12,6 +12,7 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class JsonSerializer
 {
@@ -78,6 +80,79 @@ public class JsonSerializer
             log.error("reading JSON: " + str, e);
             throw new RuntimeException(e);
         }
+    }
+
+    public static JsonNode newTask(Task task)
+    {
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
+        ArrayNode tasks = newArrayNode();
+        builder.getTasks().values().forEach(thisTask -> {
+            ObjectNode node = newNode();
+            node.put("taskId", thisTask.getTaskId().getId());
+            node.set("taskType", newTaskType(thisTask.getTaskType()));
+            node.putPOJO("metaData", thisTask.getMetaData());
+            node.put("isExecutable", thisTask.isExecutable());
+
+            List<String> childrenTaskIds = thisTask.getChildrenTasks().stream().map(t -> t.getTaskId().getId()).collect(Collectors.toList());
+            node.putPOJO("childrenTaskIds", childrenTaskIds);
+
+            tasks.add(node);
+        });
+
+        ObjectNode node = newNode();
+        node.put("rootTaskId", task.getTaskId().getId());
+        node.set("tasks", tasks);
+        return node;
+    }
+
+    private static class WorkTask
+    {
+        TaskId taskId;
+        TaskType taskType;
+        Map<String, String> metaData;
+        boolean isExecutable;
+        List<String> childrenTaskIds;
+    }
+
+    private static Task buildTask(Map<TaskId, WorkTask> workMap, Map<TaskId, Task> buildMap, String taskIdStr)
+    {
+        TaskId taskId = new TaskId(taskIdStr);
+        Task builtTask = buildMap.get(taskId);
+        if ( builtTask != null )
+        {
+            return builtTask;
+        }
+
+        WorkTask task = workMap.get(taskId);
+        if ( task == null )
+        {
+            String message = "Incoherent serialized task. Missing task: " + taskId;
+            log.error(message);
+            throw new RuntimeException(message);
+        }
+
+        List<Task> childrenTasks = task.childrenTaskIds.stream().map(id -> buildTask(workMap, buildMap, id)).collect(Collectors.toList());
+        Task newTask = new Task(taskId, task.taskType, childrenTasks, task.metaData, task.isExecutable);
+        buildMap.put(taskId, newTask);
+        return newTask;
+    }
+
+    public static Task getTask(JsonNode node)
+    {
+        Map<TaskId, WorkTask> workMap = Maps.newHashMap();
+        node.get("tasks").forEach(n -> {
+            WorkTask workTask = new WorkTask();
+            workTask.taskId = new TaskId(n.get("taskId").asText());
+            workTask.taskType = getTaskType(n.get("taskType"));
+            workTask.metaData = getMap(n.get("metaData"));
+            workTask.isExecutable = n.get("isExecutable").asBoolean();
+            workTask.childrenTaskIds = Lists.newArrayList();
+            n.get("childrenTaskIds").forEach(c -> workTask.childrenTaskIds.add(c.asText()));
+
+            workMap.put(workTask.taskId, workTask);
+        });
+        String rootTaskId = node.get("rootTaskId").asText();
+        return buildTask(workMap, Maps.newHashMap(), rootTaskId);
     }
 
     public static JsonNode newRunnableTaskDag(RunnableTaskDag runnableTaskDag)

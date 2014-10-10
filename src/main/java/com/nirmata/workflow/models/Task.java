@@ -21,6 +21,11 @@ public class Task
         this(taskId, taskType, Lists.newArrayList(), Maps.newHashMap(), true);
     }
 
+    public Task(TaskId taskId, TaskType taskType, boolean isExecutable)
+    {
+        this(taskId, taskType, Lists.newArrayList(), Maps.newHashMap(), isExecutable);
+    }
+
     public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks)
     {
         this(taskId, taskType, childrenTasks, Maps.newHashMap(), true);

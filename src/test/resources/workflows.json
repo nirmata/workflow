@@ -1,7 +1,0 @@
-[
-    {
-        "id": "workflow1",
-        "name": "whatever",
-        "taskDagId": "dag1"
-    }
-]
