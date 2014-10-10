@@ -14,12 +14,14 @@ import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.utils.CloseableUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator.framework.recipes.queue.QueueConsumer<ExecutableTask>
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DistributedQueue<ExecutableTask> queue;
     private final TaskRunner taskRunner;
+    private final AtomicBoolean isOpen = new AtomicBoolean(false);
 
     public ZooKeeperQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, TaskType taskType)
     {
@@ -37,6 +39,7 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
     @Override
     public void start()
     {
+        isOpen.set(true);
         try
         {
             queue.start();
@@ -51,13 +54,17 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
     @Override
     public void close()
     {
+        isOpen.set(false);
         CloseableUtils.closeQuietly(queue);
     }
 
     @Override
     public void consumeMessage(ExecutableTask executableTask)
     {
-        taskRunner.executeTask(executableTask);
+        if ( isOpen.get() )
+        {
+            taskRunner.executeTask(executableTask);
+        }
     }
 
     @Override

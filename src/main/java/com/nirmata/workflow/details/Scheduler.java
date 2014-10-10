@@ -124,8 +124,9 @@ class Scheduler
         ChildData currentData = runsCache.getCurrentData(ZooKeeperConstants.getRunPath(runId));
         if ( currentData == null )
         {
-            log.warn("Could not find run for RunId: " + runId);
-            return; // it must have been canceled
+            String message = "Could not find run for RunId: " + runId;
+            log.error(message);
+            throw new RuntimeException(message);
         }
         RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
         if ( runnableTask.getCompletionTime().isPresent() )

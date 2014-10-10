@@ -161,6 +161,11 @@ public class WorkflowManagerImpl implements WorkflowManager
 
     private void excecuteTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
     {
+        if ( state.get() != State.STARTED )
+        {
+            return;
+        }
+
         log.info("Executing task: " + executableTask);
         TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask);
 
