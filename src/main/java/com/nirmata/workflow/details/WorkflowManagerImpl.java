@@ -98,7 +98,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         RunnableTask runnableTask = new RunnableTask(builder.getTasks(), builder.getEntries());
 
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS);
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
         byte[] taskExecutionResultJson = JsonSerializer.toBytes(JsonSerializer.newTaskExecutionResult(taskExecutionResult));
 
@@ -167,7 +167,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
         specs.forEach(spec -> {
             IntStream.range(0, spec.getQty()).forEach(i -> {
-                QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), spec.getTaskType().isIdempotent());
+                QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), null);
                 builder.add(consumer);
             });
         });

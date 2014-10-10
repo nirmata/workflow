@@ -73,7 +73,7 @@ public class TestJsonSerializer
     @Test
     public void testTaskExecutionResult()
     {
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, randomMap());
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, Integer.toString(random.nextInt()), randomMap());
         JsonNode node = newTaskExecutionResult(taskExecutionResult);
         String str = nodeToString(node);
         System.out.println(str);

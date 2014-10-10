@@ -3,6 +3,7 @@ package com.nirmata.workflow.queue.zookeeper;
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.Queue;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.DistributedQueue;
@@ -16,14 +17,14 @@ public class ZooKeeperQueue implements Queue
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DistributedQueue<ExecutableTask> queue;
 
-    public ZooKeeperQueue(CuratorFramework curator, boolean idempotent)
+    public ZooKeeperQueue(CuratorFramework curator, TaskType taskType)
     {
         curator = Preconditions.checkNotNull(curator, "curator cannot be null");
-        String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath() : ZooKeeperConstants.getNonIdempotentTasksQueuePath();
+        String path = ZooKeeperConstants.getQueuePath(taskType);
         QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(), path);
-        if ( idempotent )
+        if ( taskType.isIdempotent() )
         {
-            builder = builder.lockPath(ZooKeeperConstants.getIdempotentTasksQueueLockPath());
+            builder = builder.lockPath(ZooKeeperConstants.getQueuePath(taskType));
         }
         queue = builder.buildQueue();
     }

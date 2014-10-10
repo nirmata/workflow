@@ -180,7 +180,7 @@ class Scheduler
     {
         ImmutableMap.Builder<TaskType, Queue> builder = ImmutableMap.builder();
         specs.forEach(spec -> {
-            Queue queue = queueFactory.createQueue(workflowManager, spec.getTaskType().isIdempotent());
+            Queue queue = queueFactory.createQueue(workflowManager, null);
             builder.put(spec.getTaskType(), queue);
         });
         return builder.build();

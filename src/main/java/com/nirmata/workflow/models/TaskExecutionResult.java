@@ -9,19 +9,26 @@ import java.util.Map;
 public class TaskExecutionResult
 {
     private final TaskExecutionStatus status;
+    private final String message;
     private final Map<String, String> resultData;
 
-    public TaskExecutionResult(TaskExecutionStatus status)
+    public TaskExecutionResult(TaskExecutionStatus status, String message)
     {
-        this(status, Maps.newHashMap());
+        this(status, message, Maps.newHashMap());
     }
 
-    public TaskExecutionResult(TaskExecutionStatus status, Map<String, String> resultData)
+    public TaskExecutionResult(TaskExecutionStatus status, String message, Map<String, String> resultData)
     {
+        this.message = Preconditions.checkNotNull(message, "message cannot be null");
         this.status = Preconditions.checkNotNull(status, "status cannot be null");
         resultData = Preconditions.checkNotNull(resultData, "resultData cannot be null");
 
         this.resultData = ImmutableMap.copyOf(resultData);
+    }
+
+    public String getMessage()
+    {
+        return message;
     }
 
     public TaskExecutionStatus getStatus()
@@ -48,6 +55,10 @@ public class TaskExecutionResult
 
         TaskExecutionResult that = (TaskExecutionResult)o;
 
+        if ( !message.equals(that.message) )
+        {
+            return false;
+        }
         if ( !resultData.equals(that.resultData) )
         {
             return false;
@@ -65,6 +76,7 @@ public class TaskExecutionResult
     public int hashCode()
     {
         int result = status.hashCode();
+        result = 31 * result + message.hashCode();
         result = 31 * result + resultData.hashCode();
         return result;
     }
@@ -74,6 +86,7 @@ public class TaskExecutionResult
     {
         return "TaskExecutionResult{" +
             "status=" + status +
+            ", message='" + message + '\'' +
             ", resultData=" + resultData +
             '}';
     }

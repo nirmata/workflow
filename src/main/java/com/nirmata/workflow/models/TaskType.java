@@ -10,6 +10,9 @@ public class TaskType
 
     public TaskType(String type, String version, boolean isIdempotent)
     {
+        Preconditions.checkArgument(!type.contains("/"), "type cannot contain '/'");
+        Preconditions.checkArgument(!version.contains("/"), "version cannot contain '/'");
+
         this.version = Preconditions.checkNotNull(version, "version cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
         this.isIdempotent = isIdempotent;

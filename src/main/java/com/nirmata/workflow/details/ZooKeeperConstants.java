@@ -3,6 +3,7 @@ package com.nirmata.workflow.details;
 import com.google.common.base.Splitter;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
+import com.nirmata.workflow.models.TaskType;
 import org.apache.curator.utils.ZKPaths;
 
 public class ZooKeeperConstants
@@ -12,9 +13,7 @@ public class ZooKeeperConstants
     private static final String COMPLETED_RUNS_PARENT_PATH = "/completed-runs";
     private static final String COMPLETED_TASKS_PATH = "/tasks-completed";
     private static final String STARTED_TASKS_PATH = "/tasks-started";
-    private static final String IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue";
-    private static final String NON_IDEMPOTENT_TASKS_QUEUE_PATH = "/tasks-queue-non";
-    private static final String IDEMPOTENT_TASKS_QUEUE_LOCK_PATH = "/tasks-queue-locks";
+    private static final String QUEUE_PATH_BASE = "/tasks-queue";
 
     private static final String SEPARATOR = "|";
 
@@ -42,9 +41,8 @@ public class ZooKeeperConstants
         System.out.println("getSchedulerLeaderPath:\t\t\t\t" + getSchedulerLeaderPath());
         System.out.println("getRunsParentPath:\t\t\t\t\t" + getRunParentPath());
         System.out.println("getRunPath:\t\t\t\t\t\t\t" + getRunPath(runId));
-        System.out.println("getIdempotentTasksQueuePath:\t\t" + getIdempotentTasksQueuePath());
-        System.out.println("getIdempotentTasksQueueLockPath:\t" + getIdempotentTasksQueueLockPath());
-        System.out.println("getNonIdempotentTasksQueuePath:\t\t" + getNonIdempotentTasksQueuePath());
+        System.out.println("getQueuePath:\t\t\t\t\t\t" + getQueuePath(new TaskType("a", "b", true)));
+        System.out.println("getQueueLockPath:\t\t\t\t\t" + getQueueLockPath(new TaskType("a", "b", true)));
         System.out.println("getCompletedRunParentPath:\t\t\t" + getCompletedRunParentPath());
         System.out.println("getCompletedRunPath:\t\t\t\t" + getCompletedRunPath(runId));
         System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTaskParentPath());
@@ -77,19 +75,23 @@ public class ZooKeeperConstants
         return getRunIdFromRunPath(path);
     }
 
-    public static String getIdempotentTasksQueuePath()
+    public static String getQueuePath(TaskType taskType)
     {
-        return IDEMPOTENT_TASKS_QUEUE_PATH;
+        String path = getQueueBasePath(taskType);
+        return ZKPaths.makePath(path, "queue");
     }
 
-    public static String getIdempotentTasksQueueLockPath()
+    public static String getQueueLockPath(TaskType taskType)
     {
-        return IDEMPOTENT_TASKS_QUEUE_LOCK_PATH;
+        String path = getQueueBasePath(taskType);
+        return ZKPaths.makePath(path, "queue-lock");
     }
 
-    public static String getNonIdempotentTasksQueuePath()
+    private static String getQueueBasePath(TaskType taskType)
     {
-        return NON_IDEMPOTENT_TASKS_QUEUE_PATH;
+        String path = ZKPaths.makePath(QUEUE_PATH_BASE, taskType.getType());
+        path = ZKPaths.makePath(path, taskType.isIdempotent() ? "i" : "ni");
+        return ZKPaths.makePath(path, taskType.getVersion());
     }
 
     public static String getCompletedRunParentPath()

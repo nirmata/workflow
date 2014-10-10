@@ -179,6 +179,7 @@ public class JsonSerializer
     {
         ObjectNode node = newNode();
         node.put("status", taskExecutionResult.getStatus().name().toLowerCase());
+        node.put("message", taskExecutionResult.getMessage());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
         return node;
     }
@@ -188,6 +189,7 @@ public class JsonSerializer
         return new TaskExecutionResult
         (
             TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
+            node.get("message").asText(),
             getMap(node.get("resultData"))
         );
     }
