@@ -2,9 +2,8 @@ package com.nirmata.workflow.details;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
-import com.nirmata.workflow.models.ExecutableTask;
-import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
 import org.jgrapht.alg.CycleDetector;
@@ -19,20 +18,15 @@ import java.util.stream.Collectors;
 public class RunnableTaskDagBuilder
 {
     private final List<RunnableTaskDag> entries;
-    private final Map<TaskId, ExecutableTask> executableTasks;
     private final Map<TaskId, Task> tasks;
-    private final RunId runId;
 
-    public RunnableTaskDagBuilder(RunId runId, Task task)
+    public RunnableTaskDagBuilder(Task task)
     {
-        this.runId = runId;
         ImmutableList.Builder<RunnableTaskDag> entriesBuilder = ImmutableList.builder();
-        ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<TaskId, Task> tasksBuilder = ImmutableMap.builder();
-        build(task, entriesBuilder, executableTasksBuilder, tasksBuilder);
+        build(task, entriesBuilder, tasksBuilder);
 
         entries = entriesBuilder.build();
-        executableTasks = executableTasksBuilder.build();
         tasks = tasksBuilder.build();
     }
 
@@ -41,20 +35,15 @@ public class RunnableTaskDagBuilder
         return entries;
     }
 
-    public Map<TaskId, ExecutableTask> getExecutableTasks()
-    {
-        return executableTasks;
-    }
-
     public Map<TaskId, Task> getTasks()
     {
         return tasks;
     }
 
-    private void build(Task task, ImmutableList.Builder<RunnableTaskDag> entriesBuilder, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
+    private void build(Task task, ImmutableList.Builder<RunnableTaskDag> entriesBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
     {
         DefaultDirectedGraph<TaskId, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        worker(graph, task, null, executableTasksBuilder, tasksBuilder);
+        worker(graph, task, null, tasksBuilder, Sets.newHashSet());
 
         CycleDetector<TaskId, DefaultEdge> cycleDetector = new CycleDetector<>(graph);
         if ( cycleDetector.detectCycles() )
@@ -76,16 +65,18 @@ public class RunnableTaskDagBuilder
         }
     }
 
-    private void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
+    private void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, Task> tasksBuilder, Set<TaskId> usedTasksSet)
     {
-        executableTasksBuilder.put(task.getTaskId(), new ExecutableTask(runId, task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
-        tasksBuilder.put(task.getTaskId(), task);
+        if ( usedTasksSet.add(task.getTaskId()) )
+        {
+            tasksBuilder.put(task.getTaskId(), task);
+        }
 
         graph.addVertex(task.getTaskId());
         if ( parentId != null )
         {
             graph.addEdge(parentId, task.getTaskId());
         }
-        task.getChildrenTasks().forEach(child -> worker(graph, child, task.getTaskId(), executableTasksBuilder, tasksBuilder));
+        task.getChildrenTasks().forEach(child -> worker(graph, child, task.getTaskId(), tasksBuilder, usedTasksSet));
     }
 }

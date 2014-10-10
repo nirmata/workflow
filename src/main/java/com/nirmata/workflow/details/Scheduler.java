@@ -54,7 +54,6 @@ class Scheduler
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
-                completedTasksCache.clearDataBytes(event.getData().getPath());
                 updatedRunIds.add(runId);
             }
         });
@@ -223,7 +222,7 @@ class Scheduler
     {
         ImmutableMap.Builder<TaskType, Queue> builder = ImmutableMap.builder();
         specs.forEach(spec -> {
-            Queue queue = queueFactory.createQueue(workflowManager, null);
+            Queue queue = queueFactory.createQueue(workflowManager, spec.getTaskType());
             builder.put(spec.getTaskType(), queue);
         });
         return builder.build();

@@ -6,12 +6,13 @@ import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
-import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
+import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
+import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import org.apache.curator.framework.CuratorFramework;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class WorkflowManagerImpl implements WorkflowManager
@@ -36,6 +38,8 @@ public class WorkflowManagerImpl implements WorkflowManager
     private final EnsurePath ensureRunPath;
     private final EnsurePath ensureCompletedTaskPath;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
+
+    private static final TaskType nullTaskType = new TaskType("", "", false);
 
     private enum State
     {
@@ -97,8 +101,13 @@ public class WorkflowManagerImpl implements WorkflowManager
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
         RunId runId = new RunId();
-        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(runId, task);
-        RunnableTask runnableTask = new RunnableTask(builder.getExecutableTasks(), builder.getEntries(), LocalDateTime.now(), null);
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
+        Map<TaskId, ExecutableTask> tasks = builder
+            .getTasks()
+            .values()
+            .stream()
+            .collect(Collectors.toMap(Task::getTaskId, t -> new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable())));
+        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now(), null);
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
@@ -153,13 +162,13 @@ public class WorkflowManagerImpl implements WorkflowManager
     private void excecuteTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
     {
         log.info("Executing task: " + executableTask);
-        TaskExecution taskExecution = null;//taskExecutor.newTaskExecution()
+        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask);
 
         TaskExecutionResult result = taskExecution.execute();
-        String json = "";// TODO nodeToString(newTaskExecutionResult(result));
+        String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));
         try
         {
-            String path = "";// TODO ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTask().getTaskId());
+            String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTaskId());
             curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
         }
         catch ( Exception e )
@@ -172,12 +181,10 @@ public class WorkflowManagerImpl implements WorkflowManager
     private List<QueueConsumer> makeTaskConsumers(QueueFactory queueFactory, List<TaskExecutorSpec> specs)
     {
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
-        specs.forEach(spec -> {
-            IntStream.range(0, spec.getQty()).forEach(i -> {
-                QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), spec.getTaskType());
-                builder.add(consumer);
-            });
-        });
+        specs.forEach(spec -> IntStream.range(0, spec.getQty()).forEach(i -> {
+            QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), spec.getTaskType());
+            builder.add(consumer);
+        }));
 
         return builder.build();
     }

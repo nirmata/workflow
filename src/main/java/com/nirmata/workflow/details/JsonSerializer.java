@@ -85,7 +85,7 @@ public class JsonSerializer
 
     public static JsonNode newTask(Task task)
     {
-        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(new RunId(), task);
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         ArrayNode tasks = newArrayNode();
         builder.getTasks().values().forEach(thisTask -> {
             ObjectNode node = newNode();
