@@ -40,14 +40,14 @@ public class ZooKeeperConstants
         System.out.println();
 
         System.out.println("getSchedulerLeaderPath:\t\t\t\t" + getSchedulerLeaderPath());
-        System.out.println("getRunsParentPath:\t\t\t\t\t" + getRunsParentPath());
+        System.out.println("getRunsParentPath:\t\t\t\t\t" + getRunParentPath());
         System.out.println("getRunPath:\t\t\t\t\t\t\t" + getRunPath(runId));
         System.out.println("getIdempotentTasksQueuePath:\t\t" + getIdempotentTasksQueuePath());
         System.out.println("getIdempotentTasksQueueLockPath:\t" + getIdempotentTasksQueueLockPath());
         System.out.println("getNonIdempotentTasksQueuePath:\t\t" + getNonIdempotentTasksQueuePath());
         System.out.println("getCompletedRunParentPath:\t\t\t" + getCompletedRunParentPath());
         System.out.println("getCompletedRunPath:\t\t\t\t" + getCompletedRunPath(runId));
-        System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTasksParentPath());
+        System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTaskParentPath());
         System.out.println("getCompletedTaskPath:\t\t\t\t" + completedTaskPath);
         System.out.println("getStartedTaskPath:\t\t\t\t\t" + getStartedTaskPath(runId, taskId));
     }
@@ -57,7 +57,7 @@ public class ZooKeeperConstants
         return SCHEDULER_LEADER_PATH;
     }
 
-    public static String getRunsParentPath()
+    public static String getRunParentPath()
     {
         return RUNS_PATH;
     }
@@ -102,7 +102,7 @@ public class ZooKeeperConstants
         return ZKPaths.makePath(COMPLETED_RUNS_PARENT_PATH, runId.getId());
     }
 
-    public static String getCompletedTasksParentPath()
+    public static String getCompletedTaskParentPath()
     {
         return COMPLETED_TASKS_PATH;
     }
@@ -121,7 +121,7 @@ public class ZooKeeperConstants
 
     public static String getCompletedTaskPath(RunId runId, TaskId taskId)
     {
-        return ZKPaths.makePath(getCompletedTasksParentPath(), makeRunTask(runId, taskId));
+        return ZKPaths.makePath(getCompletedTaskParentPath(), makeRunTask(runId, taskId));
     }
 
     public static String getStartedTasksParentPath()

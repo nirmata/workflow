@@ -1,10 +1,11 @@
 package com.nirmata.workflow.queue.zookeeper;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.details.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.queue.QueueConsumer;
+import com.nirmata.workflow.queue.TaskRunner;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.DistributedQueue;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
@@ -13,17 +14,18 @@ import org.apache.curator.utils.CloseableUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator.framework.recipes.queue.QueueConsumer<ExecutableTaskModel>
+public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator.framework.recipes.queue.QueueConsumer<ExecutableTask>
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final DistributedQueue<ExecutableTaskModel> queue;
-    private final WorkflowManagerImpl workflowManager;
+    private final DistributedQueue<ExecutableTask> queue;
+    private final TaskRunner taskRunner;
 
-    public ZooKeeperQueueConsumer(WorkflowManagerImpl workflowManager, boolean idempotent)
+    public ZooKeeperQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, boolean idempotent)
     {
-        this.workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
-        String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath(): ZooKeeperConstants.getNonIdempotentTasksQueuePath();
-        QueueBuilder<ExecutableTaskModel> builder = QueueBuilder.builder(workflowManager.getCurator(), this, new TaskQueueSerializer(), path);
+        this.taskRunner = Preconditions.checkNotNull(taskRunner, "taskRunner cannot be null");
+        workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
+        String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath() : ZooKeeperConstants.getNonIdempotentTasksQueuePath();
+        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(workflowManager.getCurator(), this, new TaskQueueSerializer(), path);
         if ( idempotent )
         {
             builder = builder.lockPath(ZooKeeperConstants.getIdempotentTasksQueueLockPath());
@@ -52,9 +54,9 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
     }
 
     @Override
-    public void consumeMessage(ExecutableTaskModel executableTask)
+    public void consumeMessage(ExecutableTask executableTask)
     {
-        workflowManager.executeTask(executableTask);
+        taskRunner.executeTask(executableTask);
     }
 
     @Override

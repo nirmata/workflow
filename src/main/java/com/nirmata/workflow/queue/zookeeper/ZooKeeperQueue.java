@@ -1,7 +1,7 @@
 package com.nirmata.workflow.queue.zookeeper;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.details.ExecutableTaskModel;
+import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.details.ZooKeeperConstants;
 import com.nirmata.workflow.queue.Queue;
 import org.apache.curator.framework.CuratorFramework;
@@ -14,13 +14,13 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperQueue implements Queue
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final DistributedQueue<ExecutableTaskModel> queue;
+    private final DistributedQueue<ExecutableTask> queue;
 
     public ZooKeeperQueue(CuratorFramework curator, boolean idempotent)
     {
         curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         String path = idempotent ? ZooKeeperConstants.getIdempotentTasksQueuePath() : ZooKeeperConstants.getNonIdempotentTasksQueuePath();
-        QueueBuilder<ExecutableTaskModel> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(), path);
+        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(), path);
         if ( idempotent )
         {
             builder = builder.lockPath(ZooKeeperConstants.getIdempotentTasksQueueLockPath());
@@ -29,7 +29,7 @@ public class ZooKeeperQueue implements Queue
     }
 
     @Override
-    public void put(ExecutableTaskModel executableTask)
+    public void put(ExecutableTask executableTask)
     {
         try
         {

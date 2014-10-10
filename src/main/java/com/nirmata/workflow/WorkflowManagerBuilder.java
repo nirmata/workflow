@@ -11,7 +11,6 @@ import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Collection;
 import java.util.List;
 
 public class WorkflowManagerBuilder
@@ -26,9 +25,12 @@ public class WorkflowManagerBuilder
         return new WorkflowManagerBuilder();
     }
 
-    public WorkflowManagerBuilder withCurator(CuratorFramework curator)
+    public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version)
     {
-        this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
+        curator = Preconditions.checkNotNull(curator, "curator cannot be null");
+        namespace = Preconditions.checkNotNull(namespace, "namespace cannot be null");
+        version = Preconditions.checkNotNull(version, "version cannot be null");
+        this.curator = curator.usingNamespace(namespace + "-" + version);
         return this;
     }
 
@@ -44,9 +46,9 @@ public class WorkflowManagerBuilder
         return this;
     }
 
-    public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, Collection<TaskType> taskTypes)
+    public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType)
     {
-        specs.add(new TaskExecutorSpec(taskExecutor, qty, taskTypes));
+        specs.add(new TaskExecutorSpec(taskExecutor, qty, taskType));
         return this;
     }
 

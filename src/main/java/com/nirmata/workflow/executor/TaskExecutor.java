@@ -1,8 +1,7 @@
 package com.nirmata.workflow.executor;
 
+import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
-import com.nirmata.workflow.models.TaskId;
-import com.nirmata.workflow.models.TaskType;
 
 /**
  * Factory for creating task executions
@@ -10,5 +9,5 @@ import com.nirmata.workflow.models.TaskType;
 @FunctionalInterface
 public interface TaskExecutor
 {
-    public TaskExecution newTaskExecution(RunId runId, TaskId taskId, TaskType taskType);
+    public TaskExecution newTaskExecution(RunId runId, ExecutableTask executableTask);
 }

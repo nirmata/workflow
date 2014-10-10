@@ -5,12 +5,19 @@ import com.google.common.base.Preconditions;
 public class TaskType
 {
     private final String type;
+    private final String version;
     private final boolean isIdempotent;
 
-    public TaskType(String type, boolean isIdempotent)
+    public TaskType(String type, String version, boolean isIdempotent)
     {
-        this.isIdempotent = isIdempotent;
+        this.version = Preconditions.checkNotNull(version, "version cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
+        this.isIdempotent = isIdempotent;
+    }
+
+    public String getVersion()
+    {
+        return version;
     }
 
     public String getType()
@@ -41,8 +48,12 @@ public class TaskType
         {
             return false;
         }
-        //noinspection RedundantIfStatement
         if ( !type.equals(taskType.type) )
+        {
+            return false;
+        }
+        //noinspection RedundantIfStatement
+        if ( !version.equals(taskType.version) )
         {
             return false;
         }
@@ -54,6 +65,7 @@ public class TaskType
     public int hashCode()
     {
         int result = type.hashCode();
+        result = 31 * result + version.hashCode();
         result = 31 * result + (isIdempotent ? 1 : 0);
         return result;
     }
@@ -63,6 +75,7 @@ public class TaskType
     {
         return "TaskType{" +
             "type='" + type + '\'' +
+            ", version='" + version + '\'' +
             ", isIdempotent=" + isIdempotent +
             '}';
     }

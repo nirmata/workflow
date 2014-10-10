@@ -2,8 +2,11 @@ package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.util.List;
+import java.util.Map;
 
 public class Task
 {
@@ -11,24 +14,32 @@ public class Task
     private final TaskType taskType;
     private final List<Task> childrenTasks;
     private final boolean isExecutable;
+    private final Map<String, String> metaData;
 
     public Task(TaskId taskId, TaskType taskType)
     {
-        this(taskId, taskType, Lists.newArrayList(), true);
+        this(taskId, taskType, Lists.newArrayList(), Maps.newHashMap(), true);
     }
 
     public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks)
     {
-        this(taskId, taskType, childrenTasks, true);
+        this(taskId, taskType, childrenTasks, Maps.newHashMap(), true);
     }
 
-    public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks, boolean isExecutable)
+    public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks, Map<String, String> metaData)
     {
+        this(taskId, taskType, childrenTasks, metaData, true);
+    }
+
+    public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks, Map<String, String> metaData, boolean isExecutable)
+    {
+        metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
         childrenTasks = Preconditions.checkNotNull(childrenTasks, "childrenTasks cannot be null");
         this.isExecutable = isExecutable;
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.taskType = Preconditions.checkNotNull(taskType, "taskType cannot be null");
 
+        this.metaData = ImmutableMap.copyOf(metaData);
         this.childrenTasks = ImmutableList.copyOf(childrenTasks);
     }
 
@@ -50,6 +61,11 @@ public class Task
     public boolean isExecutable()
     {
         return isExecutable;
+    }
+
+    public Map<String, String> getMetaData()
+    {
+        return metaData;
     }
 
     @Override

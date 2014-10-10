@@ -1,5 +1,7 @@
 package com.nirmata.workflow.executor;
 
+import com.nirmata.workflow.models.TaskExecutionResult;
+
 /**
  * Represents an execution task
  */

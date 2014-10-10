@@ -4,30 +4,19 @@ import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
+import com.nirmata.workflow.queue.TaskRunner;
 
 public class ZooKeeperQueueFactory implements QueueFactory
 {
     @Override
-    public Queue createIdempotentQueue(WorkflowManagerImpl workflowManager)
+    public Queue createQueue(WorkflowManagerImpl workflowManager, boolean idempotent)
     {
-        return new ZooKeeperQueue(workflowManager.getCurator(), true);
+        return new ZooKeeperQueue(workflowManager.getCurator(), idempotent);
     }
 
     @Override
-    public Queue createNonIdempotentQueue(WorkflowManagerImpl workflowManager)
+    public QueueConsumer createQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, boolean idempotent)
     {
-        return new ZooKeeperQueue(workflowManager.getCurator(), false);
-    }
-
-    @Override
-    public QueueConsumer createIdempotentQueueConsumer(WorkflowManagerImpl workflowManager)
-    {
-        return new ZooKeeperQueueConsumer(workflowManager, true);
-    }
-
-    @Override
-    public QueueConsumer createNonIdempotentQueueConsumer(WorkflowManagerImpl workflowManager)
-    {
-        return new ZooKeeperQueueConsumer(workflowManager, false);
+        return new ZooKeeperQueueConsumer(workflowManager, taskRunner, idempotent);
     }
 }
