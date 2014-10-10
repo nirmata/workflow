@@ -96,14 +96,14 @@ public class WorkflowManagerImpl implements WorkflowManager
 
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
-        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(mainRunId, task);
+        RunId runId = new RunId();
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(runId, task);
         RunnableTask runnableTask = new RunnableTask(builder.getExecutableTasks(), builder.getEntries(), LocalDateTime.now(), null);
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
         byte[] taskExecutionResultJson = JsonSerializer.toBytes(JsonSerializer.newTaskExecutionResult(taskExecutionResult));
 
-        RunId runId = new RunId();
         String runPath = ZooKeeperConstants.getRunPath(runId);
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, new TaskId(""));
         try
