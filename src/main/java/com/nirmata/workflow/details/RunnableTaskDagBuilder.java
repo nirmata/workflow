@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
 import org.jgrapht.alg.CycleDetector;
@@ -20,9 +21,11 @@ public class RunnableTaskDagBuilder
     private final List<RunnableTaskDag> entries;
     private final Map<TaskId, ExecutableTask> executableTasks;
     private final Map<TaskId, Task> tasks;
+    private final RunId runId;
 
-    public RunnableTaskDagBuilder(Task task)
+    public RunnableTaskDagBuilder(RunId runId, Task task)
     {
+        this.runId = runId;
         ImmutableList.Builder<RunnableTaskDag> entriesBuilder = ImmutableList.builder();
         ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder = ImmutableMap.builder();
         ImmutableMap.Builder<TaskId, Task> tasksBuilder = ImmutableMap.builder();
@@ -73,9 +76,9 @@ public class RunnableTaskDagBuilder
         }
     }
 
-    private static void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
+    private void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> executableTasksBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
     {
-        executableTasksBuilder.put(task.getTaskId(), new ExecutableTask(task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
+        executableTasksBuilder.put(task.getTaskId(), new ExecutableTask(runId, task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
         tasksBuilder.put(task.getTaskId(), task);
 
         graph.addVertex(task.getTaskId());

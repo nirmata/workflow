@@ -5,7 +5,6 @@ import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
-import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import java.util.concurrent.CountDownLatch;
 
@@ -38,7 +37,7 @@ class TestTaskExecutor implements TaskExecutor
     }
 
     @Override
-    public TaskExecution newTaskExecution(RunId runId, ExecutableTask task)
+    public TaskExecution newTaskExecution(ExecutableTask task)
     {
         return () -> {
             try

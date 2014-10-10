@@ -6,18 +6,25 @@ import java.util.Map;
 
 public class ExecutableTask
 {
+    private final RunId runId;
     private final TaskId taskId;
     private final TaskType taskType;
     private final Map<String, String> metaData;
     private final boolean isExecutable;
 
-    public ExecutableTask(TaskId taskId, TaskType taskType, Map<String, String> metaData, boolean isExecutable)
+    public ExecutableTask(RunId runId, TaskId taskId, TaskType taskType, Map<String, String> metaData, boolean isExecutable)
     {
+        this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
         this.isExecutable = isExecutable;
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.taskType = Preconditions.checkNotNull(taskType, "taskType cannot be null");
         this.metaData = ImmutableMap.copyOf(metaData);
+    }
+
+    public RunId getRunId()
+    {
+        return runId;
     }
 
     public boolean isExecutable()
@@ -62,6 +69,10 @@ public class ExecutableTask
         {
             return false;
         }
+        if ( !runId.equals(that.runId) )
+        {
+            return false;
+        }
         if ( !taskId.equals(that.taskId) )
         {
             return false;
@@ -78,7 +89,8 @@ public class ExecutableTask
     @Override
     public int hashCode()
     {
-        int result = taskId.hashCode();
+        int result = runId.hashCode();
+        result = 31 * result + taskId.hashCode();
         result = 31 * result + taskType.hashCode();
         result = 31 * result + metaData.hashCode();
         result = 31 * result + (isExecutable ? 1 : 0);
@@ -89,9 +101,11 @@ public class ExecutableTask
     public String toString()
     {
         return "ExecutableTask{" +
-            "taskId=" + taskId +
+            "runId=" + runId +
+            ", taskId=" + taskId +
             ", taskType=" + taskType +
             ", metaData=" + metaData +
+            ", isExecutable=" + isExecutable +
             '}';
     }
 }

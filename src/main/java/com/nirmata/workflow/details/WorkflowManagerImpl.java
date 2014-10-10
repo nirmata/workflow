@@ -96,7 +96,7 @@ public class WorkflowManagerImpl implements WorkflowManager
 
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
-        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(mainRunId, task);
         RunnableTask runnableTask = new RunnableTask(builder.getExecutableTasks(), builder.getEntries(), LocalDateTime.now(), null);
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
@@ -153,7 +153,7 @@ public class WorkflowManagerImpl implements WorkflowManager
     private void excecuteTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
     {
         log.info("Executing task: " + executableTask);
-        TaskExecution taskExecution = taskExecutor.newTaskExecution()
+        TaskExecution taskExecution = null;//taskExecutor.newTaskExecution()
 
         TaskExecutionResult result = taskExecution.execute();
         String json = "";// TODO nodeToString(newTaskExecutionResult(result));

@@ -9,6 +9,7 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
@@ -48,7 +49,7 @@ public class TestJsonSerializer
     @Test
     public void testExecutableTask()
     {
-        ExecutableTask executableTask = new ExecutableTask(new TaskId(), randomTaskType(), randomMap(), random.nextBoolean());
+        ExecutableTask executableTask = new ExecutableTask(new RunId(), new TaskId(), randomTaskType(), randomMap(), random.nextBoolean());
         JsonNode node = newExecutableTask(executableTask);
         String str = nodeToString(node);
         System.out.println(str);
@@ -62,7 +63,7 @@ public class TestJsonSerializer
     {
         Map<TaskId, ExecutableTask> tasks = Stream.generate(() -> "")
             .limit(random.nextInt(3) + 1)
-            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new TaskId(), randomTaskType(), randomMap(), random.nextBoolean())))
+            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new RunId(), new TaskId(), randomTaskType(), randomMap(), random.nextBoolean())))
             ;
         List<RunnableTaskDag> taskDags = Stream.generate(() -> new RunnableTaskDag(new TaskId(), randomTasks()))
             .limit(random.nextInt(3) + 1)

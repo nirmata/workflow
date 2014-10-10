@@ -12,6 +12,7 @@ import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
@@ -84,7 +85,7 @@ public class JsonSerializer
 
     public static JsonNode newTask(Task task)
     {
-        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
+        RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(new RunId(), task);
         ArrayNode tasks = newArrayNode();
         builder.getTasks().values().forEach(thisTask -> {
             ObjectNode node = newNode();
@@ -205,6 +206,7 @@ public class JsonSerializer
     public static JsonNode newExecutableTask(ExecutableTask executableTask)
     {
         ObjectNode node = newNode();
+        node.put("runId", executableTask.getRunId().getId());
         node.put("taskId", executableTask.getTaskId().getId());
         node.set("taskType", newTaskType(executableTask.getTaskType()));
         node.putPOJO("metaData", executableTask.getMetaData());
@@ -216,6 +218,7 @@ public class JsonSerializer
     {
         return new ExecutableTask
         (
+            new RunId(node.get("runId").asText()),
             new TaskId(node.get("taskId").asText()),
             getTaskType(node.get("taskType")),
             getMap(node.get("metaData")),
