@@ -90,7 +90,7 @@ public class JsonSerializer
         builder.getTasks().values().forEach(thisTask -> {
             ObjectNode node = newNode();
             node.put("taskId", thisTask.getTaskId().getId());
-            node.set("taskType", newTaskType(thisTask.getTaskType()));
+            node.set("taskType", thisTask.isExecutable() ? newTaskType(thisTask.getTaskType()) : null);
             node.putPOJO("metaData", thisTask.getMetaData());
             node.put("isExecutable", thisTask.isExecutable());
 
@@ -111,7 +111,6 @@ public class JsonSerializer
         TaskId taskId;
         TaskType taskType;
         Map<String, String> metaData;
-        boolean isExecutable;
         List<String> childrenTaskIds;
     }
 
@@ -133,7 +132,7 @@ public class JsonSerializer
         }
 
         List<Task> childrenTasks = task.childrenTaskIds.stream().map(id -> buildTask(workMap, buildMap, id)).collect(Collectors.toList());
-        Task newTask = new Task(taskId, task.taskType, childrenTasks, task.metaData, task.isExecutable);
+        Task newTask = new Task(taskId, task.taskType, childrenTasks, task.metaData);
         buildMap.put(taskId, newTask);
         return newTask;
     }
@@ -143,10 +142,10 @@ public class JsonSerializer
         Map<TaskId, WorkTask> workMap = Maps.newHashMap();
         node.get("tasks").forEach(n -> {
             WorkTask workTask = new WorkTask();
+            JsonNode taskTypeNode = n.get("taskType");
             workTask.taskId = new TaskId(n.get("taskId").asText());
-            workTask.taskType = getTaskType(n.get("taskType"));
+            workTask.taskType = ((taskTypeNode != null) && !taskTypeNode.isNull()) ? getTaskType(taskTypeNode) : null;
             workTask.metaData = getMap(n.get("metaData"));
-            workTask.isExecutable = n.get("isExecutable").asBoolean();
             workTask.childrenTaskIds = Lists.newArrayList();
             n.get("childrenTaskIds").forEach(c -> workTask.childrenTaskIds.add(c.asText()));
 
@@ -299,11 +298,14 @@ public class JsonSerializer
     public static Map<String, String> getMap(JsonNode node)
     {
         Map<String, String> map = Maps.newHashMap();
-        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-        while ( fields.hasNext() )
+        if ( (node != null) && !node.isNull() )
         {
-            Map.Entry<String, JsonNode> nodeEntry = fields.next();
-            map.put(nodeEntry.getKey(), nodeEntry.getValue().asText());
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while ( fields.hasNext() )
+            {
+                Map.Entry<String, JsonNode> nodeEntry = fields.next();
+                map.put(nodeEntry.getKey(), nodeEntry.getValue().asText());
+            }
         }
         return map;
     }

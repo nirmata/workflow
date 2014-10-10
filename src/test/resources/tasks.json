@@ -3,13 +3,6 @@
     "tasks": [
         {
             "taskId": "root",
-            "taskType": {
-                "type": "test",
-                "version": "1",
-                "isIdempotent": true
-            },
-            "metaData": [],
-            "isExecutable": false,
             "childrenTaskIds": ["task1", "task2"]
         },
 
@@ -21,7 +14,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": ["task3", "task4", "task5"]
         },
 
@@ -33,7 +25,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": ["task3", "task4", "task5"]
         },
 
@@ -45,7 +36,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": ["task6"]
         },
 
@@ -57,7 +47,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": ["task6"]
         },
 
@@ -69,7 +58,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": ["task6"]
         },
 
@@ -81,7 +69,6 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "isExecutable": true,
             "childrenTaskIds": []
         }
     ]

@@ -130,13 +130,13 @@ public class TestJsonSerializer
     public void testLoadedTask() throws IOException
     {
         TaskType taskType = new TaskType("test", "1", true);
-        Task task6 = new Task(new TaskId("task6"), taskType, true);
-        Task task5 = new Task(new TaskId("task5"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
-        Task task4 = new Task(new TaskId("task4"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
-        Task task3 = new Task(new TaskId("task3"), taskType, Lists.newArrayList(task6), Maps.newHashMap(), true);
-        Task task2 = new Task(new TaskId("task2"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap(), true);
-        Task task1 = new Task(new TaskId("task1"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap(), true);
-        Task task = new Task(new TaskId("root"), taskType, Lists.newArrayList(task1, task2), Maps.newHashMap(), false);
+        Task task6 = new Task(new TaskId("task6"), taskType);
+        Task task5 = new Task(new TaskId("task5"), taskType, Lists.newArrayList(task6), Maps.newHashMap());
+        Task task4 = new Task(new TaskId("task4"), taskType, Lists.newArrayList(task6), Maps.newHashMap());
+        Task task3 = new Task(new TaskId("task3"), taskType, Lists.newArrayList(task6), Maps.newHashMap());
+        Task task2 = new Task(new TaskId("task2"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap());
+        Task task1 = new Task(new TaskId("task1"), taskType, Lists.newArrayList(task3, task4, task5), Maps.newHashMap());
+        Task task = new Task(new TaskId("root"), Lists.newArrayList(task1, task2));
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
         Task unTask = getTask(fromString(json));
@@ -150,7 +150,7 @@ public class TestJsonSerializer
         boolean shouldHaveChildren = (index == 0) || ((index < 2) && random.nextBoolean());
         int childrenQty = shouldHaveChildren ? random.nextInt(5) : 0;
         IntStream.range(0, childrenQty).forEach(i -> childrenTasks.add(randomTask(index + 1)));
-        return new Task(new TaskId(), randomTaskType(), childrenTasks, randomMap(), random.nextBoolean());
+        return new Task(new TaskId(), randomTaskType(), childrenTasks, randomMap());
     }
 
     private TaskType randomTaskType()
