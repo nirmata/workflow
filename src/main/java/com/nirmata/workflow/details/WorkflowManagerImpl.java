@@ -18,6 +18,7 @@ import com.nirmata.workflow.queue.QueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.EnsurePath;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -133,9 +134,26 @@ public class WorkflowManagerImpl implements WorkflowManager
     }
 
     @Override
-    public void cancelRun(RunId runId, String message)
+    public boolean cancelRun(RunId runId)
     {
-        // TODO
+        log.info("Attempting to cancel run " + runId);
+
+        String runPath = ZooKeeperConstants.getRunPath(runId);
+        try
+        {
+            byte[] json = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            Scheduler.completeTask(log, this, runId, runnableTask);
+            return true;
+        }
+        catch ( KeeperException.NoNodeException ignore )
+        {
+            return false;
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -154,8 +172,8 @@ public class WorkflowManagerImpl implements WorkflowManager
     {
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
-            consumers.forEach(CloseableUtils::closeQuietly);
             CloseableUtils.closeQuietly(schedulerSelector);
+            consumers.forEach(CloseableUtils::closeQuietly);
         }
     }
 

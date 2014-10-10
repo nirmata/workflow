@@ -16,5 +16,5 @@ public interface WorkflowManager extends Closeable
 
     public Map<String, String> getTaskData(RunId runId, TaskId taskId);
 
-    public void cancelRun(RunId runId, String message);
+    public boolean cancelRun(RunId runId);
 }

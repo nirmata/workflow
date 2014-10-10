@@ -102,7 +102,7 @@ class Scheduler
         });
     }
 
-    private void completeTask(RunId runId, RunnableTask runnableTask)
+    static void completeTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask)
     {
         RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()));
         String runPath = ZooKeeperConstants.getRunPath(runId);
@@ -136,7 +136,7 @@ class Scheduler
 
         if ( hasCanceledTasks(runId, runnableTask) )
         {
-            completeTask(runId, runnableTask);
+            completeTask(log, workflowManager, runId, runnableTask);
             return; // one or more tasks has canceled the entire run
         }
 
@@ -170,7 +170,7 @@ class Scheduler
 
         if ( completedTasks.equals(runnableTask.getTasks().keySet()))
         {
-            completeTask(runId, runnableTask);
+            completeTask(log, workflowManager, runId, runnableTask);
         }
     }
 
