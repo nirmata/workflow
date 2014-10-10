@@ -9,13 +9,20 @@ public class ExecutableTask
     private final TaskId taskId;
     private final TaskType taskType;
     private final Map<String, String> metaData;
+    private final boolean isExecutable;
 
-    public ExecutableTask(TaskId taskId, TaskType taskType, Map<String, String> metaData)
+    public ExecutableTask(TaskId taskId, TaskType taskType, Map<String, String> metaData, boolean isExecutable)
     {
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
+        this.isExecutable = isExecutable;
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.taskType = Preconditions.checkNotNull(taskType, "taskType cannot be null");
         this.metaData = ImmutableMap.copyOf(metaData);
+    }
+
+    public boolean isExecutable()
+    {
+        return isExecutable;
     }
 
     public TaskId getTaskId()
@@ -47,6 +54,10 @@ public class ExecutableTask
 
         ExecutableTask that = (ExecutableTask)o;
 
+        if ( isExecutable != that.isExecutable )
+        {
+            return false;
+        }
         if ( !metaData.equals(that.metaData) )
         {
             return false;
@@ -70,6 +81,7 @@ public class ExecutableTask
         int result = taskId.hashCode();
         result = 31 * result + taskType.hashCode();
         result = 31 * result + metaData.hashCode();
+        result = 31 * result + (isExecutable ? 1 : 0);
         return result;
     }
 
@@ -80,6 +92,7 @@ public class ExecutableTask
             "taskId=" + taskId +
             ", taskType=" + taskType +
             ", metaData=" + metaData +
+            ", isExecutable=" + isExecutable +
             '}';
     }
 }

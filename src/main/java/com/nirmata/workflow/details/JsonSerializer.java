@@ -133,6 +133,7 @@ public class JsonSerializer
         node.put("taskId", executableTask.getTaskId().getId());
         node.set("taskType", newTaskType(executableTask.getTaskType()));
         node.putPOJO("metaData", executableTask.getMetaData());
+        node.put("isExecutable", executableTask.isExecutable());
         return node;
     }
 
@@ -142,7 +143,8 @@ public class JsonSerializer
         (
             new TaskId(node.get("taskId").asText()),
             getTaskType(node.get("taskType")),
-            getMap(node.get("metaData"))
+            getMap(node.get("metaData")),
+            node.get("isExecutable").asBoolean()
         );
     }
 
@@ -157,6 +159,8 @@ public class JsonSerializer
         ObjectNode node = newNode();
         node.set("taskDags", taskDags);
         node.set("tasks", tasks);
+        node.put("startTime", runnableTask.getStartTime().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("completionTime", runnableTask.getCompletionTime().isPresent() ? runnableTask.getCompletionTime().get().format(DateTimeFormatter.ISO_DATE_TIME) : null);
         return node;
     }
 
@@ -172,7 +176,10 @@ public class JsonSerializer
             Map.Entry<String, JsonNode> next = fields.next();
             tasks.put(new TaskId(next.getKey()), getExecutableTask(next.getValue()));
         }
-        return new RunnableTask(tasks, taskDags);
+
+        LocalDateTime startTime = LocalDateTime.parse(node.get("startTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
+        LocalDateTime completionTime = node.get("completionTime").isNull() ? null : LocalDateTime.parse(node.get("completionTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
+        return new RunnableTask(tasks, taskDags, startTime, completionTime);
     }
 
     public static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)

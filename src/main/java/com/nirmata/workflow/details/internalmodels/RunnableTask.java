@@ -5,16 +5,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskId;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class RunnableTask
 {
     private final Map<TaskId, ExecutableTask> tasks;
     private final List<RunnableTaskDag> taskDags;
+    private final LocalDateTime startTime;
+    private final Optional<LocalDateTime> completionTime;
 
-    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags)
+    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime, LocalDateTime completionTime)
     {
+        this.startTime = Preconditions.checkNotNull(startTime, "startTime cannot be null");
+        this.completionTime = Optional.ofNullable(completionTime);
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         taskDags = Preconditions.checkNotNull(taskDags, "taskDags cannot be null");
 
@@ -32,6 +38,16 @@ public class RunnableTask
         return taskDags;
     }
 
+    public Optional<LocalDateTime> getCompletionTime()
+    {
+        return completionTime;
+    }
+
+    public LocalDateTime getStartTime()
+    {
+        return startTime;
+    }
+
     @Override
     public boolean equals(Object o)
     {
@@ -46,6 +62,14 @@ public class RunnableTask
 
         RunnableTask that = (RunnableTask)o;
 
+        if ( !completionTime.equals(that.completionTime) )
+        {
+            return false;
+        }
+        if ( !startTime.equals(that.startTime) )
+        {
+            return false;
+        }
         if ( !taskDags.equals(that.taskDags) )
         {
             return false;
@@ -64,6 +88,8 @@ public class RunnableTask
     {
         int result = tasks.hashCode();
         result = 31 * result + taskDags.hashCode();
+        result = 31 * result + startTime.hashCode();
+        result = 31 * result + completionTime.hashCode();
         return result;
     }
 
@@ -73,6 +99,8 @@ public class RunnableTask
         return "RunnableTask{" +
             "tasks=" + tasks +
             ", taskDags=" + taskDags +
+            ", startTime=" + startTime +
+            ", completionTime=" + completionTime +
             '}';
     }
 }

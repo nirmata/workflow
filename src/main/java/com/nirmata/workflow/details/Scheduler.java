@@ -5,7 +5,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
-import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskExecutionResult;
@@ -50,14 +49,13 @@ class Scheduler
 
     void run()
     {
-        BlockingQueue<RunIdWithStatus> updatedRunIds = Queues.newLinkedBlockingQueue();
+        BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
         completedTasksCache.getListenable().addListener((client, event) -> {
             if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
-                TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(event.getData().getData()));
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
                 completedTasksCache.clearDataBytes(event.getData().getPath());
-                updatedRunIds.add(new RunIdWithStatus(runId, taskExecutionResult.getStatus()));
+                updatedRunIds.add(runId);
             }
         });
 
@@ -70,8 +68,8 @@ class Scheduler
 
             while ( !Thread.currentThread().isInterrupted() )
             {
-                RunIdWithStatus idWithStatus = updatedRunIds.take();
-                updateTasks(idWithStatus.getRunId(), idWithStatus.getStatus());
+                RunId runId = updatedRunIds.take();
+                updateTasks(runId);
             }
         }
         catch ( InterruptedException dummy )
@@ -91,13 +89,39 @@ class Scheduler
         }
     }
 
-    private void updateTasks(RunId runId, TaskExecutionStatus status)
+    private boolean hasCanceledTasks(RunId runId, RunnableTask runnableTask)
     {
-        if ( status.isCancelingStatus() )
-        {
-            // TODO complete task
-        }
+        return runnableTask.getTasks().keySet().stream().anyMatch(taskId -> {
+            String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
+            ChildData currentData = completedTasksCache.getCurrentData(completedTaskPath);
+            if ( currentData != null )
+            {
+                TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(currentData.getData()));
+                return taskExecutionResult.getStatus().isCancelingStatus();
+            }
+            return false;
+        });
+    }
 
+    private void completeTask(RunId runId, RunnableTask runnableTask)
+    {
+        RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()));
+        String runPath = ZooKeeperConstants.getRunPath(runId);
+        byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
+        try
+        {
+            workflowManager.getCurator().setData().forPath(runPath, json);
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not write completed task data for run: " + runId;
+            log.error(message, e);
+            throw new RuntimeException(message, e);
+        }
+    }
+
+    private void updateTasks(RunId runId)
+    {
         ChildData currentData = runsCache.getCurrentData(ZooKeeperConstants.getRunPath(runId));
         if ( currentData == null )
         {
@@ -106,28 +130,43 @@ class Scheduler
         }
         RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
 
+        if ( hasCanceledTasks(runId, runnableTask) )
+        {
+            completeTask(runId, runnableTask);
+            return; // one or more tasks has canceled the entire run
+        }
+
         Set<TaskId> completedTasks = Sets.newHashSet();
         runnableTask.getTaskDags().forEach(entry -> {
             TaskId taskId = entry.getTaskId();
-            boolean taskIsComplete = taskIsComplete(completedTasksCache, runId, taskId);
+            ExecutableTask task = runnableTask.getTasks().get(taskId);
+            if ( task == null )
+            {
+                log.error(String.format("Could not find task: %s for run: %s", taskId, runId));
+                return;
+            }
+            
+            boolean taskIsComplete = taskIsComplete(completedTasksCache, runId, task);
             if ( taskIsComplete )
             {
                 completedTasks.add(taskId);
             }
-            if ( taskId.isValid() && !taskIsComplete && !taskIsStarted(startedTasksCache, runId, taskId) )
+            else if ( !taskIsStarted(startedTasksCache, runId, taskId) )
             {
-                boolean allDependenciesAreComplete = entry.getDependencies().stream().allMatch(id -> taskIsComplete(completedTasksCache, runId, id));
+                boolean allDependenciesAreComplete = entry
+                    .getDependencies()
+                    .stream()
+                    .allMatch(id -> taskIsComplete(completedTasksCache, runId, runnableTask.getTasks().get(id)));
                 if ( allDependenciesAreComplete )
                 {
-                    queueTask(runId, runnableTask.getTasks().get(taskId));
+                    queueTask(runId, task);
                 }
             }
         });
 
-        Set<TaskId> entries = null; // TODO workflow.getRunnableTaskDag().getEntries().stream().map(RunnableTaskDagEntryModel::getTaskId).collect(Collectors.toSet());
-        if ( completedTasks.equals(entries))
+        if ( completedTasks.equals(runnableTask.getTasks().keySet()))
         {
-            // TODO complete task
+            completeTask(runId, runnableTask);
         }
     }
 
@@ -166,13 +205,13 @@ class Scheduler
         return (startedTasksCache.getCurrentData(startedTaskPath) != null);
     }
 
-    private boolean taskIsComplete(PathChildrenCache completedTasksCache, RunId runId, TaskId taskId)
+    private boolean taskIsComplete(PathChildrenCache completedTasksCache, RunId runId, ExecutableTask task)
     {
-        if ( !taskId.isValid() )
+        if ( (task == null) || !task.isExecutable() )
         {
             return true;
         }
-        String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
+        String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, task.getTaskId());
         return (completedTasksCache.getCurrentData(completedTaskPath) != null);
     }
 

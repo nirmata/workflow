@@ -67,7 +67,7 @@ public class RunnableTaskDagBuilder
 
     private static void worker(DefaultDirectedGraph<TaskId, DefaultEdge> graph, Task task, TaskId parentId, ImmutableMap.Builder<TaskId, ExecutableTask> tasksBuilder)
     {
-        tasksBuilder.put(task.getTaskId(), new ExecutableTask(task.getTaskId(), task.getTaskType(), task.getMetaData()));
+        tasksBuilder.put(task.getTaskId(), new ExecutableTask(task.getTaskId(), task.getTaskType(), task.getMetaData(), task.isExecutable()));
 
         graph.addVertex(task.getTaskId());
         if ( parentId != null )

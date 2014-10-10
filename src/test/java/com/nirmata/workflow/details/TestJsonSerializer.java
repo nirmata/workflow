@@ -41,7 +41,7 @@ public class TestJsonSerializer
     @Test
     public void testExecutableTask()
     {
-        ExecutableTask executableTask = new ExecutableTask(new TaskId(), randomTaskType(), randomMap());
+        ExecutableTask executableTask = new ExecutableTask(new TaskId(), randomTaskType(), randomMap(), random.nextBoolean());
         JsonNode node = newExecutableTask(executableTask);
         String str = nodeToString(node);
         System.out.println(str);
@@ -55,13 +55,13 @@ public class TestJsonSerializer
     {
         Map<TaskId, ExecutableTask> tasks = Stream.generate(() -> "")
             .limit(random.nextInt(3) + 1)
-            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new TaskId(), randomTaskType(), randomMap())))
+            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new TaskId(), randomTaskType(), randomMap(), random.nextBoolean())))
             ;
         List<RunnableTaskDag> taskDags = Stream.generate(() -> new RunnableTaskDag(new TaskId(), randomTasks()))
             .limit(random.nextInt(3) + 1)
             .collect(Collectors.toList())
             ;
-        RunnableTask runnableTask = new RunnableTask(tasks, taskDags);
+        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(), null);
         JsonNode node = newRunnableTask(runnableTask);
         String str = nodeToString(node);
         System.out.println(str);

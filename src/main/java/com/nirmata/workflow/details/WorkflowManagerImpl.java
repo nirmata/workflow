@@ -20,6 +20,7 @@ import org.apache.curator.utils.EnsurePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -96,7 +97,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
-        RunnableTask runnableTask = new RunnableTask(builder.getTasks(), builder.getEntries());
+        RunnableTask runnableTask = new RunnableTask(builder.getTasks(), builder.getEntries(), LocalDateTime.now(), null);
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
@@ -110,7 +111,7 @@ public class WorkflowManagerImpl implements WorkflowManager
             curator.inTransaction()
                 .create().forPath(runPath, runnableTaskJson)
             .and()
-                .create().forPath(completedTaskPath, taskExecutionResultJson)
+                .create().forPath(completedTaskPath, taskExecutionResultJson)   // a fake completed task to kick-off task creation
             .and()
                 .commit();
         }
@@ -120,6 +121,12 @@ public class WorkflowManagerImpl implements WorkflowManager
         }
 
         return runId;
+    }
+
+    @Override
+    public void cancelRun(RunId runId, String message)
+    {
+        // TODO
     }
 
     @Override
