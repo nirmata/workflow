@@ -5,10 +5,10 @@ import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
+import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.CuratorFramework;
 import java.io.Closeable;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -70,13 +70,13 @@ public interface WorkflowManager extends Closeable
     public boolean cancelRun(RunId runId);
 
     /**
-     * Return the generated result data for a given task of a given run
+     * Return the result for a given task of a given run
      *
      * @param runId the run
      * @param taskId the task
-     * @return if found, a loaded optional with the result data. Otherwise, an empty optional.
+     * @return if found, a loaded optional with the result. Otherwise, an empty optional.
      */
-    public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId);
+    public Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId);
 
     /**
      * Return administration operations

@@ -165,7 +165,7 @@ public class TestNormal extends BaseForTests
             .withCurator(curator, "test", "1")
             .build();
 
-        Optional<Map<String, String>> taskData = workflowManager.getTaskData(new RunId(), new TaskId());
+        Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(new RunId(), new TaskId());
         Assert.assertFalse(taskData.isPresent());
     }
 
@@ -196,12 +196,12 @@ public class TestNormal extends BaseForTests
             Assert.assertTrue(timing.awaitLatch(latch));
             timing.sleepABit();
 
-            Optional<Map<String, String>> taskData = workflowManager.getTaskData(runId, taskId);
+            Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(runId, taskId);
             Assert.assertTrue(taskData.isPresent());
             Map<String, String> expected = Maps.newHashMap();
             expected.put("one", "1");
             expected.put("two", "2");
-            Assert.assertEquals(taskData.get(), expected);
+            Assert.assertEquals(taskData.get().getResultData(), expected);
         }
         finally
         {

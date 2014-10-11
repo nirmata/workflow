@@ -33,7 +33,7 @@ public class TaskExecutionResult
     /**
      * @param status the execution status
      * @param message any message that task
-     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskData(RunId, TaskId)})
+     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskExecutionResult(RunId, TaskId)})
      */
     public TaskExecutionResult(TaskExecutionStatus status, String message, Map<String, String> resultData)
     {
@@ -43,7 +43,7 @@ public class TaskExecutionResult
     /**
      * @param status the execution status
      * @param message any message that task
-     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskData(RunId, TaskId)})
+     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskExecutionResult(RunId, TaskId)})
      * @param subTaskRunId if not null, the value of a sub-task started via {@link WorkflowManager#submitSubTask(RunId, Task)}. If
      *                     a sub-task was started, it's vital that the run ID be passed here so that this run can pause until the sub-task
      *                     completes.
@@ -56,7 +56,7 @@ public class TaskExecutionResult
     /**
      * @param status the execution status
      * @param message any message that task
-     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskData(RunId, TaskId)})
+     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskExecutionResult(RunId, TaskId)})
      * @param subTaskRunId if not null, the value of a sub-task started via {@link WorkflowManager#submitSubTask(RunId, Task)}. If
      *                     a sub-task was started, it's vital that the run ID be passed here so that this run can pause until the sub-task
      *                     completes.

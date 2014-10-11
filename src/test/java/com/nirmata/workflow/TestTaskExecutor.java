@@ -14,6 +14,11 @@ class TestTaskExecutor implements TaskExecutor
     private final int latchQty;
     private volatile CountDownLatch latch;
 
+    public TestTaskExecutor()
+    {
+        this(1);
+    }
+
     public TestTaskExecutor(int latchQty)
     {
         this.latchQty = latchQty;

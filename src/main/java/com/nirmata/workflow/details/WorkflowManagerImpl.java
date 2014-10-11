@@ -146,14 +146,14 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
-    public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId)
+    public Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId)
     {
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
         try
         {
             byte[] json = curator.getData().forPath(completedTaskPath);
             TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
-            return Optional.of(taskExecutionResult.getResultData());
+            return Optional.of(taskExecutionResult);
         }
         catch ( KeeperException.NoNodeException dummy )
         {
@@ -384,6 +384,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         TaskExecution taskExecution = taskExecutor.newTaskExecution(this, executableTask);
 
         TaskExecutionResult result = taskExecution.execute();
+        if ( result == null )
+        {
+            throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
+        }
         String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));
         try
         {
