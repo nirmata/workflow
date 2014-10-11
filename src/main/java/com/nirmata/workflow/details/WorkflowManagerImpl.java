@@ -180,6 +180,66 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
+    public boolean clean(RunId runId)
+    {
+        String runPath = ZooKeeperConstants.getRunPath(runId);
+        try
+        {
+            byte[] json = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            runnableTask.getTasks().keySet().forEach(taskId -> {
+                String startedTaskPath = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
+                try
+                {
+                    curator.delete().forPath(startedTaskPath);
+                }
+                catch ( KeeperException.NoNodeException ignore )
+                {
+                    // ignore
+                }
+                catch ( Exception e )
+                {
+                    throw new RuntimeException("Could not delete started task at: " + startedTaskPath, e);
+                }
+
+                String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
+                try
+                {
+                    curator.delete().forPath(completedTaskPath);
+                }
+                catch ( KeeperException.NoNodeException ignore )
+                {
+                    // ignore
+                }
+                catch ( Exception e )
+                {
+                    throw new RuntimeException("Could not delete completed task at: " + completedTaskPath, e);
+                }
+            });
+
+            try
+            {
+                curator.delete().forPath(runPath);
+            }
+            catch ( Exception e )
+            {
+                // at this point, the node should exist
+                throw new RuntimeException(e);
+            }
+
+            return true;
+        }
+        catch ( KeeperException.NoNodeException dummy )
+        {
+            return false;
+        }
+        catch ( Throwable e )
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public List<RunInfo> getRunInfo()
     {
         try

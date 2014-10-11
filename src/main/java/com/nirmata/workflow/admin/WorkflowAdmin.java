@@ -8,4 +8,6 @@ public interface WorkflowAdmin
     public List<RunInfo> getRunInfo();
 
     public List<TaskInfo> getTaskInfo(RunId runId);
+
+    public boolean clean(RunId runId);
 }
