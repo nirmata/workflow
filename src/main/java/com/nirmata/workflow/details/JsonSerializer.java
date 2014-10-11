@@ -236,8 +236,8 @@ public class JsonSerializer
         ObjectNode node = newNode();
         node.set("taskDags", taskDags);
         node.set("tasks", tasks);
-        node.put("startTime", runnableTask.getStartTime().format(DateTimeFormatter.ISO_DATE_TIME));
-        node.put("completionTime", runnableTask.getCompletionTime().isPresent() ? runnableTask.getCompletionTime().get().format(DateTimeFormatter.ISO_DATE_TIME) : null);
+        node.put("startTimeUtc", runnableTask.getStartTimeUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("completionTimeUtc", runnableTask.getCompletionTimeUtc().isPresent() ? runnableTask.getCompletionTimeUtc().get().format(DateTimeFormatter.ISO_DATE_TIME) : null);
         node.put("parentRunId", runnableTask.getParentRunId().isPresent() ? runnableTask.getParentRunId().get().getId() : null);
         return node;
     }
@@ -255,8 +255,8 @@ public class JsonSerializer
             tasks.put(new TaskId(next.getKey()), getExecutableTask(next.getValue()));
         }
 
-        LocalDateTime startTime = LocalDateTime.parse(node.get("startTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
-        LocalDateTime completionTime = node.get("completionTime").isNull() ? null : LocalDateTime.parse(node.get("completionTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
+        LocalDateTime startTime = LocalDateTime.parse(node.get("startTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME);
+        LocalDateTime completionTime = node.get("completionTimeUtc").isNull() ? null : LocalDateTime.parse(node.get("completionTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME);
         RunId parentRunId = node.get("parentRunId").isNull() ? null : new RunId(node.get("parentRunId").asText());
         return new RunnableTask(tasks, taskDags, startTime, completionTime, parentRunId);
     }
@@ -268,6 +268,7 @@ public class JsonSerializer
         node.put("message", taskExecutionResult.getMessage());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
         node.put("subTaskRunId", taskExecutionResult.getSubTaskRunId().isPresent() ? taskExecutionResult.getSubTaskRunId().get().getId() : null);
+        node.put("completionTimeUtc", taskExecutionResult.getCompletionTimeUtc().format(DateTimeFormatter.ISO_DATE_TIME));
         return node;
     }
 
@@ -279,7 +280,8 @@ public class JsonSerializer
             TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
             node.get("message").asText(),
             getMap(node.get("resultData")),
-            ((subTaskRunIdNode != null) && !subTaskRunIdNode.isNull()) ? new RunId(subTaskRunIdNode.asText()) : null
+            ((subTaskRunIdNode != null) && !subTaskRunIdNode.isNull()) ? new RunId(subTaskRunIdNode.asText()) : null,
+            LocalDateTime.parse(node.get("completionTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
         );
     }
 

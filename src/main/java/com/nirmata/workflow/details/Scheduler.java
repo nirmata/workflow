@@ -122,7 +122,7 @@ class Scheduler
         try
         {
             RunId parentRunId = runnableTask.getParentRunId().orElse(null);
-            RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()), parentRunId);
+            RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTimeUtc(), LocalDateTime.now(Clock.systemUTC()), parentRunId);
             String runPath = ZooKeeperConstants.getRunPath(runId);
             byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
             workflowManager.getCurator().setData().withVersion(version).forPath(runPath, json);
@@ -144,7 +144,7 @@ class Scheduler
             log.error(message);
             throw new RuntimeException(message);
         }
-        if ( runnableTask.getCompletionTime().isPresent() )
+        if ( runnableTask.getCompletionTimeUtc().isPresent() )
         {
             return;
         }
@@ -248,7 +248,7 @@ class Scheduler
             if ( result.getSubTaskRunId().isPresent() )
             {
                 RunnableTask runnableTask = getRunnableTask(result.getSubTaskRunId().get());
-                return (runnableTask != null) && runnableTask.getCompletionTime().isPresent();
+                return (runnableTask != null) && runnableTask.getCompletionTimeUtc().isPresent();
             }
             return true;
         }

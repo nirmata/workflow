@@ -8,19 +8,19 @@ import java.util.Optional;
 public class RunInfo
 {
     private final RunId runId;
-    private final LocalDateTime startTime;
-    private final Optional<LocalDateTime> completionTime;
+    private final LocalDateTime startTimeUtc;
+    private final Optional<LocalDateTime> completionTimeUtc;
 
-    public RunInfo(RunId runId, LocalDateTime startTime)
+    public RunInfo(RunId runId, LocalDateTime startTimeUtc)
     {
-        this(runId, startTime, null);
+        this(runId, startTimeUtc, null);
     }
 
-    public RunInfo(RunId runId, LocalDateTime startTime, LocalDateTime completionTime)
+    public RunInfo(RunId runId, LocalDateTime startTimeUtc, LocalDateTime completionTimeUtc)
     {
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
-        this.startTime = Preconditions.checkNotNull(startTime, "startTime cannot be null");
-        this.completionTime = Optional.ofNullable(completionTime);
+        this.startTimeUtc = Preconditions.checkNotNull(startTimeUtc, "startTimeUtc cannot be null");
+        this.completionTimeUtc = Optional.ofNullable(completionTimeUtc);
     }
 
     public RunId getRunId()
@@ -28,19 +28,19 @@ public class RunInfo
         return runId;
     }
 
-    public LocalDateTime getStartTime()
+    public LocalDateTime getStartTimeUtc()
     {
-        return startTime;
+        return startTimeUtc;
     }
 
-    public LocalDateTime getCompletionTime()
+    public LocalDateTime getCompletionTimeUtc()
     {
-        return completionTime.get();
+        return completionTimeUtc.get();
     }
 
     public boolean isComplete()
     {
-        return completionTime.isPresent();
+        return completionTimeUtc.isPresent();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class RunInfo
 
         RunInfo runInfo = (RunInfo)o;
 
-        if ( !completionTime.equals(runInfo.completionTime) )
+        if ( !completionTimeUtc.equals(runInfo.completionTimeUtc) )
         {
             return false;
         }
@@ -66,7 +66,7 @@ public class RunInfo
             return false;
         }
         //noinspection RedundantIfStatement
-        if ( !startTime.equals(runInfo.startTime) )
+        if ( !startTimeUtc.equals(runInfo.startTimeUtc) )
         {
             return false;
         }
@@ -78,8 +78,8 @@ public class RunInfo
     public int hashCode()
     {
         int result = runId.hashCode();
-        result = 31 * result + startTime.hashCode();
-        result = 31 * result + completionTime.hashCode();
+        result = 31 * result + startTimeUtc.hashCode();
+        result = 31 * result + completionTimeUtc.hashCode();
         return result;
     }
 
@@ -88,8 +88,8 @@ public class RunInfo
     {
         return "RunInfo{" +
             "runId=" + runId +
-            ", startTime=" + startTime +
-            ", completionTime=" + completionTime +
+            ", startTime=" + startTimeUtc +
+            ", completionTime=" + completionTimeUtc +
             '}';
     }
 }

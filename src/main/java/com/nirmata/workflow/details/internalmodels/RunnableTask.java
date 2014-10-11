@@ -15,24 +15,24 @@ public class RunnableTask
 {
     private final Map<TaskId, ExecutableTask> tasks;
     private final List<RunnableTaskDag> taskDags;
-    private final LocalDateTime startTime;
-    private final Optional<LocalDateTime> completionTime;
+    private final LocalDateTime startTimeUtc;
+    private final Optional<LocalDateTime> completionTimeUtc;
     private final Optional<RunId> parentRunId;
 
-    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime)
+    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTimeUtc)
     {
-        this(tasks, taskDags, startTime, null, null);
+        this(tasks, taskDags, startTimeUtc, null, null);
     }
 
-    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime, LocalDateTime completionTime)
+    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTimeUtc, LocalDateTime completionTimeUtc)
     {
-        this(tasks, taskDags, startTime, completionTime, null);
+        this(tasks, taskDags, startTimeUtc, completionTimeUtc, null);
     }
 
-    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime, LocalDateTime completionTime, RunId parentRunId)
+    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTimeUtc, LocalDateTime completionTimeUtc, RunId parentRunId)
     {
-        this.startTime = Preconditions.checkNotNull(startTime, "startTime cannot be null");
-        this.completionTime = Optional.ofNullable(completionTime);
+        this.startTimeUtc = Preconditions.checkNotNull(startTimeUtc, "startTimeUtc cannot be null");
+        this.completionTimeUtc = Optional.ofNullable(completionTimeUtc);
         this.parentRunId = Optional.ofNullable(parentRunId);
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         taskDags = Preconditions.checkNotNull(taskDags, "taskDags cannot be null");
@@ -51,14 +51,14 @@ public class RunnableTask
         return taskDags;
     }
 
-    public Optional<LocalDateTime> getCompletionTime()
+    public Optional<LocalDateTime> getCompletionTimeUtc()
     {
-        return completionTime;
+        return completionTimeUtc;
     }
 
-    public LocalDateTime getStartTime()
+    public LocalDateTime getStartTimeUtc()
     {
-        return startTime;
+        return startTimeUtc;
     }
 
     public Optional<RunId> getParentRunId()
@@ -80,7 +80,7 @@ public class RunnableTask
 
         RunnableTask that = (RunnableTask)o;
 
-        if ( !completionTime.equals(that.completionTime) )
+        if ( !completionTimeUtc.equals(that.completionTimeUtc) )
         {
             return false;
         }
@@ -88,7 +88,7 @@ public class RunnableTask
         {
             return false;
         }
-        if ( !startTime.equals(that.startTime) )
+        if ( !startTimeUtc.equals(that.startTimeUtc) )
         {
             return false;
         }
@@ -110,8 +110,8 @@ public class RunnableTask
     {
         int result = tasks.hashCode();
         result = 31 * result + taskDags.hashCode();
-        result = 31 * result + startTime.hashCode();
-        result = 31 * result + completionTime.hashCode();
+        result = 31 * result + startTimeUtc.hashCode();
+        result = 31 * result + completionTimeUtc.hashCode();
         result = 31 * result + parentRunId.hashCode();
         return result;
     }
@@ -122,8 +122,8 @@ public class RunnableTask
         return "RunnableTask{" +
             "tasks=" + tasks +
             ", taskDags=" + taskDags +
-            ", startTime=" + startTime +
-            ", completionTime=" + completionTime +
+            ", startTime=" + startTimeUtc +
+            ", completionTime=" + completionTimeUtc +
             ", parentRunId=" + parentRunId +
             '}';
     }

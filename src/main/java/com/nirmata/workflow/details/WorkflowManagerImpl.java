@@ -2,10 +2,14 @@ package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.admin.RunInfo;
+import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
+import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
@@ -189,7 +193,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                         RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(fullPath));
                         byte[] json = curator.getData().forPath(fullPath);
                         RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
-                        return new RunInfo(runId, runnableTask.getStartTime(), runnableTask.getCompletionTime().orElse(null));
+                        return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
                     }
                     catch ( KeeperException.NoNodeException ignore )
                     {
@@ -197,19 +201,82 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     }
                     catch ( Exception e )
                     {
-                        String message = "Trying to read run info from: " + fullPath;
-                        log.error(message, e);
-                        throw new RuntimeException(message, e);
+                        throw new RuntimeException("Trying to read run info from: " + fullPath, e);
                     }
                     return null;
                 })
                 .filter(info -> (info != null))
                 .collect(Collectors.toList());
         }
-        catch ( Exception e )
+        catch ( Throwable e )
         {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public List<TaskInfo> getTaskInfo(RunId runId)
+    {
+        List<TaskInfo> taskInfos = Lists.newArrayList();
+        String startedTasksParentPath = ZooKeeperConstants.getStartedTasksParentPath();
+        String completedTaskParentPath = ZooKeeperConstants.getCompletedTaskParentPath();
+        try
+        {
+            Map<TaskId, StartedTask> startedTasks = Maps.newHashMap();
+
+            curator.getChildren().forPath(startedTasksParentPath).stream().forEach(child -> {
+                String fullPath = ZKPaths.makePath(startedTasksParentPath, child);
+                TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(fullPath));
+                try
+                {
+                    byte[] json = curator.getData().forPath(fullPath);
+                    StartedTask startedTask = JsonSerializer.getStartedTask(JsonSerializer.fromBytes(json));
+                    startedTasks.put(taskId, startedTask);
+                }
+                catch ( KeeperException.NoNodeException ignore )
+                {
+                    // ignore - must have been deleted in the interim
+                }
+                catch ( Exception e )
+                {
+                    throw new RuntimeException("Trying to read started task info from: " + fullPath, e);
+                }
+            });
+
+            curator.getChildren().forPath(completedTaskParentPath).stream().forEach(child -> {
+                String fullPath = ZKPaths.makePath(completedTaskParentPath, child);
+                TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(fullPath));
+                StartedTask startedTask = startedTasks.remove(taskId);
+                if ( startedTask != null )  // otherwise it must have been deleted
+                {
+                    try
+                    {
+                        byte[] json = curator.getData().forPath(fullPath);
+                        TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
+                        taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), taskExecutionResult));
+                    }
+                    catch ( KeeperException.NoNodeException ignore )
+                    {
+                        // ignore - must have been deleted in the interim
+                    }
+                    catch ( Exception e )
+                    {
+                        throw new RuntimeException("Trying to read completed task info from: " + fullPath, e);
+                    }
+                }
+            });
+
+            // remaining started tasks have not completed
+            startedTasks.entrySet().forEach(entry -> {
+                StartedTask startedTask = entry.getValue();
+                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc()));
+            });
+        }
+        catch ( Throwable e )
+        {
+            throw new RuntimeException(e);
+        }
+        return taskInfos;
     }
 
     private void executeTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
