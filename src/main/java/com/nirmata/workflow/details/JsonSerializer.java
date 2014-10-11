@@ -277,7 +277,7 @@ public class JsonSerializer
             TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
             node.get("message").asText(),
             getMap(node.get("resultData")),
-            (subTaskRunIdNode != null) ? new RunId(subTaskRunIdNode.asText()) : null
+            ((subTaskRunIdNode != null) && !subTaskRunIdNode.isNull()) ? new RunId(subTaskRunIdNode.asText()) : null
         );
     }
 
