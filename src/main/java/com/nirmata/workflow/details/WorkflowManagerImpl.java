@@ -241,6 +241,22 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
+    public RunInfo getRunInfo(RunId runId)
+    {
+        try
+        {
+            String runPath = ZooKeeperConstants.getRunPath(runId);
+            byte[] json = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException("Could not read run: " + runId, e);
+        }
+    }
+
+    @Override
     public List<RunInfo> getRunInfo()
     {
         try

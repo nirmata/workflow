@@ -192,6 +192,9 @@ public class TestAdmin extends BaseForTests
 
             timing.sleepABit();
 
+            RunInfo runInfo1 = workflowManager.getAdmin().getRunInfo(runId1);
+            Assert.assertTrue(runInfo1.isComplete());
+
             Map<RunId, RunInfo> runs = workflowManager.getAdmin().getRunInfo().stream().collect(Collectors.toMap(RunInfo::getRunId, Function.identity()));
             Assert.assertEquals(runs.size(), 2);
             Assert.assertTrue(runs.containsKey(runId1));

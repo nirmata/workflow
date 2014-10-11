@@ -17,6 +17,14 @@ public interface WorkflowAdmin
     public List<RunInfo> getRunInfo();
 
     /**
+     * Return info about the given run
+     *
+     * @param runId run
+     * @return info
+     */
+    public RunInfo getRunInfo(RunId runId);
+
+    /**
      * Return info about all the tasks completed, started or waiting for
      * the given run
      *
