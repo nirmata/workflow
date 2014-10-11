@@ -16,7 +16,6 @@ import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
-import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -37,8 +36,6 @@ public class WorkflowManagerImpl implements WorkflowManager
     private final String instanceName;
     private final List<QueueConsumer> consumers;
     private final SchedulerSelector schedulerSelector;
-    private final EnsurePath ensureRunPath;
-    private final EnsurePath ensureCompletedTaskPath;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
 
     private static final TaskType nullTaskType = new TaskType("", "", false);
@@ -56,9 +53,6 @@ public class WorkflowManagerImpl implements WorkflowManager
         queueFactory = Preconditions.checkNotNull(queueFactory, "queueFactory cannot be null");
         this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
         specs = Preconditions.checkNotNull(specs, "specs cannot be null");
-
-        ensureRunPath = curator.newNamespaceAwareEnsurePath(ZooKeeperConstants.getRunParentPath());
-        ensureCompletedTaskPath = curator.newNamespaceAwareEnsurePath(ZooKeeperConstants.getCompletedTaskParentPath());
 
         consumers = makeTaskConsumers(queueFactory, specs);
         schedulerSelector = new SchedulerSelector(this, queueFactory, specs);
@@ -89,18 +83,6 @@ public class WorkflowManagerImpl implements WorkflowManager
     {
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
-        try
-        {
-            ensureRunPath.ensure(curator.getZookeeperClient());
-            ensureCompletedTaskPath.ensure(curator.getZookeeperClient());
-        }
-        catch ( Exception e )
-        {
-            throw new RuntimeException(e);
-        }
-
-        Preconditions.checkState(state.get() == State.STARTED, "Not started");
-
         RunId runId = new RunId();
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         Map<TaskId, ExecutableTask> tasks = builder
@@ -110,16 +92,11 @@ public class WorkflowManagerImpl implements WorkflowManager
             .collect(Collectors.toMap(Task::getTaskId, t -> new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable())));
         RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now(), null, parentRunId);
 
-        byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
-        String runPath = ZooKeeperConstants.getRunPath(runId);
         try
         {
-            curator.inTransaction()
-                .create().forPath(runPath, runnableTaskJson)
-            .and()
-                .create().forPath(Scheduler.getFakeTaskPath(runId), Scheduler.getFakeTaskBytes())
-            .and()
-                .commit();
+            byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
+            String runPath = ZooKeeperConstants.getRunPath(runId);
+            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskJson);
         }
         catch ( Exception e )
         {

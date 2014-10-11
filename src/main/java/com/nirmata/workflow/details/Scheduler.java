@@ -5,7 +5,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
-import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskExecutionResult;
@@ -48,17 +47,6 @@ class Scheduler
         runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunParentPath(), true);
     }
 
-    static String getFakeTaskPath(RunId runId)
-    {
-        return ZooKeeperConstants.getCompletedTaskPath(runId, new TaskId());
-    }
-
-    static byte[] getFakeTaskBytes()
-    {
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
-        return JsonSerializer.toBytes(JsonSerializer.newTaskExecutionResult(taskExecutionResult));
-    }
-
     void run()
     {
         BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
@@ -70,7 +58,12 @@ class Scheduler
             }
         });
         runsCache.getListenable().addListener((client, event) -> {
-            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
+            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            {
+                RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                updatedRunIds.add(runId);
+            }
+            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
             {
                 RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(event.getData().getData()));
                 if ( runnableTask.getParentRunId().isPresent() )
@@ -85,7 +78,7 @@ class Scheduler
             queues.values().forEach(Queue::start);
             completedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
             startedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
-            runsCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            runsCache.start(PathChildrenCache.StartMode.NORMAL);
 
             while ( !Thread.currentThread().isInterrupted() )
             {
