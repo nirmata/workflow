@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -82,13 +83,6 @@ public class WorkflowManagerImpl implements WorkflowManager
     public RunId submitTask(Task task)
     {
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
-        return submitSubTask(task, null, null);
-    }
-
-    @Override
-    public RunId submitSubTask(Task task, RunId mainRunId, TaskId mainTaskId)
-    {
-        // TODO handle mainRunId and mainTaskId
 
         try
         {
@@ -154,14 +148,29 @@ public class WorkflowManagerImpl implements WorkflowManager
         }
         catch ( Exception e )
         {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Could not cancel runId " + runId, e);
         }
     }
 
     @Override
-    public Map<String, String> getTaskData(RunId runId, TaskId taskId)
+    public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId)
     {
-        return null;
+        String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
+        try
+        {
+            byte[] json = curator.getData().forPath(completedTaskPath);
+            TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
+            return Optional.of(taskExecutionResult.getResultData());
+        }
+        catch ( KeeperException.NoNodeException dummy )
+        {
+            // dummy
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException(String.format("No data for runId %s taskId %s", runId, taskId), e);
+        }
+        return Optional.empty();
     }
 
     public String getInstanceName()

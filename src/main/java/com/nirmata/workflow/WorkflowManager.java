@@ -5,6 +5,7 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
 import java.io.Closeable;
 import java.util.Map;
+import java.util.Optional;
 
 public interface WorkflowManager extends Closeable
 {
@@ -12,9 +13,7 @@ public interface WorkflowManager extends Closeable
 
     public RunId submitTask(Task task);
 
-    public RunId submitSubTask(Task task, RunId mainRunId, TaskId mainTaskId);
-
-    public Map<String, String> getTaskData(RunId runId, TaskId taskId);
+    public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId);
 
     public boolean cancelRun(RunId runId);
 }
