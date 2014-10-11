@@ -27,11 +27,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.nirmata.workflow.details.JsonSerializer.fromString;
 import static com.nirmata.workflow.details.JsonSerializer.getTask;
@@ -282,6 +285,108 @@ public class TestNormal
             latch.countDown();
             polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
             Assert.assertEquals(polledTaskId, groupAChild.getTaskId());
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testMultiTypesExecution() throws Exception
+    {
+        TaskType taskType1 = new TaskType("type1", "1", true);
+        TaskType taskType2 = new TaskType("type2", "1", true);
+        TaskType taskType3 = new TaskType("type3", "1", true);
+
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, taskType1)
+            .addingTaskExecutor(taskExecutor, 10, taskType2)
+            .addingTaskExecutor(taskExecutor, 10, taskType3)
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            String json = Resources.toString(Resources.getResource("multi-tasks.json"), Charset.defaultCharset());
+            Task task = getTask(fromString(json));
+            workflowManager.submitTask(task);
+
+            Timing timing = new Timing();
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+
+            taskExecutor.getChecker().assertNoDuplicates();
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testMultiTypes() throws Exception
+    {
+        TaskType taskType1 = new TaskType("type1", "1", true);
+        TaskType taskType2 = new TaskType("type2", "1", true);
+        TaskType taskType3 = new TaskType("type3", "1", true);
+
+        BlockingQueue<TaskId> queue1 = Queues.newLinkedBlockingQueue();
+        TaskExecutor taskExecutor1 = (manager, task) -> () -> {
+            queue1.add(task.getTaskId());
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        };
+
+        BlockingQueue<TaskId> queue2 = Queues.newLinkedBlockingQueue();
+        TaskExecutor taskExecutor2 = (manager, task) -> () -> {
+            queue2.add(task.getTaskId());
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        };
+
+        BlockingQueue<TaskId> queue3 = Queues.newLinkedBlockingQueue();
+        TaskExecutor taskExecutor3 = (manager, task) -> () -> {
+            queue3.add(task.getTaskId());
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        };
+
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor1, 10, taskType1)
+            .addingTaskExecutor(taskExecutor2, 10, taskType2)
+            .addingTaskExecutor(taskExecutor3, 10, taskType3)
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            String json = Resources.toString(Resources.getResource("multi-tasks.json"), Charset.defaultCharset());
+            Task task = getTask(fromString(json));
+            workflowManager.submitTask(task);
+
+            Timing timing = new Timing();
+            Set<TaskId> set1 = Sets.newHashSet(queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+            Set<TaskId> set2 = Sets.newHashSet(queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+            Set<TaskId> set3 = Sets.newHashSet(queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+
+            Assert.assertEquals(set1, Sets.newHashSet(new TaskId("task1"), new TaskId("task2")));
+            Assert.assertEquals(set2, Sets.newHashSet(new TaskId("task3"), new TaskId("task4")));
+            Assert.assertEquals(set3, Sets.newHashSet(new TaskId("task5"), new TaskId("task6")));
+
+            timing.sleepABit();
+
+            Assert.assertNull(queue1.peek());
+            Assert.assertNull(queue2.peek());
+            Assert.assertNull(queue3.peek());
         }
         finally
         {
