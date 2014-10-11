@@ -8,6 +8,7 @@ import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
+import com.nirmata.workflow.admin.WorkflowListenerManager;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecution;
@@ -78,6 +79,12 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         consumers.forEach(QueueConsumer::start);
         schedulerSelector.start();
+    }
+
+    @Override
+    public WorkflowListenerManager newWorkflowListenerManager()
+    {
+        return new WorkflowListenerManagerImpl(this);
     }
 
     @Override
