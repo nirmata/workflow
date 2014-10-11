@@ -1,5 +1,6 @@
 package com.nirmata.workflow;
 
+import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
@@ -75,4 +76,11 @@ public interface WorkflowManager extends Closeable
      * @return if found, a loaded optional with the result data. Otherwise, an empty optional.
      */
     public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId);
+
+    /**
+     * Return administration operations
+     *
+     * @return admin
+     */
+    public WorkflowAdmin getAdmin();
 }

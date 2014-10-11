@@ -3,6 +3,8 @@ package com.nirmata.workflow.details;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.nirmata.workflow.WorkflowManager;
+import com.nirmata.workflow.admin.RunInfo;
+import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -16,6 +18,7 @@ import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -29,7 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class WorkflowManagerImpl implements WorkflowManager
+public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CuratorFramework curator;
@@ -163,6 +166,49 @@ public class WorkflowManagerImpl implements WorkflowManager
         {
             CloseableUtils.closeQuietly(schedulerSelector);
             consumers.forEach(CloseableUtils::closeQuietly);
+        }
+    }
+
+    @Override
+    public WorkflowAdmin getAdmin()
+    {
+        return this;
+    }
+
+    @Override
+    public List<RunInfo> getRunInfo()
+    {
+        try
+        {
+            String runParentPath = ZooKeeperConstants.getRunParentPath();
+            return curator.getChildren().forPath(runParentPath).stream()
+                .map(child -> {
+                    String fullPath = ZKPaths.makePath(runParentPath, child);
+                    try
+                    {
+                        RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(fullPath));
+                        byte[] json = curator.getData().forPath(fullPath);
+                        RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+                        return new RunInfo(runId, runnableTask.getStartTime(), runnableTask.getCompletionTime().orElse(null));
+                    }
+                    catch ( KeeperException.NoNodeException ignore )
+                    {
+                        // ignore - must have been deleted in the interim
+                    }
+                    catch ( Exception e )
+                    {
+                        String message = "Trying to read run info from: " + fullPath;
+                        log.error(message, e);
+                        throw new RuntimeException(message, e);
+                    }
+                    return null;
+                })
+                .filter(info -> (info != null))
+                .collect(Collectors.toList());
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException(e);
         }
     }
 

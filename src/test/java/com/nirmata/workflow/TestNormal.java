@@ -12,15 +12,9 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryOneTime;
-import org.apache.curator.test.TestingServer;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
 import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -36,27 +30,8 @@ import java.util.concurrent.TimeUnit;
 import static com.nirmata.workflow.details.JsonSerializer.fromString;
 import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
-public class TestNormal
+public class TestNormal extends BaseForTests
 {
-    private TestingServer server;
-    private CuratorFramework curator;
-
-    @BeforeMethod
-    public void setup() throws Exception
-    {
-        server = new TestingServer();
-
-        curator = CuratorFrameworkFactory.builder().connectString(server.getConnectString()).retryPolicy(new RetryOneTime(1)).build();
-        curator.start();
-    }
-
-    @AfterMethod
-    public void teardown() throws Exception
-    {
-        CloseableUtils.closeQuietly(curator);
-        CloseableUtils.closeQuietly(server);
-    }
-
     @Test
     public void testCanceling() throws Exception
     {

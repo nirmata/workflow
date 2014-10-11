@@ -67,11 +67,6 @@ public class ZooKeeperConstants
         return ZKPaths.getPathAndNode(path).getNode();
     }
 
-    public static String getRunIdFromCompletedRunPath(String path)
-    {
-        return getRunIdFromRunPath(path);
-    }
-
     public static String getQueuePath(TaskType taskType)
     {
         String path = getQueueBasePath(taskType);
