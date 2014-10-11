@@ -1,4 +1,4 @@
-package com.nirmata.workflow.admin;
+package com.nirmata.workflow.events;
 
 import org.apache.curator.framework.listen.Listenable;
 import java.io.Closeable;

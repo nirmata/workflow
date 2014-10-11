@@ -1,7 +1,6 @@
 package com.nirmata.workflow.admin;
 
 import com.nirmata.workflow.models.RunId;
-import org.apache.curator.framework.listen.Listenable;
 import java.util.List;
 
 /**
@@ -41,11 +40,4 @@ public interface WorkflowAdmin
      * @return true if the run was found
      */
     public boolean clean(RunId runId);
-
-    /**
-     * Allocate a new WorkflowListenerManager
-     *
-     * @return new WorkflowListenerManager
-     */
-    public WorkflowListenerManager newWorkflowListenerManager();
 }

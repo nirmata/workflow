@@ -1,4 +1,4 @@
-package com.nirmata.workflow.admin;
+package com.nirmata.workflow.events;
 
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;

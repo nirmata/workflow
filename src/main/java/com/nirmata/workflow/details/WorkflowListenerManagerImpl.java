@@ -1,10 +1,8 @@
 package com.nirmata.workflow.details;
 
-import com.nirmata.workflow.admin.WorkflowEvent;
-import com.nirmata.workflow.admin.WorkflowListener;
-import com.nirmata.workflow.admin.WorkflowListenerManager;
-import com.nirmata.workflow.details.WorkflowManagerImpl;
-import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.events.WorkflowEvent;
+import com.nirmata.workflow.events.WorkflowListener;
+import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.listen.Listenable;

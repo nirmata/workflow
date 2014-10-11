@@ -1,6 +1,7 @@
 package com.nirmata.workflow;
 
 import com.nirmata.workflow.admin.WorkflowAdmin;
+import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
@@ -83,4 +84,11 @@ public interface WorkflowManager extends Closeable
      * @return admin
      */
     public WorkflowAdmin getAdmin();
+
+    /**
+     * Allocate a new WorkflowListenerManager
+     *
+     * @return new WorkflowListenerManager
+     */
+    public WorkflowListenerManager newWorkflowListenerManager();
 }

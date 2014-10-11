@@ -1,8 +1,8 @@
 package com.nirmata.workflow;
 
 import com.google.common.collect.Queues;
-import com.nirmata.workflow.admin.WorkflowEvent;
-import com.nirmata.workflow.admin.WorkflowListenerManager;
+import com.nirmata.workflow.events.WorkflowEvent;
+import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
@@ -31,7 +31,7 @@ public class TestWorkflowListenerManager extends BaseForTests
             Task task = new Task(new TaskId(), taskType);
 
             BlockingQueue<WorkflowEvent> eventQueue = Queues.newLinkedBlockingQueue();
-            workflowListenerManager = workflowManager.getAdmin().newWorkflowListenerManager();
+            workflowListenerManager = workflowManager.newWorkflowListenerManager();
             workflowListenerManager.getListenable().addListener(eventQueue::add);
 
             workflowManager.start();
