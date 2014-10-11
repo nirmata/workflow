@@ -37,7 +37,7 @@ class TestTaskExecutor implements TaskExecutor
     }
 
     @Override
-    public TaskExecution newTaskExecution(ExecutableTask task)
+    public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask task)
     {
         return () -> {
             try

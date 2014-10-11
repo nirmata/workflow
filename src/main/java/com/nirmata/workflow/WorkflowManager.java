@@ -13,6 +13,8 @@ public interface WorkflowManager extends Closeable
 
     public RunId submitTask(Task task);
 
+    public RunId submitSubTask(RunId parentRunId, Task task);
+
     public Optional<Map<String, String>> getTaskData(RunId runId, TaskId taskId);
 
     public boolean cancelRun(RunId runId);

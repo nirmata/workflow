@@ -69,7 +69,9 @@ public class TestJsonSerializer
             .limit(random.nextInt(3) + 1)
             .collect(Collectors.toList())
             ;
-        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now());
+        LocalDateTime completionTime = random.nextBoolean() ? LocalDateTime.now() : null;
+        RunId parentRunId = random.nextBoolean() ? new RunId() : null;
+        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(), completionTime, parentRunId);
         JsonNode node = newRunnableTask(runnableTask);
         String str = nodeToString(node);
         System.out.println(str);

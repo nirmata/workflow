@@ -1,5 +1,6 @@
 package com.nirmata.workflow.executor;
 
+import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.models.ExecutableTask;
 
 /**
@@ -8,5 +9,5 @@ import com.nirmata.workflow.models.ExecutableTask;
 @FunctionalInterface
 public interface TaskExecutor
 {
-    public TaskExecution newTaskExecution(ExecutableTask executableTask);
+    public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask executableTask);
 }

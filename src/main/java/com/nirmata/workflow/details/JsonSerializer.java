@@ -238,6 +238,7 @@ public class JsonSerializer
         node.set("tasks", tasks);
         node.put("startTime", runnableTask.getStartTime().format(DateTimeFormatter.ISO_DATE_TIME));
         node.put("completionTime", runnableTask.getCompletionTime().isPresent() ? runnableTask.getCompletionTime().get().format(DateTimeFormatter.ISO_DATE_TIME) : null);
+        node.put("parentRunId", runnableTask.getParentRunId().isPresent() ? runnableTask.getParentRunId().get().getId() : null);
         return node;
     }
 
@@ -256,7 +257,8 @@ public class JsonSerializer
 
         LocalDateTime startTime = LocalDateTime.parse(node.get("startTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
         LocalDateTime completionTime = node.get("completionTime").isNull() ? null : LocalDateTime.parse(node.get("completionTime").asText(), DateTimeFormatter.ISO_DATE_TIME);
-        return new RunnableTask(tasks, taskDags, startTime, completionTime);
+        RunId parentRunId = node.get("parentRunId").isNull() ? null : new RunId(node.get("parentRunId").asText());
+        return new RunnableTask(tasks, taskDags, startTime, completionTime, parentRunId);
     }
 
     public static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)

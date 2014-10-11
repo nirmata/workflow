@@ -5,6 +5,7 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
+import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskExecutionResult;
@@ -47,6 +48,17 @@ class Scheduler
         runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunParentPath(), true);
     }
 
+    static String getFakeTaskPath(RunId runId)
+    {
+        return ZooKeeperConstants.getCompletedTaskPath(runId, new TaskId());
+    }
+
+    static byte[] getFakeTaskBytes()
+    {
+        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        return JsonSerializer.toBytes(JsonSerializer.newTaskExecutionResult(taskExecutionResult));
+    }
+
     void run()
     {
         BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
@@ -55,6 +67,16 @@ class Scheduler
             {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
                 updatedRunIds.add(runId);
+            }
+        });
+        runsCache.getListenable().addListener((client, event) -> {
+            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
+            {
+                RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(event.getData().getData()));
+                if ( runnableTask.getParentRunId().isPresent() )
+                {
+                    updatedRunIds.add(runnableTask.getParentRunId().get());
+                }
             }
         });
 
@@ -102,13 +124,14 @@ class Scheduler
         });
     }
 
-    static void completeTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask, int version)
+    static void completeRunnableTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask, int version)
     {
-        RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()));
-        String runPath = ZooKeeperConstants.getRunPath(runId);
-        byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
         try
         {
+            RunId parentRunId = runnableTask.getParentRunId().orElse(null);
+            RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()), parentRunId);
+            String runPath = ZooKeeperConstants.getRunPath(runId);
+            byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
             workflowManager.getCurator().setData().withVersion(version).forPath(runPath, json);
         }
         catch ( Exception e )
@@ -135,7 +158,7 @@ class Scheduler
 
         if ( hasCanceledTasks(runId, runnableTask) )
         {
-            completeTask(log, workflowManager, runId, runnableTask, -1);
+            completeRunnableTask(log, workflowManager, runId, runnableTask, -1);
             return; // one or more tasks has canceled the entire run
         }
 
@@ -169,7 +192,7 @@ class Scheduler
 
         if ( completedTasks.equals(runnableTask.getTasks().keySet()))
         {
-            completeTask(log, workflowManager, runId, runnableTask, -1);
+            completeRunnableTask(log, workflowManager, runId, runnableTask, -1);
         }
     }
 
@@ -231,7 +254,7 @@ class Scheduler
             TaskExecutionResult result = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(currentData.getData()));
             if ( result.getSubTaskRunId().isPresent() )
             {
-                RunnableTask runnableTask = getRunnableTask(runId);
+                RunnableTask runnableTask = getRunnableTask(result.getSubTaskRunId().get());
                 return (runnableTask != null) && runnableTask.getCompletionTime().isPresent();
             }
             return true;

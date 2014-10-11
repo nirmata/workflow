@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.executor.TaskExecution;
-import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
@@ -82,6 +81,12 @@ public class WorkflowManagerImpl implements WorkflowManager
     @Override
     public RunId submitTask(Task task)
     {
+        return submitSubTask(null, task);
+    }
+
+    @Override
+    public RunId submitSubTask(RunId parentRunId, Task task)
+    {
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
         try
@@ -103,20 +108,16 @@ public class WorkflowManagerImpl implements WorkflowManager
             .values()
             .stream()
             .collect(Collectors.toMap(Task::getTaskId, t -> new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable())));
-        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now());
+        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now(), null, parentRunId);
 
-        TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
-        byte[] taskExecutionResultJson = JsonSerializer.toBytes(JsonSerializer.newTaskExecutionResult(taskExecutionResult));
-
         String runPath = ZooKeeperConstants.getRunPath(runId);
-        String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, new TaskId(""));
         try
         {
             curator.inTransaction()
                 .create().forPath(runPath, runnableTaskJson)
             .and()
-                .create().forPath(completedTaskPath, taskExecutionResultJson)   // a fake completed task to kick-off task creation
+                .create().forPath(Scheduler.getFakeTaskPath(runId), Scheduler.getFakeTaskBytes())
             .and()
                 .commit();
         }
@@ -139,7 +140,7 @@ public class WorkflowManagerImpl implements WorkflowManager
             Stat stat = new Stat();
             byte[] json = curator.getData().storingStatIn(stat).forPath(runPath);
             RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
-            Scheduler.completeTask(log, this, runId, runnableTask, stat.getVersion());
+            Scheduler.completeRunnableTask(log, this, runId, runnableTask, stat.getVersion());
             return true;
         }
         catch ( KeeperException.NoNodeException ignore )
@@ -196,7 +197,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         }
 
         log.info("Executing task: " + executableTask);
-        TaskExecution taskExecution = taskExecutor.newTaskExecution(executableTask);
+        TaskExecution taskExecution = taskExecutor.newTaskExecution(this, executableTask);
 
         TaskExecutionResult result = taskExecution.execute();
         String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));

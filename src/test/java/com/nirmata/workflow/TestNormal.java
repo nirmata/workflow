@@ -2,6 +2,7 @@ package com.nirmata.workflow;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +62,8 @@ public class TestNormal
     {
         Semaphore executionLatch = new Semaphore(0);
         CountDownLatch continueLatch = new CountDownLatch(1);
-        TaskExecutor taskExecutor = executableTask -> () -> {
+
+        TaskExecutor taskExecutor = (w, t) -> () -> {
             executionLatch.release();
             try
             {
@@ -195,7 +198,7 @@ public class TestNormal
     public void testTaskData() throws Exception
     {
         CountDownLatch latch = new CountDownLatch(1);
-        TaskExecutor taskExecutor = executableTask -> () -> {
+        TaskExecutor taskExecutor = (w, t) -> () -> {
             latch.countDown();
             Map<String, String> resultData = Maps.newHashMap();
             resultData.put("one", "1");
@@ -224,6 +227,61 @@ public class TestNormal
             expected.put("one", "1");
             expected.put("two", "2");
             Assert.assertEquals(taskData.get(), expected);
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
+    @Test
+    public void testSubTask() throws Exception
+    {
+        TaskType taskType = new TaskType("test", "1", true);
+        Task groupAChild = new Task(new TaskId(), taskType);
+        Task groupAParent = new Task(new TaskId(), taskType, Lists.newArrayList(groupAChild));
+
+        Task groupBTask = new Task(new TaskId(), taskType);
+
+        BlockingQueue<TaskId> tasks = Queues.newLinkedBlockingQueue();
+        CountDownLatch latch = new CountDownLatch(1);
+        TaskExecutor taskExecutor = (workflowManager, task) -> () -> {
+            tasks.add(task.getTaskId());
+            if ( task.getTaskId().equals(groupBTask.getTaskId()) )
+            {
+                try
+                {
+                    latch.await();
+                }
+                catch ( InterruptedException e )
+                {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException();
+                }
+            }
+            RunId subTaskRunId = task.getTaskId().equals(groupAParent.getTaskId()) ? workflowManager.submitSubTask(task.getRunId(), groupBTask) : null;
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "test", Maps.newHashMap(), subTaskRunId);
+        };
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, taskType)
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+            workflowManager.submitTask(groupAParent);
+
+            Timing timing = new Timing();
+            TaskId polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            Assert.assertEquals(polledTaskId, groupAParent.getTaskId());
+            polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            Assert.assertEquals(polledTaskId, groupBTask.getTaskId());
+            timing.sleepABit();
+            Assert.assertNull(tasks.peek());
+
+            latch.countDown();
+            polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            Assert.assertEquals(polledTaskId, groupAChild.getTaskId());
         }
         finally
         {
