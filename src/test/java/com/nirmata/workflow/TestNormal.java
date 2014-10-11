@@ -3,7 +3,11 @@ package com.nirmata.workflow;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
+import com.nirmata.workflow.executor.TaskExecutionStatus;
+import com.nirmata.workflow.executor.TaskExecutor;
+import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
+import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import org.apache.curator.framework.CuratorFramework;
@@ -20,6 +24,9 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import static com.nirmata.workflow.details.JsonSerializer.fromString;
 import static com.nirmata.workflow.details.JsonSerializer.getTask;
@@ -43,6 +50,50 @@ public class TestNormal
     {
         CloseableUtils.closeQuietly(curator);
         CloseableUtils.closeQuietly(server);
+    }
+
+    @Test
+    public void testCanceling() throws Exception
+    {
+        Semaphore executionLatch = new Semaphore(0);
+        CountDownLatch continueLatch = new CountDownLatch(1);
+        TaskExecutor taskExecutor = executableTask -> () -> {
+            executionLatch.release();
+            try
+            {
+                continueLatch.await();
+            }
+            catch ( InterruptedException e )
+            {
+                Thread.currentThread().interrupt();
+            }
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        };
+        TaskType taskType = new TaskType("test", "1", true);
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, taskType)
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            Task task2 = new Task(new TaskId(), taskType);
+            Task task1 = new Task(new TaskId(), taskType, Lists.newArrayList(task2));
+            RunId runId = workflowManager.submitTask(task1);
+
+            Timing timing = new Timing();
+            Assert.assertTrue(timing.acquireSemaphore(executionLatch, 1));
+
+            workflowManager.cancelRun(runId);
+            continueLatch.countDown();
+
+            Assert.assertFalse(executionLatch.tryAcquire(1, 5, TimeUnit.SECONDS));  // no more executions should occur
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
     }
 
     @Test

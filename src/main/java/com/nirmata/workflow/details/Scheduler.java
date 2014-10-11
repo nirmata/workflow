@@ -102,14 +102,14 @@ class Scheduler
         });
     }
 
-    static void completeTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask)
+    static void completeTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask, int version)
     {
         RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTime(), LocalDateTime.now(Clock.systemUTC()));
         String runPath = ZooKeeperConstants.getRunPath(runId);
         byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
         try
         {
-            workflowManager.getCurator().setData().forPath(runPath, json);
+            workflowManager.getCurator().setData().withVersion(version).forPath(runPath, json);
         }
         catch ( Exception e )
         {
@@ -136,7 +136,7 @@ class Scheduler
 
         if ( hasCanceledTasks(runId, runnableTask) )
         {
-            completeTask(log, workflowManager, runId, runnableTask);
+            completeTask(log, workflowManager, runId, runnableTask, -1);
             return; // one or more tasks has canceled the entire run
         }
 
@@ -170,7 +170,7 @@ class Scheduler
 
         if ( completedTasks.equals(runnableTask.getTasks().keySet()))
         {
-            completeTask(log, workflowManager, runId, runnableTask);
+            completeTask(log, workflowManager, runId, runnableTask, -1);
         }
     }
 

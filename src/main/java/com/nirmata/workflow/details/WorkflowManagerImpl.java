@@ -19,6 +19,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -141,9 +142,10 @@ public class WorkflowManagerImpl implements WorkflowManager
         String runPath = ZooKeeperConstants.getRunPath(runId);
         try
         {
-            byte[] json = curator.getData().forPath(runPath);
+            Stat stat = new Stat();
+            byte[] json = curator.getData().storingStatIn(stat).forPath(runPath);
             RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
-            Scheduler.completeTask(log, this, runId, runnableTask);
+            Scheduler.completeTask(log, this, runId, runnableTask, stat.getVersion());
             return true;
         }
         catch ( KeeperException.NoNodeException ignore )
