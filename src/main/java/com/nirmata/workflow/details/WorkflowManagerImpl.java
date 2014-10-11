@@ -1,5 +1,6 @@
 package com.nirmata.workflow.details;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -371,6 +372,12 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             throw new RuntimeException(e);
         }
         return taskInfos;
+    }
+
+    @VisibleForTesting
+    SchedulerSelector getSchedulerSelector()
+    {
+        return schedulerSelector;
     }
 
     private void executeTask(TaskExecutor taskExecutor, ExecutableTask executableTask)

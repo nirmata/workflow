@@ -8,7 +8,7 @@ import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import java.util.concurrent.CountDownLatch;
 
-class TestTaskExecutor implements TaskExecutor
+public class TestTaskExecutor implements TaskExecutor
 {
     private final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
     private final int latchQty;
@@ -25,17 +25,17 @@ class TestTaskExecutor implements TaskExecutor
         latch = new CountDownLatch(latchQty);
     }
 
-    CountDownLatch getLatch()
+    public CountDownLatch getLatch()
     {
         return latch;
     }
 
-    ConcurrentTaskChecker getChecker()
+    public ConcurrentTaskChecker getChecker()
     {
         return checker;
     }
 
-    void reset()
+    public void reset()
     {
         checker.reset();
         latch = new CountDownLatch(latchQty);
