@@ -69,7 +69,7 @@ public class TestJsonSerializer
             .limit(random.nextInt(3) + 1)
             .collect(Collectors.toList())
             ;
-        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(), null);
+        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now());
         JsonNode node = newRunnableTask(runnableTask);
         String str = nodeToString(node);
         System.out.println(str);

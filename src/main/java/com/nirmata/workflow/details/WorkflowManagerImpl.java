@@ -103,7 +103,7 @@ public class WorkflowManagerImpl implements WorkflowManager
             .values()
             .stream()
             .collect(Collectors.toMap(Task::getTaskId, t -> new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable())));
-        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now(), null);
+        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now());
 
         TaskExecutionResult taskExecutionResult = new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));

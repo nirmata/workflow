@@ -121,14 +121,13 @@ class Scheduler
 
     private void updateTasks(RunId runId)
     {
-        ChildData currentData = runsCache.getCurrentData(ZooKeeperConstants.getRunPath(runId));
-        if ( currentData == null )
+        RunnableTask runnableTask = getRunnableTask(runId);
+        if ( runnableTask == null )
         {
             String message = "Could not find run for RunId: " + runId;
             log.error(message);
             throw new RuntimeException(message);
         }
-        RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
         if ( runnableTask.getCompletionTime().isPresent() )
         {
             return;
@@ -174,6 +173,16 @@ class Scheduler
         }
     }
 
+    private RunnableTask getRunnableTask(RunId runId)
+    {
+        ChildData currentData = runsCache.getCurrentData(ZooKeeperConstants.getRunPath(runId));
+        if ( currentData != null )
+        {
+            return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
+        }
+        return null;
+    }
+
     private void queueTask(RunId runId, ExecutableTask task)
     {
         String path = ZooKeeperConstants.getStartedTaskPath(runId, task.getTaskId());
@@ -216,7 +225,18 @@ class Scheduler
             return true;
         }
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, task.getTaskId());
-        return (completedTasksCache.getCurrentData(completedTaskPath) != null);
+        ChildData currentData = completedTasksCache.getCurrentData(completedTaskPath);
+        if ( currentData != null )
+        {
+            TaskExecutionResult result = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(currentData.getData()));
+            if ( result.getSubTaskRunId().isPresent() )
+            {
+                RunnableTask runnableTask = getRunnableTask(runId);
+                return (runnableTask != null) && runnableTask.getCompletionTime().isPresent();
+            }
+            return true;
+        }
+        return false;
     }
 
     private Map<TaskType, Queue> makeTaskQueues(List<TaskExecutorSpec> specs)

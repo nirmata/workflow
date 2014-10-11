@@ -17,6 +17,11 @@ public class RunnableTask
     private final LocalDateTime startTime;
     private final Optional<LocalDateTime> completionTime;
 
+    public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime)
+    {
+        this(tasks, taskDags, startTime, null);
+    }
+
     public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTime, LocalDateTime completionTime)
     {
         this.startTime = Preconditions.checkNotNull(startTime, "startTime cannot be null");

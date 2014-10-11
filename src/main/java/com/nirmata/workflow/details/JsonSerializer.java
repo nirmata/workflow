@@ -265,16 +265,19 @@ public class JsonSerializer
         node.put("status", taskExecutionResult.getStatus().name().toLowerCase());
         node.put("message", taskExecutionResult.getMessage());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
+        node.put("subTaskRunId", taskExecutionResult.getSubTaskRunId().isPresent() ? taskExecutionResult.getSubTaskRunId().get().getId() : null);
         return node;
     }
 
     public static TaskExecutionResult getTaskExecutionResult(JsonNode node)
     {
+        JsonNode subTaskRunIdNode = node.get("subTaskRunId");
         return new TaskExecutionResult
         (
             TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
             node.get("message").asText(),
-            getMap(node.get("resultData"))
+            getMap(node.get("resultData")),
+            (subTaskRunIdNode != null) ? new RunId(subTaskRunIdNode.asText()) : null
         );
     }
 
