@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -282,6 +283,11 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         String completedTaskParentPath = ZooKeeperConstants.getCompletedTaskParentPath();
         try
         {
+            String runPath = ZooKeeperConstants.getRunPath(runId);
+            byte[] runJson = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(runJson));
+
+            Set<TaskId> notStartedTasks = runnableTask.getTasks().values().stream().filter(ExecutableTask::isExecutable).map(ExecutableTask::getTaskId).collect(Collectors.toSet());
             Map<TaskId, StartedTask> startedTasks = Maps.newHashMap();
 
             curator.getChildren().forPath(startedTasksParentPath).stream().forEach(child -> {
@@ -292,6 +298,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     byte[] json = curator.getData().forPath(fullPath);
                     StartedTask startedTask = JsonSerializer.getStartedTask(JsonSerializer.fromBytes(json));
                     startedTasks.put(taskId, startedTask);
+                    notStartedTasks.remove(taskId);
                 }
                 catch ( KeeperException.NoNodeException ignore )
                 {
@@ -314,6 +321,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                         byte[] json = curator.getData().forPath(fullPath);
                         TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
                         taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), taskExecutionResult));
+                        notStartedTasks.remove(taskId);
                     }
                     catch ( KeeperException.NoNodeException ignore )
                     {
@@ -331,6 +339,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 StartedTask startedTask = entry.getValue();
                 taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc()));
             });
+
+            // finally, taskIds not added have not started
+            notStartedTasks.forEach(taskId -> taskInfos.add(new TaskInfo(taskId)));
         }
         catch ( Throwable e )
         {

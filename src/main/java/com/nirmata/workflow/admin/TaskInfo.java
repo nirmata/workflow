@@ -6,12 +6,20 @@ import com.nirmata.workflow.models.TaskId;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * Task information
+ */
 public class TaskInfo
 {
     private final TaskId taskId;
-    private final String instanceName;
-    private final LocalDateTime startDateUtc;
+    private final Optional<String> instanceName;
+    private final Optional<LocalDateTime> startDateUtc;
     private final Optional<TaskExecutionResult> result;
+
+    public TaskInfo(TaskId taskId)
+    {
+        this(taskId, null, null, null);
+    }
 
     public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc)
     {
@@ -21,8 +29,8 @@ public class TaskInfo
     public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, TaskExecutionResult result)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
-        this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
-        this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
+        this.instanceName = Optional.ofNullable(instanceName);
+        this.startDateUtc = Optional.ofNullable(startDateUtc);
         this.result = Optional.ofNullable(result);
     }
 
@@ -33,17 +41,22 @@ public class TaskInfo
 
     public String getInstanceName()
     {
-        return instanceName;
+        return instanceName.get();
     }
 
     public LocalDateTime getStartDateUtc()
     {
-        return startDateUtc;
+        return startDateUtc.get();
     }
 
     public TaskExecutionResult getResult()
     {
         return result.get();
+    }
+
+    public boolean hasStarted()
+    {
+        return startDateUtc.isPresent() && instanceName.isPresent();
     }
 
     public boolean isComplete()

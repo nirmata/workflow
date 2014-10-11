@@ -5,6 +5,9 @@ import com.nirmata.workflow.models.RunId;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * Run information
+ */
 public class RunInfo
 {
     private final RunId runId;

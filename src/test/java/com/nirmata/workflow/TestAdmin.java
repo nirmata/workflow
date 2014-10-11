@@ -78,8 +78,9 @@ public class TestAdmin extends BaseForTests
     public void testTaskInfo() throws Exception
     {
         TaskType taskType = new TaskType("test", "1", true);
+        Task childTask = new Task(new TaskId(), taskType);
         Task task1 = new Task(new TaskId(), taskType);
-        Task task2 = new Task(new TaskId(), taskType);
+        Task task2 = new Task(new TaskId(), taskType, Lists.newArrayList(childTask));
         Task root = new Task(new TaskId(), Lists.newArrayList(task1, task2));
 
         CountDownLatch startedLatch = new CountDownLatch(2);
@@ -118,10 +119,14 @@ public class TestAdmin extends BaseForTests
             timing.sleepABit();
 
             Map<TaskId, TaskInfo> taskInfos = workflowManager.getAdmin().getTaskInfo(runId).stream().collect(Collectors.toMap(TaskInfo::getTaskId, Function.identity()));
-            Assert.assertEquals(taskInfos.size(), 2);
+            Assert.assertEquals(taskInfos.size(), 3);
             Assert.assertTrue(taskInfos.containsKey(task1.getTaskId()));
             Assert.assertTrue(taskInfos.containsKey(task2.getTaskId()));
+            Assert.assertTrue(taskInfos.containsKey(childTask.getTaskId()));
+            Assert.assertFalse(taskInfos.get(childTask.getTaskId()).hasStarted());
+            Assert.assertTrue(taskInfos.get(task1.getTaskId()).hasStarted());
             Assert.assertTrue(taskInfos.get(task1.getTaskId()).isComplete());
+            Assert.assertTrue(taskInfos.get(task2.getTaskId()).hasStarted());
             Assert.assertFalse(taskInfos.get(task2.getTaskId()).isComplete());
             Assert.assertEquals(taskInfos.get(task1.getTaskId()).getResult().getResultData().get("taskId"), task1.getTaskId().getId());
 
@@ -129,10 +134,13 @@ public class TestAdmin extends BaseForTests
             timing.sleepABit();
 
             taskInfos = workflowManager.getAdmin().getTaskInfo(runId).stream().collect(Collectors.toMap(TaskInfo::getTaskId, Function.identity()));
-            Assert.assertEquals(taskInfos.size(), 2);
+            Assert.assertEquals(taskInfos.size(), 3);
             Assert.assertTrue(taskInfos.containsKey(task1.getTaskId()));
             Assert.assertTrue(taskInfos.containsKey(task2.getTaskId()));
+            Assert.assertTrue(taskInfos.get(childTask.getTaskId()).hasStarted());
+            Assert.assertTrue(taskInfos.get(task1.getTaskId()).hasStarted());
             Assert.assertTrue(taskInfos.get(task1.getTaskId()).isComplete());
+            Assert.assertTrue(taskInfos.get(task2.getTaskId()).hasStarted());
             Assert.assertTrue(taskInfos.get(task2.getTaskId()).isComplete());
             Assert.assertEquals(taskInfos.get(task1.getTaskId()).getResult().getResultData().get("taskId"), task1.getTaskId().getId());
             Assert.assertEquals(taskInfos.get(task2.getTaskId()).getResult().getResultData().get("taskId"), task2.getTaskId().getId());
