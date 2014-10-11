@@ -166,7 +166,7 @@ public class WorkflowManagerImpl implements WorkflowManager
         }
     }
 
-    private void excecuteTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
+    private void executeTask(TaskExecutor taskExecutor, ExecutableTask executableTask)
     {
         if ( state.get() != State.STARTED )
         {
@@ -194,7 +194,7 @@ public class WorkflowManagerImpl implements WorkflowManager
     {
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
         specs.forEach(spec -> IntStream.range(0, spec.getQty()).forEach(i -> {
-            QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> excecuteTask(spec.getTaskExecutor(), t), spec.getTaskType());
+            QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> executeTask(spec.getTaskExecutor(), t), spec.getTaskType());
             builder.add(consumer);
         }));
 

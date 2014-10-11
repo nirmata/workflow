@@ -9,5 +9,12 @@ import com.nirmata.workflow.models.ExecutableTask;
 @FunctionalInterface
 public interface TaskExecutor
 {
+    /**
+     * Create a task execution for the given task
+     *
+     * @param workflowManager the manager
+     * @param executableTask the task
+     * @return the execution
+     */
     public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask executableTask);
 }

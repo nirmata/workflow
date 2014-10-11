@@ -4,6 +4,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
+/**
+ * Models a task that has been scheduled for execution
+ * as part of a run
+ */
 public class ExecutableTask
 {
     private final RunId runId;
@@ -12,6 +16,13 @@ public class ExecutableTask
     private final Map<String, String> metaData;
     private final boolean isExecutable;
 
+    /**
+     * @param runId the run that this is part of
+     * @param taskId the task
+     * @param taskType task type
+     * @param metaData meta data
+     * @param isExecutable if false, this is merely a container for child tasks
+     */
     public ExecutableTask(RunId runId, TaskId taskId, TaskType taskType, Map<String, String> metaData, boolean isExecutable)
     {
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");

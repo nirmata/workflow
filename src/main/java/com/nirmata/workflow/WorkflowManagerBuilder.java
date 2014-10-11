@@ -64,8 +64,16 @@ public class WorkflowManagerBuilder
      * </p>
      *
      * <p>
+     *     <code>qty</code> is the maximum concurrency for the given type of task for this instance.
+     *     The logical concurrency for a given task type is the total qty of all instances in the
+     *     workflow. e.g. if there are 3 instances in the workflow and instance A has 2 executors
+     *     for task type "a", instance B has 3 executors for task type "a" and instance C has no
+     *     executors for task type "a", the maximum concurrency for task type "a" is 5.
+     * </p>
+     *
+     * <p>
      *     IMPORTANT: every workflow cluster must have at least one instance that has task executor(s)
-     *     for each task type that will be submitted to the workflow. i.e tasks will stall
+     *     for each task type that will be submitted to the workflow. i.e workflows will stall
      *     if there is no executor for a given task type.
      * </p>
      *

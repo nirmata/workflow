@@ -2,12 +2,29 @@ package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * <p>
+ *     Models a task type
+ * </p>
+ *
+ * <p>
+ *     Tasks can be idempotent or non-idempotent. Idempotent tasks
+ *     can be restarted/re-executed when a workflow instance crashes
+ *     or there is some other kind of error. non-idempotent tasks
+ *     will only be attempted once.
+ * </p>
+ */
 public class TaskType
 {
     private final String type;
     private final String version;
     private final boolean isIdempotent;
 
+    /**
+     * @param type any value to represent the task type
+     * @param version the version of this task type
+     * @param isIdempotent whether or not this task is idempotent (see class description for details)
+     */
     public TaskType(String type, String version, boolean isIdempotent)
     {
         Preconditions.checkArgument(!type.contains("/"), "type cannot contain '/'");

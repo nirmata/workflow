@@ -3,10 +3,14 @@ package com.nirmata.workflow.models;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Models an execution result.
+ */
 public class TaskExecutionResult
 {
     private final TaskExecutionStatus status;
@@ -14,16 +18,33 @@ public class TaskExecutionResult
     private final Map<String, String> resultData;
     private final Optional<RunId> subTaskRunId;
 
+    /**
+     * @param status the execution status
+     * @param message any message that task
+     */
     public TaskExecutionResult(TaskExecutionStatus status, String message)
     {
         this(status, message, Maps.newHashMap(), null);
     }
 
+    /**
+     * @param status the execution status
+     * @param message any message that task
+     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskData(RunId, TaskId)})
+     */
     public TaskExecutionResult(TaskExecutionStatus status, String message, Map<String, String> resultData)
     {
         this(status, message, resultData, null);
     }
 
+    /**
+     * @param status the execution status
+     * @param message any message that task
+     * @param resultData result data (can be accessed via {@link WorkflowManager#getTaskData(RunId, TaskId)})
+     * @param subTaskRunId if not null, the value of a sub-task started via {@link WorkflowManager#submitSubTask(RunId, Task)}. If
+     *                     a sub-task was started, it's vital that the run ID be passed here so that this run can pause until the sub-task
+     *                     completes.
+     */
     public TaskExecutionResult(TaskExecutionStatus status, String message, Map<String, String> resultData, RunId subTaskRunId)
     {
         this.message = Preconditions.checkNotNull(message, "message cannot be null");

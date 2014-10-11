@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Models a task
+ */
 public class Task
 {
     private final TaskId taskId;
@@ -16,21 +19,43 @@ public class Task
     private final List<Task> childrenTasks;
     private final Map<String, String> metaData;
 
+    /**
+     * @param taskId this task's ID - must be unique
+     * @param taskType the task type
+     */
     public Task(TaskId taskId, TaskType taskType)
     {
         this(taskId, taskType, Lists.newArrayList(), Maps.newHashMap());
     }
 
+    /**
+     * This constructor makes a "container only" task. i.e. this task does
+     * not execute anything. It exists solely to contain children tasks.
+     *
+     * @param taskId this task's ID - must be unique
+     * @param childrenTasks child tasks - children are not executed until this task completes
+     */
     public Task(TaskId taskId, List<Task> childrenTasks)
     {
         this(taskId, null, childrenTasks, Maps.newHashMap());
     }
 
+    /**
+     * @param taskId this task's ID - must be unique
+     * @param taskType the task type
+     * @param childrenTasks child tasks - children are not executed until this task completes
+     */
     public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks)
     {
         this(taskId, taskType, childrenTasks, Maps.newHashMap());
     }
 
+    /**
+     * @param taskId this task's ID - must be unique
+     * @param taskType the task type
+     * @param childrenTasks child tasks - children are not executed until this task completes
+     * @param metaData meta data for the task
+     */
     public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks, Map<String, String> metaData)
     {
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
