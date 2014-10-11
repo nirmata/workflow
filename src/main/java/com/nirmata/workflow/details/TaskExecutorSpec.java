@@ -17,17 +17,17 @@ public class TaskExecutorSpec
         this.qty = qty;
     }
 
-    public TaskExecutor getTaskExecutor()
+    TaskExecutor getTaskExecutor()
     {
         return taskExecutor;
     }
 
-    public int getQty()
+    int getQty()
     {
         return qty;
     }
 
-    public TaskType getTaskType()
+    TaskType getTaskType()
     {
         return taskType;
     }
