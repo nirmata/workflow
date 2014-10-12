@@ -1,6 +1,10 @@
 package com.nirmata.workflow.details;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
@@ -22,25 +26,43 @@ import org.slf4j.LoggerFactory;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 class Scheduler
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManagerImpl workflowManager;
     private final QueueFactory queueFactory;
-    private final Map<TaskType, Queue> queues;
     private final PathChildrenCache completedTasksCache;
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
+    private final LoadingCache<TaskType, Queue> queues = CacheBuilder.newBuilder()
+        .expireAfterAccess(1, TimeUnit.MINUTES)
+        .removalListener(new RemovalListener<TaskType, Queue>()
+        {
+            @Override
+            public void onRemoval(RemovalNotification<TaskType, Queue> notification)
+            {
+                CloseableUtils.closeQuietly(notification.getValue());
+            }
+        })
+        .build(new CacheLoader<TaskType, Queue>()
+        {
+            @Override
+            public Queue load(TaskType taskType) throws Exception
+            {
+                Queue queue = queueFactory.createQueue(workflowManager, taskType);
+                queue.start();
+                return queue;
+            }
+        });
 
     Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory, List<TaskExecutorSpec> specs)
     {
         this.workflowManager = workflowManager;
         this.queueFactory = queueFactory;
-        queues = makeTaskQueues(specs);
 
         completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTaskParentPath(), true);
         startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
@@ -75,7 +97,6 @@ class Scheduler
 
         try
         {
-            queues.values().forEach(Queue::start);
             completedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
             startedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
             runsCache.start(PathChildrenCache.StartMode.NORMAL);
@@ -96,7 +117,8 @@ class Scheduler
         }
         finally
         {
-            queues.values().forEach(CloseableUtils::closeQuietly);
+            queues.invalidateAll();
+            queues.cleanUp();
             CloseableUtils.closeQuietly(completedTasksCache);
             CloseableUtils.closeQuietly(startedTasksCache);
             CloseableUtils.closeQuietly(runsCache);
@@ -208,10 +230,6 @@ class Scheduler
             byte[] data = JsonSerializer.toBytes(JsonSerializer.newStartedTask(startedTask));
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = queues.get(task.getTaskType());
-            if ( queue == null )
-            {
-                throw new Exception("Could not find a queue for the type: " + task.getTaskType());
-            }
             queue.put(task);
             log.info("Queued task: " + task);
         }
@@ -253,15 +271,5 @@ class Scheduler
             return true;
         }
         return false;
-    }
-
-    private Map<TaskType, Queue> makeTaskQueues(List<TaskExecutorSpec> specs)
-    {
-        ImmutableMap.Builder<TaskType, Queue> builder = ImmutableMap.builder();
-        specs.forEach(spec -> {
-            Queue queue = queueFactory.createQueue(workflowManager, spec.getTaskType());
-            builder.put(spec.getTaskType(), queue);
-        });
-        return builder.build();
     }
 }
