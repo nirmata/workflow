@@ -28,7 +28,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 class Scheduler
 {
@@ -39,7 +38,6 @@ class Scheduler
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
     private final LoadingCache<TaskType, Queue> queues = CacheBuilder.newBuilder()
-        .expireAfterAccess(1, TimeUnit.MINUTES)
         .removalListener(new RemovalListener<TaskType, Queue>()
         {
             @Override
