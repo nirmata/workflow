@@ -51,6 +51,7 @@ class Scheduler
             @Override
             public Queue load(TaskType taskType) throws Exception
             {
+                log.info("Adding producer queue for: " + taskType);
                 Queue queue = queueFactory.createQueue(workflowManager, taskType);
                 queue.start();
                 return queue;
