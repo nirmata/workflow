@@ -23,6 +23,36 @@
         <maven-compiler-plugin-version>3.1</maven-compiler-plugin-version>
     </properties>
 
+    <name>Nirmata Workflow</name>
+    <description>Java library that enables distributed task workflows.</description>
+    <url>https://github.com/NirmataOSS/workflow</url>
+    <inceptionYear>2014</inceptionYear>
+
+    <organization>
+        <name>Nirmata</name>
+        <url>http://nirmata.com/</url>
+    </organization>
+
+    <scm>
+        <url>https://github.com/NirmataOSS/workflow</url>
+        <connection>scm:git:https://github.com/NirmataOSS/workflow.git</connection>
+        <developerConnection>scm:git:git@github.com:NirmataOSS/workflow.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>randgalt</id>
+            <name>Jordan Zimmerman</name>
+            <roles>
+                <role>Author</role>
+            </roles>
+            <email>randgalt@gmail.com</email>
+            <timezone>-5</timezone>
+            <url>https://github.com/randgalt/</url>
+        </developer>
+    </developers>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.curator</groupId>
