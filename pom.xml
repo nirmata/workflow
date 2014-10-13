@@ -21,6 +21,7 @@
         <jgrapht-version>0.9.0</jgrapht-version>
 
         <maven-compiler-plugin-version>3.1</maven-compiler-plugin-version>
+        <maven-site-plugin-version>3.4</maven-site-plugin-version>
     </properties>
 
     <name>Nirmata Workflow</name>
@@ -47,7 +48,7 @@
             <roles>
                 <role>Author</role>
             </roles>
-            <email>randgalt@gmail.com</email>
+            <email>jordan@jordanzimmerman.com</email>
             <timezone>-5</timezone>
             <url>https://github.com/randgalt/</url>
         </developer>
@@ -115,6 +116,12 @@
                     <source>${jdk-version}</source>
                     <target>${jdk-version}</target>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>${maven-site-plugin-version}</version>
             </plugin>
         </plugins>
     </build>

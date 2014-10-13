@@ -65,7 +65,7 @@ public class SchedulerSelector implements Closeable
         log.info(workflowManager.getInstanceName() + " is now the scheduler");
         try
         {
-            new Scheduler(workflowManager, queueFactory, specs).run();
+            new Scheduler(workflowManager, queueFactory).run();
         }
         finally
         {

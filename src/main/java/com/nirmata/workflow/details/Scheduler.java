@@ -58,7 +58,7 @@ class Scheduler
             }
         });
 
-    Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory, List<TaskExecutorSpec> specs)
+    Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory)
     {
         this.workflowManager = workflowManager;
         this.queueFactory = queueFactory;
