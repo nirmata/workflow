@@ -23,6 +23,7 @@
         <maven-compiler-plugin-version>3.1</maven-compiler-plugin-version>
         <maven-site-plugin-version>3.4</maven-site-plugin-version>
         <maven-project-info-reports-plugin-version>2.7</maven-project-info-reports-plugin-version>
+        <doxia-module-apt-version>1.6</doxia-module-apt-version>
     </properties>
 
     <name>Nirmata Workflow</name>
@@ -41,6 +42,11 @@
         <developerConnection>scm:git:git@github.com:NirmataOSS/workflow.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
+
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/NirmataOSS/workflow/issues</url>
+    </issueManagement>
 
     <developers>
         <developer>
@@ -154,8 +160,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
                 <version>${maven-site-plugin-version}</version>
-                <configuration>
-                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.doxia</groupId>
+                        <artifactId>doxia-module-apt</artifactId>
+                        <version>${doxia-module-apt-version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
