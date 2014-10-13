@@ -28,6 +28,8 @@ public class ZooKeeperConstants
         RunId runId = new RunId();
         String runPath = getRunPath(runId);
         String completedTaskPath = getCompletedTaskPath(runId, taskId);
+        String startedTaskPath = getStartedTaskPath(runId, taskId);
+        TaskType taskType = new TaskType("a", "b", true);
 
         System.out.println("taskId = " + taskId.getId());
         System.out.println("runId = " + runId.getId());
@@ -35,16 +37,20 @@ public class ZooKeeperConstants
 
         System.out.println("getRunIdFromRunPath:\t\t\t\t" + getRunIdFromRunPath(runPath));
         System.out.println("getRunIdFromCompletedTasksPath:\t\t" + getRunIdFromCompletedTasksPath(completedTaskPath));
+        System.out.println("getTaskIdFromCompletedTasksPath:\t" + getTaskIdFromCompletedTasksPath(completedTaskPath));
+        System.out.println("getTaskIdFromStartedTasksPath:\t\t" + getTaskIdFromStartedTasksPath(startedTaskPath));
         System.out.println();
 
         System.out.println("getSchedulerLeaderPath:\t\t\t\t" + getSchedulerLeaderPath());
         System.out.println("getRunParentPath:\t\t\t\t\t" + getRunParentPath());
         System.out.println("getRunPath:\t\t\t\t\t\t\t" + getRunPath(runId));
-        System.out.println("getQueuePath:\t\t\t\t\t\t" + getQueuePath(new TaskType("a", "b", true)));
-        System.out.println("getQueueLockPath:\t\t\t\t\t" + getQueueLockPath(new TaskType("a", "b", true)));
+        System.out.println("getQueueBasePath:\t\t\t\t\t" + getQueueBasePath(taskType));
+        System.out.println("getQueuePath:\t\t\t\t\t\t" + getQueuePath(taskType));
+        System.out.println("getQueueLockPath:\t\t\t\t\t" + getQueueLockPath(taskType));
         System.out.println("getCompletedTasksParentPath:\t\t" + getCompletedTaskParentPath());
         System.out.println("getCompletedTaskPath:\t\t\t\t" + completedTaskPath);
-        System.out.println("getStartedTaskPath:\t\t\t\t\t" + getStartedTaskPath(runId, taskId));
+        System.out.println("getStartedTasksParentPath:\t\t\t" + getStartedTasksParentPath());
+        System.out.println("getStartedTaskPath:\t\t\t\t\t" + startedTaskPath);
     }
 
     public static String getSchedulerLeaderPath()
