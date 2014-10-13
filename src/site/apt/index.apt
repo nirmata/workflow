@@ -17,13 +17,13 @@ Features
 
     * Manages task relationships and distributed scheduling
 
-    * Idempotent and Non-idempotent tasks supported
+    * Idempotent and non-idempotent tasks supported
 
     * Custom task-types can be defined and targeted to specific servers
 
     * Simple API
 
-    * Supports runtime clusters changes
+    * Supports runtime cluster changes
 
     * No single point of failure
 
