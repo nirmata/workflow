@@ -44,16 +44,37 @@
 
     <developers>
         <developer>
-            <id>randgalt</id>
             <name>Jordan Zimmerman</name>
-            <roles>
-                <role>Author</role>
-            </roles>
             <email>jordan@jordanzimmerman.com</email>
             <timezone>-5</timezone>
             <url>https://github.com/randgalt/</url>
+            <roles>
+                <role>Author</role>
+            </roles>
         </developer>
     </developers>
+
+    <contributors>
+        <contributor>
+            <name>Jim Bugwadia</name>
+            <email>jim@nirmata.com</email>
+            <timezone>-8</timezone>
+            <url>https://github.com/JimBugwadia</url>
+            <roles>
+                <role>Contributor</role>
+            </roles>
+        </contributor>
+
+        <contributor>
+            <name>Damien Toledo</name>
+            <email>damien@nirmata.com</email>
+            <timezone>-8</timezone>
+            <url>https://github.com/dtoledo67</url>
+            <roles>
+                <role>Contributor</role>
+            </roles>
+        </contributor>
+    </contributors>
 
     <dependencies>
         <dependency>
