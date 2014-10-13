@@ -22,6 +22,7 @@
 
         <maven-compiler-plugin-version>3.1</maven-compiler-plugin-version>
         <maven-site-plugin-version>3.4</maven-site-plugin-version>
+        <maven-project-info-reports-plugin-version>2.7</maven-project-info-reports-plugin-version>
     </properties>
 
     <name>Nirmata Workflow</name>
@@ -107,6 +108,16 @@
         </dependency>
     </dependencies>
 
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>${maven-project-info-reports-plugin-version}</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
     <build>
         <plugins>
             <plugin>
@@ -122,6 +133,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
                 <version>${maven-site-plugin-version}</version>
+                <configuration>
+                </configuration>
             </plugin>
         </plugins>
     </build>

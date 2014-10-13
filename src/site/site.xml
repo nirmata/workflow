@@ -11,12 +11,24 @@
     </bannerLeft>
     <publishDate />
     <version />
+
+    <custom>
+        <fluidoSkin>
+            <gitHub>
+                <projectId>NirmataOSS/workflow</projectId>
+                <ribbonOrientation>right</ribbonOrientation>
+                <ribbonColor>black</ribbonColor>
+            </gitHub>
+        </fluidoSkin>
+    </custom>
+
     <body>
-        <links>
-            <item name="Nirmata Workflow" href="https://github.com/NirmataOSS/workflow" />
-        </links>
-        <menu ref="parent" />
-        <menu ref="reports" />
+        <menu name="Project">
+            <item name="About" href="index.html"/>
+            <item name="Source Code" href="source-repository.html"/>
+            <item name="Team" href="team-list.html"/>
+            <item name="Summary" href="project-summary.html"/>
+            <item name="Dependencies" href="dependencies.html"/>
+        </menu>
     </body>
 </project>
-s
