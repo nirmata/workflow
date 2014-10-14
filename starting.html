@@ -162,7 +162,12 @@
                                   
             <div class="section">
 <h2><a name="Getting_Started"></a>Getting Started</h2>
-<p>The basic unit is a <a href="./apidocs/com/nirmata/workflow/models/Task.html">Task</a>. Tasks have an id, <a href="./apidocs/com/nirmata/workflow/models/TaskType.html">type</a>, optional metadata, and zero or more children. Tasks are submitted to be executed through a <a href="./apidocs/com/nirmata/workflow/WorkflowManager.html">WorkflowManager</a> instance. WorkflowManager instances are created using a <a href="./apidocs/com/nirmata/workflow/WorkflowManagerBuilder.html">WorkflowManagerBuilder</a>. The work of a task is executed by a <a href="./apidocs/com/nirmata/workflow/executor/TaskExecutor.html">TaskExecutor</a> instance which you must provide an implementation for.</p>
+<div class="section">
+<h3><a name="Background"></a>Background</h3>
+<p>The basic unit is a <a href="./apidocs/com/nirmata/workflow/models/Task.html">Task</a>. Tasks have an id, <a href="./apidocs/com/nirmata/workflow/models/TaskType.html">type</a>, optional metadata, and zero or more children. Tasks are submitted to be executed through a <a href="./apidocs/com/nirmata/workflow/WorkflowManager.html">WorkflowManager</a> instance. WorkflowManager instances are created using a <a href="./apidocs/com/nirmata/workflow/WorkflowManagerBuilder.html">WorkflowManagerBuilder</a>. The work of a task is executed by a <a href="./apidocs/com/nirmata/workflow/executor/TaskExecutor.html">TaskExecutor</a> instance which you must provide an implementation for.</p></div>
+<div class="section">
+<h3><a name="Prerequisites"></a>Prerequisites</h3>
+<p>Nirmata Workflow uses <a class="externalLink" href="http://zookeeper.apache.org/">Apache ZooKeeper</a> and <a class="externalLink" href="http://curator.apache.org/">Apache Curator</a>. You will need to run an Apache ZooKeeper cluster in order to use the Workflow Manager. You will also need to create a Curator client instance for the Workflow Manager to use. Refer to the documentation of each of these projects for details.</p></div>
 <div class="section">
 <h3><a name="Tasks"></a>Tasks</h3>
 <p>You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <tt>JsonSerializer.getTask()</tt>. JsonSerializer has methods to convert strings/bytes to JsonNodes as well. Here is an <a href="./tasks.json">example tasks JSON file</a>. It defines 4 tasks. The first task, &quot;root&quot; is a container only task - i.e. there's nothing to execute; it just has children. Container only tasks don't have a &quot;task type&quot;. Then, there is &quot;task1&quot; and &quot;task2&quot; both of which have a child task, &quot;task3&quot;. This means that &quot;task3&quot; will not execute until both &quot;task1&quot; and &quot;task2&quot; complete.</p></div>
@@ -174,7 +179,7 @@
 <p>The TaskExecutor is a factory that you provide which creates TaskExecution instances. Every time a task needs to be executed, the newTaskExecution() method of TaskExecutor is called to get a new TaskExecution instance. The TaskExecution's execute() method is then called to do the work of the task and return a result. A task is executed randomly on one of the servers that is configured to handle tasks with that task type.</p></div>
 <div class="section">
 <h3><a name="WorkflowManagerBuilder"></a>WorkflowManagerBuilder</h3>
-<p>WorkflowManagerBuilder is used to build WorkflowManager instances. For must uses, you will have one WorkflowManager per server/JVM in your cluster. The builder has the following methods:</p>
+<p>WorkflowManagerBuilder is used to build WorkflowManager instances. For most uses, you will have one WorkflowManager per server/JVM in your cluster. The builder has the following methods:</p>
 <table border="1" class="table table-striped">
 <tr class="a">
 <td align="center">withCurator</td>
