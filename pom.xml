@@ -26,6 +26,9 @@
         <doxia-module-apt-version>1.6</doxia-module-apt-version>
         <maven-javadoc-plugin-version>2.10.1</maven-javadoc-plugin-version>
         <maven-license-plugin-version>1.9.0</maven-license-plugin-version>
+        <maven-gpg-plugin-version>1.4</maven-gpg-plugin-version>
+        <maven-source-plugin-version>2.2.1</maven-source-plugin-version>
+        <maven-install-plugin-version>2.5.1</maven-install-plugin-version>
     </properties>
 
     <name>Nirmata Workflow</name>
@@ -219,6 +222,48 @@
                         <phase>compile</phase>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven-gpg-plugin-version}</version>
+                <configuration>
+                    <passphrase>${gpg.passphrase}</passphrase>
+                    <useAgent>true</useAgent>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>gpg</id>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin-version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>${maven-install-plugin-version}</version>
+                <configuration>
+                    <createChecksum>true</createChecksum>
+                </configuration>
             </plugin>
         </plugins>
     </build>
