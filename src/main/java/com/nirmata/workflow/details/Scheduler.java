@@ -1,5 +1,6 @@
 package com.nirmata.workflow.details;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -25,12 +26,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class Scheduler
 {
+    @VisibleForTesting
+    static volatile AtomicInteger debugBadRunIdCount;
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManagerImpl workflowManager;
     private final QueueFactory queueFactory;
@@ -161,6 +165,11 @@ class Scheduler
         RunnableTask runnableTask = getRunnableTask(runId);
         if ( runnableTask == null )
         {
+            if ( debugBadRunIdCount != null )
+            {
+                debugBadRunIdCount.incrementAndGet();
+            }
+
             String message = "Could not find run for RunId: " + runId;
             log.error(message);
             throw new RuntimeException(message);
@@ -216,6 +225,22 @@ class Scheduler
         if ( currentData != null )
         {
             return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
+        }
+        try
+        {
+            // the cache must be out of sync - read it directly. This can happen when the completedTasksCache or startedTasksCache is initializing from a new scheduler leader
+            byte[] bytes = workflowManager.getCurator().getData().forPath(ZooKeeperConstants.getRunPath(runId));
+            return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(bytes));
+        }
+        catch ( KeeperException.NoNodeException dummy )
+        {
+            // missing
+        }
+        catch ( Exception e )
+        {
+            String message = "Could not get data for run " + runId;
+            log.error(message, e);
+            throw new RuntimeException(e);
         }
         return null;
     }
