@@ -228,6 +228,8 @@ class Scheduler
         }
         try
         {
+            log.warn("run is missing from runsCache. Reading directly: " + runId);
+
             // the cache must be out of sync - read it directly. This can happen when the completedTasksCache or startedTasksCache is initializing from a new scheduler leader
             byte[] bytes = workflowManager.getCurator().getData().forPath(ZooKeeperConstants.getRunPath(runId));
             return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(bytes));
