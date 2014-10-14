@@ -28,6 +28,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class Scheduler
@@ -74,16 +75,26 @@ class Scheduler
 
     void run()
     {
+        CountDownLatch initLatch = new CountDownLatch(2);
+
         BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
         completedTasksCache.getListenable().addListener((client, event) -> {
-            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
+            {
+                initLatch.countDown();
+            }
+            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
                 updatedRunIds.add(runId);
             }
         });
         runsCache.getListenable().addListener((client, event) -> {
-            if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
+            {
+                initLatch.countDown();
+            }
+            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
             {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
                 updatedRunIds.add(runId);
@@ -100,9 +111,11 @@ class Scheduler
 
         try
         {
-            completedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
+            completedTasksCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
             startedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
-            runsCache.start(PathChildrenCache.StartMode.NORMAL);
+            runsCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
+
+            initLatch.await();
 
             while ( !Thread.currentThread().isInterrupted() )
             {
@@ -225,24 +238,6 @@ class Scheduler
         if ( currentData != null )
         {
             return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
-        }
-        try
-        {
-            log.warn("run is missing from runsCache. Reading directly: " + runId);
-
-            // the cache must be out of sync - read it directly. This can happen when the completedTasksCache or startedTasksCache is initializing from a new scheduler leader
-            byte[] bytes = workflowManager.getCurator().getData().forPath(ZooKeeperConstants.getRunPath(runId));
-            return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(bytes));
-        }
-        catch ( KeeperException.NoNodeException dummy )
-        {
-            // missing
-        }
-        catch ( Exception e )
-        {
-            String message = "Could not get data for run " + runId;
-            log.error(message, e);
-            throw new RuntimeException(e);
         }
         return null;
     }
