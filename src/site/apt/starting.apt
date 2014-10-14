@@ -73,5 +73,5 @@ Getting Started
 
 * WorkflowManager
 
-    WorkflowManager is the main API. Through it, you submit tasks, etc. Once created with WorkflowManagerBuilder, call the <<<start()>>> and
+    WorkflowManager is the main API. Through it, you submit tasks, etc. Once created with WorkflowManagerBuilder, call the <<<start()>>> method and
     the workflow system will operate asynchronously. You can <<<submit()>>> tasks at any time and from any instance.

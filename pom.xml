@@ -25,6 +25,7 @@
         <maven-project-info-reports-plugin-version>2.7</maven-project-info-reports-plugin-version>
         <doxia-module-apt-version>1.6</doxia-module-apt-version>
         <maven-javadoc-plugin-version>2.10.1</maven-javadoc-plugin-version>
+        <maven-license-plugin-version>1.9.0</maven-license-plugin-version>
     </properties>
 
     <name>Nirmata Workflow</name>
@@ -174,6 +175,42 @@
                         <version>${doxia-module-apt-version}</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>com.mycila.maven-license-plugin</groupId>
+                <artifactId>maven-license-plugin</artifactId>
+                <version>${maven-license-plugin-version}</version>
+                <configuration>
+                    <header>src/etc/header.txt</header>
+                    <excludes>
+                        <exclude>**/*.apt</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>**/*.graffle</exclude>
+                        <exclude>**/.gitignore</exclude>
+                        <exclude>**/*.json</exclude>
+                        <exclude>**/.idea/**</exclude>
+                        <exclude>**/DISCLAIMER</exclude>
+                        <exclude>**/DEPENDENCIES</exclude>
+                        <exclude>**/KEYS</exclude>
+                        <exclude>**/LICENSE</exclude>
+                        <exclude>**/NOTICE</exclude>
+                        <exclude>**/README</exclude>
+                        <exclude>**/CHANGES</exclude>
+                        <exclude>**/RELEASE-NOTES</exclude>
+                        <exclude>**/generated/**</exclude>
+                    </excludes>
+                    <strictCheck>true</strictCheck>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>license</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>compile</phase>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
