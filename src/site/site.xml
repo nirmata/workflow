@@ -33,6 +33,7 @@
         </menu>
 
         <menu name="Details">
+            <item name="Limits" href="limits.html"/>
             <item name="Team" href="team-list.html"/>
             <item name="Summary" href="project-summary.html"/>
             <item name="Dependencies" href="dependencies.html"/>
