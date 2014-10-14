@@ -1,1 +1,70 @@
-    TODO
+Administration APIs
+
+* WorkflowAdmin
+
+    When a workflow run is executed, various data is written to ZooKeeper to keep track of the task runs and results. The WorkflowAdmin
+    APIs allow you to get run info as well as clean up old runs. NOTE: the admin APIs can be called from any Workflow server.
+
+    * <<<public List<RunInfo> getRunInfo();>>>
+
+    Info about all runs completed or currently executing in the workflow manager.
+
+    * <<<public RunInfo getRunInfo(RunId runId);>>>
+
+    Info about the given run.
+
+    * <<<public List<TaskInfo> getTaskInfo(RunId runId);>>>
+
+    Info about all the tasks completed, started or waiting for the given run.
+
+    * <<<public boolean clean(RunId runId);>>>
+
+    Delete all saved data for the given run. IMPORTANT: you should clean up old run data periodically so that
+    your ZooKeeper instance doesn't get burdened by old data. Also, each time the WorkflowManager starts, it cycles
+    through existing run data. Old run data will slow startup performance.
+
+* RunInfo
+
+    Information about a specific task run.
+
+    * <<<public RunId getRunId();>>>
+
+    The RunId.
+
+    * <<<public LocalDateTime getStartTimeUtc();>>>
+
+    The start time (in UTC) of the run.
+
+    * <<<public boolean isComplete();>>>
+
+    Returns true if the run has completed.
+
+    * <<<public LocalDateTime getCompletionTimeUtc();>>>
+
+    The completion time (in UTC) of the run.
+
+* TaskInfo
+
+    * <<<public TaskId getTaskId();>>>
+
+    The TaskId.
+
+    * <<<public boolean hasStarted();>>>
+
+    Returns true if the task has started. Otherwise, it is still waiting on dependent parent tasks.
+
+    * <<<public String getInstanceName();>>>
+
+    The instance that ran the task.
+
+    * <<<public LocalDateTime getStartDateUtc();>>>
+
+    The start time (in UTC) of the task.
+
+    * <<<public boolean isComplete();>>>
+
+    Returns true if the task has completed.
+
+    * <<<public TaskExecutionResult getResult();>>>
+
+    For completed tasks, the result data.
