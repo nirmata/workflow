@@ -1,1 +1,14 @@
-    TODO
+Limits
+
+    * Nirmata Workflow uses Apache ZooKeeper which has certain built-in limits. For example, the entire ZooKeeper database is kept in memory.
+    So, huge data sets are not supported.
+
+    * A given Nirmata Workflow run should be able to support several thousand tasks.
+
+    * Each task should limit the amount of result data it produces. Result data is meant for a few dozen
+    values at most.
+
+    * It's vital that you clean up old runs periodically. See the {{{./admin.html}Administration APIs}} for details.
+
+    * For proper high availability and failover, you should run a cluster of ZooKeeper instances (as opposed to just one).
+
