@@ -43,7 +43,7 @@
         <menu name="Project">
             <item name="About" href="index.html"/>
             <item name="Getting Started" href="starting.html"/>
-            <item name="Administration" href="starting.html"/>
+            <item name="Administration" href="admin.html"/>
             <item name="Reference" href="reference.html"/>
             <item name="Limits" href="limits.html"/>
         </menu>
@@ -55,6 +55,7 @@
             <item name="Team" href="team-list.html"/>
             <item name="Summary" href="project-summary.html"/>
             <item name="Dependencies" href="dependencies.html"/>
+            <item name="License" href="license.html"/>
         </menu>
     </body>
 </project>
