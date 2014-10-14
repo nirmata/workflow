@@ -1,6 +1,7 @@
 Nirmata Workflow
 
-    Nirmata Workflow is a Java, {{{http://zookeeper.apache.org/}Apache ZooKeeper}} based library that enables distributed task workflows. You can build a
+    Nirmata Workflow is a Java, {{{http://zookeeper.apache.org/}Apache ZooKeeper}} and {{{http://curator.apache.org/}Apache Curator}}
+    based library that enables distributed task workflows. You can build a
     cluster of servers as large as needed to execute tasks. You can limit servers to certain tasks types and/or allow servers to execute any task.
 
     A workflow is a {{{https://en.wikipedia.org/wiki/Directed_acyclic_graph}DAG}} of tasks

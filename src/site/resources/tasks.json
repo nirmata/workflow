@@ -13,8 +13,13 @@
                 "version": "1",
                 "isIdempotent": true
             },
-            "metaData": [],
-            "childrenTaskIds": ["task3", "task4", "task5"]
+            "metaData": [
+                {
+                    "field1": "value1",
+                    "field2": "value2"
+                }
+            ],
+            "childrenTaskIds": ["task3"]
         },
 
         {
@@ -25,44 +30,11 @@
                 "isIdempotent": true
             },
             "metaData": [],
-            "childrenTaskIds": ["task3", "task4", "task5"]
+            "childrenTaskIds": ["task3"]
         },
 
         {
             "taskId": "task3",
-            "taskType": {
-                "type": "test",
-                "version": "1",
-                "isIdempotent": true
-            },
-            "metaData": [],
-            "childrenTaskIds": ["task6"]
-        },
-
-        {
-            "taskId": "task4",
-            "taskType": {
-                "type": "test",
-                "version": "1",
-                "isIdempotent": true
-            },
-            "metaData": [],
-            "childrenTaskIds": ["task6"]
-        },
-
-        {
-            "taskId": "task5",
-            "taskType": {
-                "type": "test",
-                "version": "1",
-                "isIdempotent": true
-            },
-            "metaData": [],
-            "childrenTaskIds": ["task6"]
-        },
-
-        {
-            "taskId": "task6",
             "taskType": {
                 "type": "test",
                 "version": "1",

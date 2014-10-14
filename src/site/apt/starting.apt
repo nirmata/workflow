@@ -9,4 +9,60 @@ Getting Started
 * Tasks
 
     You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <<<JsonSerializer.getTask()>>>. JsonSerializer
-    has methods to convert strings/bytes to JsonNodes as well. Here is an {{{./tasks.json}example tasks JSON file}}.
+    has methods to convert strings/bytes to JsonNodes as well. Here is an {{{./tasks.json}example tasks JSON file}}. It defines 4 tasks. The first task, "root" is a
+    container only task - i.e. there's nothing to execute; it just has children. Container only tasks don't have a "task type". Then, there is "task1" and "task2"
+    both of which have a child task, "task3". This means that "task3" will not execute until both "task1" and "task2" complete.
+
+* Task Types
+
+    Every task has a TaskType. The TaskType is used by your TaskExecutor implementation to do the work of the task. TaskType's have three fields:
+    "type": a string that contains any value you define; "version": a version string used to version the tasks; "isIdempotent": whether or not
+    the task is idempotent.
+
+* TaskExecutor
+
+    The TaskExecutor is a factory that you provide which creates TaskExecution instances. Every time a task needs to be executed, the newTaskExecution()
+    method of TaskExecutor is called to get a new TaskExecution instance. The TaskExecution's execute() method is then called to do the work of the task
+    and return a result. A task is executed randomly on one of the servers that is configured to handle tasks with that task type.
+
+* WorkflowManagerBuilder
+
+    WorkflowManagerBuilder is used to build WorkflowManager instances. For must uses, you will have one WorkflowManager per server/JVM in your cluster.
+    The builder has the following methods:
+
+*--------------------*------------------------------------------------------------------------*
+| withCurator        | Required to set the {{{http://curator.apache.org/}Curator}} instance.  |
+|                    | You also specify a namespace and a version. The namespace and version  |
+|                    | combine to create a unique workflow. All instances using the same      |
+|                    | namespace and version are logically part of the same workflow.         |
+*--------------------*------------------------------------------------------------------------*
+| addingTaskExecutor | Adds a pool of task executors for a given task type to this instance   |
+|                    | of the workflow. The specified number of executors are allocated. Call |
+|                    | this method multiple times to allocate executors for the various types |
+|                    | of tasks that will be used in this workflow. You can choose to have    |
+|                    | all workflow instances execute all task types or target certain task   |
+|                    | types to certain instances.\                                           |
+|                    | \                                                                      |
+|                    | qty is the maximum concurrency for the given type of task for this     |
+|                    | instance. The logical concurrency for a given task type is the total   |
+|                    | qty of all instances in the workflow. e.g. if there are 3 instances    |
+|                    | in the workflow and instance A has 2 executors for task type "a",      |
+|                    | instance B has 3 executors for task type "a" and instance C has no     |
+|                    | executors for task type "a", the maximum concurrency for task type "a" |
+|                    | is 5.\                                                                 |
+|                    | \                                                                      |
+|                    | IMPORTANT: every workflow cluster must have at least one instance that |
+|                    | has task executor(s) for each task type that will be submitted to the  |
+|                    | workflow. i.e workflows will stall if there is no executor for a given |
+|                    | task type.                                                             |
+*--------------------*------------------------------------------------------------------------*
+| withInstanceName   | optional - used in reporting. This will be the value recorded as tasks |
+|                    | are executed. Via reporting, you can determine which instance has      |
+|                    | executed a given task. the Default is:                                 |
+|                    | <<<InetAddress.getLocalHost().getHostName()>>>                         |
+*--------------------*------------------------------------------------------------------------*
+
+* WorkflowManager
+
+    WorkflowManager is the main API. Through it, you submit tasks, etc. Once created with WorkflowManagerBuilder, call the <<<start()>>> and
+    the workflow system will operate asynchronously. You can <<<submit()>>> tasks at any time and from any instance.
