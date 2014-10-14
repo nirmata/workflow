@@ -46,6 +46,7 @@
             <item name="Administration" href="admin.html"/>
             <item name="Reference" href="reference.html"/>
             <item name="Limits" href="limits.html"/>
+            <item name="Example" href="example.html"/>
         </menu>
 
         <menu name="Details">
