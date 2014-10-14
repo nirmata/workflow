@@ -1,5 +1,12 @@
 Getting Started
 
+    The basic unit is a {{{./apidocs/com/nirmata/workflow/models/Task.html}Task}}. Tasks have an id, {{{./apidocs/com/nirmata/workflow/models/TaskType.html}type}},
+    optional metadata, and zero or more children.
+    Tasks are submitted to be executed through a {{{./apidocs/com/nirmata/workflow/WorkflowManager.html}WorkflowManager}} instance. WorkflowManager instances
+    are created using a {{{./apidocs/com/nirmata/workflow/WorkflowManagerBuilder.html}WorkflowManagerBuilder}}. The work of a task is executed by a
+    {{{./apidocs/com/nirmata/workflow/executor/TaskExecutor.html}TaskExecutor}} instance which you must provide an implementation for.
 
+* Tasks
 
-    TODO
+    You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <<<JsonSerializer.getTask()>>>. JsonSerializer
+    has methods to convert strings/bytes to JsonNodes as well. Here is an {{{./tasks.json}example tasks JSON file}}.

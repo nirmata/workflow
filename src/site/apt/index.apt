@@ -9,9 +9,9 @@ Nirmata Workflow
 [dag.png]
 
     In the DAG described in the diagram above, Tasks 1, 2 and 3 execute concurrently. When they complete, Tasks 4 and 5 execute. Then, Tasks 6, 7 and 8 execute.
-    When Task 6 completes, Task 9 executes. When Tasks 7 and 8 complete, Task 10 executes.
+    When Task 6 completes, Task 9 executes. When Tasks 6 and 8 complete, Task 10 executes.
 
-Features
+* Features
 
     * Can model simple to complex task relationships
 
