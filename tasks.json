@@ -1,0 +1,47 @@
+{
+    "rootTaskId": "root",
+    "tasks": [
+        {
+            "taskId": "root",
+            "childrenTaskIds": ["task1", "task2"]
+        },
+
+        {
+            "taskId": "task1",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [
+                {
+                    "field1": "value1",
+                    "field2": "value2"
+                }
+            ],
+            "childrenTaskIds": ["task3"]
+        },
+
+        {
+            "taskId": "task2",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "childrenTaskIds": ["task3"]
+        },
+
+        {
+            "taskId": "task3",
+            "taskType": {
+                "type": "test",
+                "version": "1",
+                "isIdempotent": true
+            },
+            "metaData": [],
+            "childrenTaskIds": []
+        }
+    ]
+}

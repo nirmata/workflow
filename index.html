@@ -114,6 +114,13 @@
                               
       <li>
   
+                          <a href="limits.html" title="Limits">
+          <i class="none"></i>
+        Limits</a>
+            </li>
+                
+      <li>
+  
                           <a href="team-list.html" title="Team">
           <i class="none"></i>
         Team</a>
@@ -155,11 +162,11 @@
                                   
             <div class="section">
 <h2><a name="Nirmata_Workflow"></a>Nirmata Workflow</h2>
-<p>Nirmata Workflow is a Java, <a class="externalLink" href="http://zookeeper.apache.org/">Apache ZooKeeper</a> based library that enables distributed task workflows. You can build a cluster of servers as large as needed to execute tasks. You can limit servers to certain tasks types and/or allow servers to execute any task.</p>
+<p>Nirmata Workflow is a Java, <a class="externalLink" href="http://zookeeper.apache.org/">Apache ZooKeeper</a> and <a class="externalLink" href="http://curator.apache.org/">Apache Curator</a> based library that enables distributed task workflows. You can build a cluster of servers as large as needed to execute tasks. You can limit servers to certain tasks types and/or allow servers to execute any task.</p>
 <p>A workflow is a <a class="externalLink" href="https://en.wikipedia.org/wiki/Directed_acyclic_graph">DAG</a> of tasks whereby a group of tasks executes concurrently and when complete a set of children tasks execute and so on.</p><img src="dag.png" alt="" />
-<p>In the DAG described in the diagram above, Tasks 1, 2 and 3 execute concurrently. When they complete, Tasks 4 and 5 execute. Then, Tasks 6, 7 and 8 execute. When Task 6 completes, Task 9 executes. When Tasks 7 and 8 complete, Task 10 executes.</p></div>
+<p>In the DAG described in the diagram above, Tasks 1, 2 and 3 execute concurrently. When they complete, Tasks 4 and 5 execute. Then, Tasks 6, 7 and 8 execute. When Task 6 completes, Task 9 executes. When Tasks 6 and 8 complete, Task 10 executes.</p>
 <div class="section">
-<h2><a name="Features"></a>Features</h2>
+<h3><a name="Features"></a>Features</h3>
 <ul>
 <li>Can model simple to complex task relationships</li>
 <li>Manages task relationships and distributed scheduling</li>
@@ -167,7 +174,7 @@
 <li>Custom task-types can be defined and targeted to specific servers</li>
 <li>Simple API</li>
 <li>Supports runtime cluster changes</li>
-<li>No single point of failure</li></ul></div>
+<li>No single point of failure</li></ul></div></div>
                   </div>
             </div>
           </div>

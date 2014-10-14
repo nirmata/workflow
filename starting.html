@@ -114,6 +114,13 @@
                               
       <li>
   
+                          <a href="limits.html" title="Limits">
+          <i class="none"></i>
+        Limits</a>
+            </li>
+                
+      <li>
+  
                           <a href="team-list.html" title="Team">
           <i class="none"></i>
         Team</a>
@@ -153,7 +160,34 @@
                 
         <div id="bodyColumn"  class="span9" >
                                   
-            <p>TODO</p>
+            <div class="section">
+<h2><a name="Getting_Started"></a>Getting Started</h2>
+<p>The basic unit is a <a href="./apidocs/com/nirmata/workflow/models/Task.html">Task</a>. Tasks have an id, <a href="./apidocs/com/nirmata/workflow/models/TaskType.html">type</a>, optional metadata, and zero or more children. Tasks are submitted to be executed through a <a href="./apidocs/com/nirmata/workflow/WorkflowManager.html">WorkflowManager</a> instance. WorkflowManager instances are created using a <a href="./apidocs/com/nirmata/workflow/WorkflowManagerBuilder.html">WorkflowManagerBuilder</a>. The work of a task is executed by a <a href="./apidocs/com/nirmata/workflow/executor/TaskExecutor.html">TaskExecutor</a> instance which you must provide an implementation for.</p>
+<div class="section">
+<h3><a name="Tasks"></a>Tasks</h3>
+<p>You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <tt>JsonSerializer.getTask()</tt>. JsonSerializer has methods to convert strings/bytes to JsonNodes as well. Here is an <a href="./tasks.json">example tasks JSON file</a>. It defines 4 tasks. The first task, &quot;root&quot; is a container only task - i.e. there's nothing to execute; it just has children. Container only tasks don't have a &quot;task type&quot;. Then, there is &quot;task1&quot; and &quot;task2&quot; both of which have a child task, &quot;task3&quot;. This means that &quot;task3&quot; will not execute until both &quot;task1&quot; and &quot;task2&quot; complete.</p></div>
+<div class="section">
+<h3><a name="Task_Types"></a>Task Types</h3>
+<p>Every task has a TaskType. The TaskType is used by your TaskExecutor implementation to do the work of the task. TaskType's have three fields: &quot;type&quot;: a string that contains any value you define; &quot;version&quot;: a version string used to version the tasks; &quot;isIdempotent&quot;: whether or not the task is idempotent.</p></div>
+<div class="section">
+<h3><a name="TaskExecutor"></a>TaskExecutor</h3>
+<p>The TaskExecutor is a factory that you provide which creates TaskExecution instances. Every time a task needs to be executed, the newTaskExecution() method of TaskExecutor is called to get a new TaskExecution instance. The TaskExecution's execute() method is then called to do the work of the task and return a result. A task is executed randomly on one of the servers that is configured to handle tasks with that task type.</p></div>
+<div class="section">
+<h3><a name="WorkflowManagerBuilder"></a>WorkflowManagerBuilder</h3>
+<p>WorkflowManagerBuilder is used to build WorkflowManager instances. For must uses, you will have one WorkflowManager per server/JVM in your cluster. The builder has the following methods:</p>
+<table border="1" class="table table-striped">
+<tr class="a">
+<td align="center">withCurator</td>
+<td align="center">Required to set the <a class="externalLink" href="http://curator.apache.org/">Curator</a> instance. You also specify a namespace and a version. The namespace and version combine to create a unique workflow. All instances using the same namespace and version are logically part of the same workflow.</td></tr>
+<tr class="b">
+<td align="center">addingTaskExecutor</td>
+<td align="center">Adds a pool of task executors for a given task type to this instance of the workflow. The specified number of executors are allocated. Call this method multiple times to allocate executors for the various types of tasks that will be used in this workflow. You can choose to have all workflow instances execute all task types or target certain task types to certain instances.&#xa0;<br />&#xa0;<br />qty is the maximum concurrency for the given type of task for this instance. The logical concurrency for a given task type is the total qty of all instances in the workflow. e.g. if there are 3 instances in the workflow and instance A has 2 executors for task type &quot;a&quot;, instance B has 3 executors for task type &quot;a&quot; and instance C has no executors for task type &quot;a&quot;, the maximum concurrency for task type &quot;a&quot; is 5.&#xa0;<br />&#xa0;<br />IMPORTANT: every workflow cluster must have at least one instance that has task executor(s) for each task type that will be submitted to the workflow. i.e workflows will stall if there is no executor for a given task type.</td></tr>
+<tr class="a">
+<td align="center">withInstanceName</td>
+<td align="center">optional - used in reporting. This will be the value recorded as tasks are executed. Via reporting, you can determine which instance has executed a given task. the Default is: <tt>InetAddress.getLocalHost().getHostName()</tt></td></tr></table></div>
+<div class="section">
+<h3><a name="WorkflowManager"></a>WorkflowManager</h3>
+<p>WorkflowManager is the main API. Through it, you submit tasks, etc. Once created with WorkflowManagerBuilder, call the <tt>start()</tt> and the workflow system will operate asynchronously. You can <tt>submit()</tt> tasks at any time and from any instance.</p></div></div>
                   </div>
             </div>
           </div>
