@@ -174,7 +174,47 @@
                 
         <div id="bodyColumn"  class="span9" >
                                   
-            <p>TODO</p>
+            <div class="section">
+<h2><a name="Administration_APIs"></a>Administration APIs</h2>
+<div class="section">
+<h3><a name="WorkflowAdmin"></a>WorkflowAdmin</h3>
+<p>When a workflow run is executed, various data is written to ZooKeeper to keep track of the task runs and results. The WorkflowAdmin APIs allow you to get run info as well as clean up old runs. NOTE: the admin APIs can be called from any Workflow server.</p>
+<ul>
+<li><tt>public List&lt;RunInfo&gt; getRunInfo();</tt>
+<p>Info about all runs completed or currently executing in the workflow manager.</p></li>
+<li><tt>public RunInfo getRunInfo(RunId runId);</tt>
+<p>Info about the given run.</p></li>
+<li><tt>public List&lt;TaskInfo&gt; getTaskInfo(RunId runId);</tt>
+<p>Info about all the tasks completed, started or waiting for the given run.</p></li>
+<li><tt>public boolean clean(RunId runId);</tt>
+<p>Delete all saved data for the given run. IMPORTANT: you should clean up old run data periodically so that your ZooKeeper instance doesn't get burdened by old data. Also, each time the WorkflowManager starts, it cycles through existing run data. Old run data will slow startup performance.</p></li></ul></div>
+<div class="section">
+<h3><a name="RunInfo"></a>RunInfo</h3>
+<p>Information about a specific task run.</p>
+<ul>
+<li><tt>public RunId getRunId();</tt>
+<p>The RunId.</p></li>
+<li><tt>public LocalDateTime getStartTimeUtc();</tt>
+<p>The start time (in UTC) of the run.</p></li>
+<li><tt>public boolean isComplete();</tt>
+<p>Returns true if the run has completed.</p></li>
+<li><tt>public LocalDateTime getCompletionTimeUtc();</tt>
+<p>The completion time (in UTC) of the run.</p></li></ul></div>
+<div class="section">
+<h3><a name="TaskInfo"></a>TaskInfo</h3>
+<ul>
+<li><tt>public TaskId getTaskId();</tt>
+<p>The TaskId.</p></li>
+<li><tt>public boolean hasStarted();</tt>
+<p>Returns true if the task has started. Otherwise, it is still waiting on dependent parent tasks.</p></li>
+<li><tt>public String getInstanceName();</tt>
+<p>The instance that ran the task.</p></li>
+<li><tt>public LocalDateTime getStartDateUtc();</tt>
+<p>The start time (in UTC) of the task.</p></li>
+<li><tt>public boolean isComplete();</tt>
+<p>Returns true if the task has completed.</p></li>
+<li><tt>public TaskExecutionResult getResult();</tt>
+<p>For completed tasks, the result data.</p></li></ul></div></div>
                   </div>
             </div>
           </div>

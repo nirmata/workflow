@@ -174,7 +174,167 @@
                 
         <div id="bodyColumn"  class="span9" >
                                   
-            <p>TODO</p>
+            <div class="section">
+<h2><a name="Reference"></a>Reference</h2>
+<div class="section">
+<h3><a name="Models"></a>Models</h3>
+<table border="1" class="table table-striped">
+<tr class="a">
+<td align="center"><b>TaskType</b></td>
+<td align="center"></td>
+<td align="center"><b>Models a task type</b></td></tr>
+<tr class="b">
+<td align="center">Type</td>
+<td align="center">String</td>
+<td align="center">Any value to represent the task type</td></tr>
+<tr class="a">
+<td align="center">Version</td>
+<td align="center">String</td>
+<td align="center">The version of this task type</td></tr>
+<tr class="b">
+<td align="center">IsIdempotent</td>
+<td align="center">Boolean</td>
+<td align="center">Whether or not this task is idempotent&#xa0;<br />&#xa0;<br />Idempotent tasks can be restarted/re-executed when a workflow instance crashes or there is some other kind of error. non-idempotent tasks will only be attempted once.</td></tr>
+<tr class="a">
+<td align="center"><b>Task</b></td>
+<td align="center"></td>
+<td align="center"><b>Models a task</b></td></tr>
+<tr class="b">
+<td align="center">TaskId</td>
+<td align="center">String</td>
+<td align="center">Unique ID for the task</td></tr>
+<tr class="a">
+<td align="center">Type</td>
+<td align="center">TaskType</td>
+<td align="center">Task's type. If null, this is a container-only task</td></tr>
+<tr class="b">
+<td align="center">MetaData</td>
+<td align="center">Map</td>
+<td align="center">Optional metadata</td></tr>
+<tr class="a">
+<td align="center">Children</td>
+<td align="center">Task[]</td>
+<td align="center">Child tasks that execute after this task completes. NOTE: children can have multiple parents. i.e. specifying the same task as a child of different parents causes the task to wait for all parents to complete.</td></tr>
+<tr class="b">
+<td align="center"><b>ExecutableTask</b></td>
+<td align="center"></td>
+<td align="center"><b>Models a task that has been scheduled for execution as part of a run</b></td></tr>
+<tr class="a">
+<td align="center">RunId</td>
+<td align="center">String</td>
+<td align="center">Every separate run of a Task submitted is assigned a unique run ID by the Workflow Manager. It's used to reference the execution.</td></tr>
+<tr class="b">
+<td align="center">TaskId</td>
+<td align="center">String</td>
+<td align="center">The TaskID from the Task model</td></tr>
+<tr class="a">
+<td align="center">Type</td>
+<td align="center">TaskType</td>
+<td align="center">The task type from the Task model</td></tr>
+<tr class="b">
+<td align="center">MetaData</td>
+<td align="center">Map</td>
+<td align="center">The metadata from the Task model</td></tr>
+<tr class="a">
+<td align="center"><b>TaskExecutionResult</b></td>
+<td align="center"></td>
+<td align="center"><b>Models an execution result</b></td></tr>
+<tr class="b">
+<td align="center">Status</td>
+<td align="center">Status Code</td>
+<td align="center">The execution status (see below)</td></tr>
+<tr class="a">
+<td align="center">Message</td>
+<td align="center">String</td>
+<td align="center">Any message to store as the result. Note: tasks that execute after this can retrieve this message.</td></tr>
+<tr class="b">
+<td align="center">Result Data</td>
+<td align="center">Map</td>
+<td align="center">Any data to store as the result. Note: tasks that execute after this can retrieve this data.</td></tr>
+<tr class="a">
+<td align="center">Sub Task RunId</td>
+<td align="center">String</td>
+<td align="center">Optional sub-task (see below)</td></tr></table></div>
+<div class="section">
+<h3><a name="Status_Codes"></a>Status Codes</h3>
+<p>When a task executes, it returns a result that specifies the task status. The status controls the remainder of the tasks in the workflow. The possible values are:</p>
+<table border="1" class="table table-striped">
+<tr class="a">
+<td align="center">SUCCESS</td>
+<td align="center">The task executed successfully</td></tr>
+<tr class="b">
+<td align="center">FAILED_CONTINUE</td>
+<td align="center">The task failed, but the remaining tasks should still execute</td></tr>
+<tr class="a">
+<td align="center">FAILED_STOP</td>
+<td align="center">The task failed and the remaining tasks in the run should be canceled</td></tr></table></div>
+<div class="section">
+<h3><a name="APIs"></a>APIs</h3>
+<div class="section">
+<h4><a name="WorkflowManager"></a>WorkflowManager</h4>
+<p>The main API is WorkflowManager. There are also Administration APIs <a href="./admin.html">documented here</a>.</p>
+<ul>
+<li><tt>public void start();</tt>
+<p>Starts the workflow manager which does its work asynchronously. In most use cases, you will have one WorkflowManager instance per server/JVM. Uses as many servers as you need to distribute tasks: three servers will suffice for most uses.</p></li>
+<li><tt>public RunId submitTask(Task task);</tt>
+<p>Submits the given task (with the task's associated children, etc.). The task will start nearly immediately. NOTE: there's no guarantee which server will execute the various tasks.</p></li>
+<li><tt>public boolean cancelRun(RunId runId);</tt>
+<p>Attempt to cancel the given run. NOTE: the cancellation is scheduled and does not occur immediately. Currently executing tasks will continue. Only tasks that have not yet executed can be canceled.</p></li>
+<li><tt>public TaskExecutionResult getTaskExecutionResult(RunId runId, TaskId taskId);</tt>
+<p>Child tasks can retrieve the results of parent tasks and alter their work based on the results.</p></li>
+<li><tt>public RunId submitSubTask(RunId parentRunId, Task task);</tt>
+<p>Same as submitTask(Task) except that, when completed, the parent run will be notified. This method is meant to be used inside of TaskExecutor for a task that needs to initiate a sub-run and have the parent run wait for the sub-run to complete.</p></li>
+<li><tt>public WorkflowAdmin getAdmin();</tt>
+<p>Returns the Administration APIs which are <a href="./admin.html">documented here</a>.</p></li>
+<li><tt>public WorkflowListenerManager newWorkflowListenerManager();</tt>
+<p>Allocates a new Workflow Listener Manager (see below).</p></li></ul></div>
+<div class="section">
+<h4><a name="WorkflowManagerBuilder"></a>WorkflowManagerBuilder</h4>
+<p>The WorkflowManagerBuilder is used to build new WorkflowManager instances.</p>
+<ul>
+<li><tt>public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version)</tt>
+<p><b>Required</b> - Set the Curator instance to use. In addition to the Curator instance, specify a namespace for the workflow and a version. The namespace and version combine to create a unique workflow. All instances using the same namespace and version are logically part of the same workflow.</p></li>
+<li><tt>public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType)</tt>
+<p>Adds a pool of task executors for a given task type to this instance of the workflow. The specified number of executors are allocated. Call this method multiple times to allocate executors for the various types of tasks that will be used in this workflow. You can choose to have all workflow instances execute all task types or target certain task types to certain instances.</p>
+<p>qty is the maximum concurrency for the given type of task for this instance. The logical concurrency for a given task type is the total qty of all instances in the workflow. e.g. if there are 3 instances in the workflow and instance A has 2 executors for task type &quot;a&quot;, instance B has 3 executors for task type &quot;a&quot; and instance C has no executors for task type &quot;a&quot;, the maximum concurrency for task type &quot;a&quot; is 5.</p>
+<p>IMPORTANT: every workflow cluster must have at least one instance that has task executor(s) for each task type that will be submitted to the workflow. i.e workflows will stall if there is no executor for a given task type.</p></li>
+<li><tt>public WorkflowManagerBuilder withInstanceName(String instanceName)</tt>
+<p>Used in reporting. This will be the value recorded as tasks are executed. Via reporting, you can determine which instance has executed a given task. Default is: InetAddress.getLocalHost().getHostName()</p></li></ul></div>
+<div class="section">
+<h4><a name="TaskExecutor"></a>TaskExecutor</h4>
+<p>TaskExecutor is an interface and you are required to provide an implementation. The Workflow Manager uses your TaskExecutor instances to do the actual work of the tasks. TaskExecutor is a functional interface and has one method:</p>
+<ul>
+<li><tt>public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask executableTask);</tt>
+<p>Create a task execution for the given task. TaskExecution are similar to JDK Runnables.</p></li></ul></div>
+<div class="section">
+<h4><a name="TaskExecution"></a>TaskExecution</h4>
+<p>Represents a task execution. A new task execution is allocated for each run of a task. The Workflow manager will call execute() when the task should perform its operation.</p>
+<ul>
+<li><tt>public TaskExecutionResult execute();</tt>
+<p>Execute the task and return the result when complete (see status codes above).</p></li></ul></div></div>
+<div class="section">
+<h3><a name="Events"></a>Events</h3>
+<p>Via the WorkflowManager you can create a WorkflowListenerManager, start it and listen for various events. Events are represented by WorkflowEvent instances which have these methods:</p>
+<ul>
+<li><tt>public EventType getType();</tt>
+<p>Returns the event type (see table below)</p></li>
+<li><tt>public RunId getRunId()</tt>
+<p>Returns the RunId of the run that generated the event</p></li>
+<li><tt>public TaskId getTaskId()</tt>
+<p>If the event is associated with a specific task, this is the TaskId</p>
+<table border="1" class="table table-striped"><caption>Event Types</caption>
+<tr class="a">
+<td align="center">RUN_STARTED</td>
+<td align="center">A run has started. getRunId() is the run id.</td></tr>
+<tr class="b">
+<td align="center">RUN_UPDATED</td>
+<td align="center">A run has been updated - usually meaning it has completed. getRunId() is the run id.</td></tr>
+<tr class="a">
+<td align="center">TASK_STARTED</td>
+<td align="center">A task has started. getRunId() is the run id. getTaskId() is the task id.</td></tr>
+<tr class="b">
+<td align="center">TASK_COMPLETED</td>
+<td align="center">A task has completed. getRunId() is the run id. getTaskId() is the task id.</td></tr></table></li></ul></div></div>
                   </div>
             </div>
           </div>
