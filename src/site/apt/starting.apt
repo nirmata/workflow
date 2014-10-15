@@ -17,6 +17,35 @@ Getting Started
 
     NOTE: Nirmata Workflow is a Java 8 Library
 
+* Using in Your Project
+
+    Nirmata Workflow is available from Maven Central:
+
+*------------*-----------------------------*
+| GroupId    | com.nirmata.workflow        |
+*------------*-----------------------------*
+| ArtifactId | nirmata-workflow            |
+*------------*-----------------------------*
+
+    * From Maven
+
++---------------------------------------
+<dependency>
+    <groupId>com.nirmata.workflow</groupId>
+    <artifactId>nirmata-workflow</artifactId>
+    <version>${nirmata-workflow-version}</version>
+</dependency>
++---------------------------------------
+
+    * From Gradle
+
++---------------------------------------
+dependencies {
+    compile('com.nirmata.workflow:nirmata-workflow:$nirmataWorkflowVersion')
+}
++---------------------------------------
+
+
 * Tasks
 
     You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <<<JsonSerializer.getTask()>>>. JsonSerializer

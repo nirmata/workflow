@@ -111,13 +111,13 @@ Reference
 
     The WorkflowManagerBuilder is used to build new WorkflowManager instances.
 
-    * <<<public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version)>>>
+    * <<<public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version);>>>
 
     <<Required>> - Set the Curator instance to use. In addition to the Curator instance, specify a namespace for the workflow
     and a version. The namespace and version combine to create a unique workflow. All instances using the same namespace and
     version are logically part of the same workflow.
 
-    * <<<public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType)>>>
+    * <<<public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType);>>>
 
     Adds a pool of task executors for a given task type to this instance of the workflow. The specified number of executors
     are allocated. Call this method multiple times to allocate executors for the various types of tasks that will be used in
@@ -132,7 +132,7 @@ Reference
     IMPORTANT: every workflow cluster must have at least one instance that has task executor(s) for each task type that will
     be submitted to the workflow. i.e workflows will stall if there is no executor for a given task type.
 
-    * <<<public WorkflowManagerBuilder withInstanceName(String instanceName)>>>
+    * <<<public WorkflowManagerBuilder withInstanceName(String instanceName);>>>
 
     Used in reporting. This will be the value recorded as tasks are executed. Via reporting, you can determine which instance has executed a given task.
     Default is: InetAddress.getLocalHost().getHostName()
@@ -164,11 +164,11 @@ Reference
 
     Returns the event type (see table below)
 
-    * <<<public RunId getRunId()>>>
+    * <<<public RunId getRunId();>>>
 
     Returns the RunId of the run that generated the event
 
-    * <<<public TaskId getTaskId()>>>
+    * <<<public TaskId getTaskId();>>>
 
     If the event is associated with a specific task, this is the TaskId
 
