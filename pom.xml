@@ -4,7 +4,7 @@
 
     <groupId>com.nirmata.workflow</groupId>
     <artifactId>nirmata-workflow</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.1</version>
 
     <properties>
         <jdk-version>1.8</jdk-version>
@@ -47,7 +47,7 @@
         <url>https://github.com/NirmataOSS/workflow</url>
         <connection>scm:git:https://github.com/NirmataOSS/workflow.git</connection>
         <developerConnection>scm:git:git@github.com:NirmataOSS/workflow.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>nirmata-workflow-0.1.1</tag>
     </scm>
 
     <issueManagement>
