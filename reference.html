@@ -299,13 +299,13 @@
 <h4><a name="WorkflowManagerBuilder"></a>WorkflowManagerBuilder</h4>
 <p>The WorkflowManagerBuilder is used to build new WorkflowManager instances.</p>
 <ul>
-<li><tt>public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version)</tt>
+<li><tt>public WorkflowManagerBuilder withCurator(CuratorFramework curator, String namespace, String version);</tt>
 <p><b>Required</b> - Set the Curator instance to use. In addition to the Curator instance, specify a namespace for the workflow and a version. The namespace and version combine to create a unique workflow. All instances using the same namespace and version are logically part of the same workflow.</p></li>
-<li><tt>public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType)</tt>
+<li><tt>public WorkflowManagerBuilder addingTaskExecutor(TaskExecutor taskExecutor, int qty, TaskType taskType);</tt>
 <p>Adds a pool of task executors for a given task type to this instance of the workflow. The specified number of executors are allocated. Call this method multiple times to allocate executors for the various types of tasks that will be used in this workflow. You can choose to have all workflow instances execute all task types or target certain task types to certain instances.</p>
 <p>qty is the maximum concurrency for the given type of task for this instance. The logical concurrency for a given task type is the total qty of all instances in the workflow. e.g. if there are 3 instances in the workflow and instance A has 2 executors for task type &quot;a&quot;, instance B has 3 executors for task type &quot;a&quot; and instance C has no executors for task type &quot;a&quot;, the maximum concurrency for task type &quot;a&quot; is 5.</p>
 <p>IMPORTANT: every workflow cluster must have at least one instance that has task executor(s) for each task type that will be submitted to the workflow. i.e workflows will stall if there is no executor for a given task type.</p></li>
-<li><tt>public WorkflowManagerBuilder withInstanceName(String instanceName)</tt>
+<li><tt>public WorkflowManagerBuilder withInstanceName(String instanceName);</tt>
 <p>Used in reporting. This will be the value recorded as tasks are executed. Via reporting, you can determine which instance has executed a given task. Default is: InetAddress.getLocalHost().getHostName()</p></li></ul></div>
 <div class="section">
 <h4><a name="TaskExecutor"></a>TaskExecutor</h4>
@@ -325,9 +325,9 @@
 <ul>
 <li><tt>public EventType getType();</tt>
 <p>Returns the event type (see table below)</p></li>
-<li><tt>public RunId getRunId()</tt>
+<li><tt>public RunId getRunId();</tt>
 <p>Returns the RunId of the run that generated the event</p></li>
-<li><tt>public TaskId getTaskId()</tt>
+<li><tt>public TaskId getTaskId();</tt>
 <p>If the event is associated with a specific task, this is the TaskId</p>
 <table border="1" class="table table-striped"><caption>Event Types</caption>
 <tr class="a">
