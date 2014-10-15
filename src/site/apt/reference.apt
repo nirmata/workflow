@@ -76,8 +76,8 @@ Reference
     * <<<public void start();>>>
 
     Starts the workflow manager which does its work asynchronously. In most use cases, you will have one WorkflowManager
-    instance per server/JVM. Uses as many servers as you need to distribute tasks: three servers will suffice for most
-    uses.
+    instance per server/JVM. However, you can create as many WorkflowManager instances as you need.
+    Use as many servers as you need to distribute tasks: three servers will suffice for most uses.
 
     * <<<public RunId submitTask(Task task);>>>
 
@@ -149,7 +149,7 @@ Reference
 ** TaskExecution
 
     Represents a task execution. A new task execution is allocated for each run of a task. The Workflow manager will call
-    execute() when the task should perform its operation.
+    execute() from an internally managed thread pool when the task should perform its operation.
 
     * <<<public TaskExecutionResult execute();>>>
 

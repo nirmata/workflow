@@ -63,12 +63,13 @@ dependencies {
 
     The TaskExecutor is a factory that you provide which creates TaskExecution instances. Every time a task needs to be executed, the newTaskExecution()
     method of TaskExecutor is called to get a new TaskExecution instance. The TaskExecution's execute() method is then called to do the work of the task
-    and return a result. A task is executed randomly on one of the servers that is configured to handle tasks with that task type.
+    and return a result. A task is executed randomly on one of the servers that is configured to handle tasks with that task type. Nirmata Workflow
+    runs TaskExecutions in internally managed thread pools.
 
 * WorkflowManagerBuilder
 
     WorkflowManagerBuilder is used to build WorkflowManager instances. For most uses, you will have one WorkflowManager per server/JVM in your cluster.
-    The builder has the following methods:
+    However, you can create as many WorkflowManager instances as you need. The builder has the following methods:
 
 *--------------------*------------------------------------------------------------------------*
 | withCurator        | Required to set the {{{http://curator.apache.org/}Curator}} instance.  |
