@@ -14,7 +14,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <curator-version>2.6.0</curator-version>
-        <airlift-version>0.93</airlift-version>
         <jackson-version>2.4.2</jackson-version>
         <testng-version>6.8.8</testng-version>
         <slf4j-version>1.7.7</slf4j-version>
@@ -122,12 +121,6 @@
             <artifactId>curator-test</artifactId>
             <version>${curator-version}</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.airlift</groupId>
-            <artifactId>units</artifactId>
-            <version>${airlift-version}</version>
         </dependency>
 
         <dependency>
