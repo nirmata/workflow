@@ -1,5 +1,6 @@
 Nirmata Workflow
 ========
- A Java library that enables distributed task workflows.
+ 
+ A ZooKeeper and Curator based distributed workflow management library that enables distributed task workflows.
  
  Full details here: http://nirmataoss.github.io/workflow
