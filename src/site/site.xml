@@ -54,6 +54,9 @@
             <item name="Issues" href="issue-tracking.html"/>
             <item name="JavaDoc" href="apidocs/index.html"/>
             <item name="Team" href="team-list.html"/>
+        </menu>
+
+        <menu name="Reports">
             <item name="Summary" href="project-summary.html"/>
             <item name="Dependencies" href="dependencies.html"/>
             <item name="License" href="license.html"/>
