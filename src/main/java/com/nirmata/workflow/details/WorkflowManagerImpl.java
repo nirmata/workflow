@@ -28,6 +28,7 @@ import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.executor.TaskExecution;
+import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
@@ -402,19 +403,52 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             return;
         }
 
+        String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTaskId());
+        try
+        {
+            if ( curator.checkExists().forPath(path) != null )
+            {
+                log.warn("Attempt to execute an already complete task - skipping - most likely due to a system restart: " + executableTask);
+                return;
+            }
+        }
+        catch ( Exception e )
+        {
+            log.error("Could not check task completion: " + executableTask, e);
+            throw new RuntimeException(e);
+        }
+
         log.info("Executing task: " + executableTask);
         TaskExecution taskExecution = taskExecutor.newTaskExecution(this, executableTask);
 
-        TaskExecutionResult result = taskExecution.execute();
-        if ( result == null )
+        TaskExecutionResult result;
+        try
         {
-            throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
+            result = taskExecution.execute();
+            if ( result == null )
+            {
+                throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
+            }
+        }
+        catch ( Throwable e )
+        {
+            log.error("Task execution threw an exception. Will be marked as FAILED_STOP", e);
+            String message = e.getMessage();
+            if ( message == null )
+            {
+                message = "Unknown";
+            }
+            result = new TaskExecutionResult(TaskExecutionStatus.FAILED_STOP, message);
         }
         String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));
         try
         {
-            String path = ZooKeeperConstants.getCompletedTaskPath(executableTask.getRunId(), executableTask.getTaskId());
             curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
+        }
+        catch ( KeeperException.NodeExistsException ignore )
+        {
+            // this is an edge case - the system was interrupted before the Curator queue recipe could remove the entry in the queue
+            log.warn("Task executed twice - most likely due to a system restart. Task is idempotent so there should be no issues: " + executableTask);
         }
         catch ( Exception e )
         {
