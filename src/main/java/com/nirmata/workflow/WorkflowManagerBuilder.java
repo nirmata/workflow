@@ -17,6 +17,8 @@ package com.nirmata.workflow;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.nirmata.workflow.admin.AutoCleaner;
+import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.details.TaskExecutorSpec;
 import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -26,6 +28,7 @@ import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -36,6 +39,8 @@ public class WorkflowManagerBuilder
     private QueueFactory queueFactory = new ZooKeeperQueueFactory();
     private String instanceName;
     private CuratorFramework curator;
+    private AutoCleanerHolder autoCleanerHolder = newNullHolder();
+
     private final List<TaskExecutorSpec> specs = Lists.newArrayList();
 
     /**
@@ -130,7 +135,7 @@ public class WorkflowManagerBuilder
      */
     public WorkflowManager build()
     {
-        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs);
+        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs, autoCleanerHolder);
     }
 
     /**
@@ -146,6 +151,21 @@ public class WorkflowManagerBuilder
         return this;
     }
 
+    /**
+     * <em>optional</em><br>
+     * Sets an auto-cleaner that will run every given period. This is used to clean old runs.
+     * IMPORTANT: the auto cleaner will only run on the instance that is the current scheduler.
+     *
+     * @param autoCleaner the auto cleaner to use
+     * @param runPeriod how often to run
+     * @return this (for chaining)
+     */
+    public WorkflowManagerBuilder withAutoCleaner(AutoCleaner autoCleaner, Duration runPeriod)
+    {
+        autoCleanerHolder = (autoCleaner == null) ? newNullHolder() : new AutoCleanerHolder(autoCleaner, runPeriod);
+        return this;
+    }
+
     private WorkflowManagerBuilder()
     {
         try
@@ -156,5 +176,10 @@ public class WorkflowManagerBuilder
         {
             instanceName = "unknown";
         }
+    }
+
+    private AutoCleanerHolder newNullHolder()
+    {
+        return new AutoCleanerHolder(null, Duration.ofDays(Integer.MAX_VALUE));
     }
 }

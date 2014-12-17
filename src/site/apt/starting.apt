@@ -102,6 +102,10 @@ dependencies {
 |                    | executed a given task. the Default is:                                 |
 |                    | <<<InetAddress.getLocalHost().getHostName()>>>                         |
 *--------------------*------------------------------------------------------------------------*
+| withAutoCleaner    | optional - Sets an auto-cleaner that will run every given period. This |
+|                    | is used to clean old runs. IMPORTANT: the auto cleaner will only run   |
+|                    | on the instance that is the current scheduler.                         |
+*--------------------*------------------------------------------------------------------------*
 
 * WorkflowManager
 

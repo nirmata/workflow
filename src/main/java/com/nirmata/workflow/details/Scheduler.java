@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -44,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class Scheduler
@@ -54,18 +54,12 @@ class Scheduler
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final WorkflowManagerImpl workflowManager;
     private final QueueFactory queueFactory;
+    private final AutoCleanerHolder autoCleanerHolder;
     private final PathChildrenCache completedTasksCache;
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
     private final LoadingCache<TaskType, Queue> queues = CacheBuilder.newBuilder()
-        .removalListener(new RemovalListener<TaskType, Queue>()
-        {
-            @Override
-            public void onRemoval(RemovalNotification<TaskType, Queue> notification)
-            {
-                CloseableUtils.closeQuietly(notification.getValue());
-            }
-        })
+        .removalListener(Scheduler::remover)
         .build(new CacheLoader<TaskType, Queue>()
         {
             @Override
@@ -78,10 +72,16 @@ class Scheduler
             }
         });
 
-    Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory)
+    private static void remover(RemovalNotification<TaskType, Queue> notification)
+    {
+        CloseableUtils.closeQuietly(notification.getValue());
+    }
+
+    Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory, AutoCleanerHolder autoCleanerHolder)
     {
         this.workflowManager = workflowManager;
         this.queueFactory = queueFactory;
+        this.autoCleanerHolder = autoCleanerHolder;
 
         completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTaskParentPath(), true);
         startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
@@ -134,8 +134,15 @@ class Scheduler
 
             while ( !Thread.currentThread().isInterrupted() )
             {
-                RunId runId = updatedRunIds.take();
-                updateTasks(runId);
+                RunId runId = updatedRunIds.poll(autoCleanerHolder.getRunPeriod().toMillis(), TimeUnit.MILLISECONDS);
+                if ( runId != null )
+                {
+                    updateTasks(runId);
+                }
+                if ( autoCleanerHolder.shouldRun() )
+                {
+                    autoCleanerHolder.run(workflowManager.getAdmin());
+                }
             }
         }
         catch ( InterruptedException dummy )

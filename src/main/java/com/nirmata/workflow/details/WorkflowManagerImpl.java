@@ -72,15 +72,16 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         CLOSED
     }
 
-    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs)
+    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder)
     {
+        autoCleanerHolder = Preconditions.checkNotNull(autoCleanerHolder, "autoCleanerHolder cannot be null");
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         queueFactory = Preconditions.checkNotNull(queueFactory, "queueFactory cannot be null");
         this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
         specs = Preconditions.checkNotNull(specs, "specs cannot be null");
 
         consumers = makeTaskConsumers(queueFactory, specs);
-        schedulerSelector = new SchedulerSelector(this, queueFactory, specs);
+        schedulerSelector = new SchedulerSelector(this, queueFactory, autoCleanerHolder);
     }
 
     public CuratorFramework getCurator()

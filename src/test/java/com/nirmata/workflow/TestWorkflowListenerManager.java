@@ -55,6 +55,8 @@ public class TestWorkflowListenerManager extends BaseForTests
             RunId runId = workflowManager.submitTask(task);
 
             Timing timing = new Timing();
+            timing.sleepABit();
+
             Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId));
             Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, task.getTaskId()));
             Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, task.getTaskId()));

@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
+import com.nirmata.workflow.admin.StandardAutoCleaner;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.RunId;
@@ -32,6 +33,7 @@ import org.apache.curator.utils.CloseableUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,36 @@ import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
 public class TestNormal extends BaseForTests
 {
+    @Test
+    public void testAutoCleanRun() throws Exception
+    {
+        Timing timing = new Timing();
+
+        TaskExecutor taskExecutor = (w, t) -> () -> new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        TaskType taskType = new TaskType("test", "1", true);
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, taskType)
+            .withCurator(curator, "test", "1")
+            .withAutoCleaner(new StandardAutoCleaner(Duration.ofMillis(1)), Duration.ofMillis(1))
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            Task task2 = new Task(new TaskId(), taskType);
+            Task task1 = new Task(new TaskId(), taskType, Lists.newArrayList(task2));
+            workflowManager.submitTask(task1);
+
+            timing.sleepABit();
+
+            Assert.assertEquals(workflowManager.getAdmin().getRunInfo().size(), 0); // asserts that the cleaner ran
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
     @Test
     public void testCanceling() throws Exception
     {
