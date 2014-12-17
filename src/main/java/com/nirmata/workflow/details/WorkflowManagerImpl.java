@@ -24,11 +24,10 @@ import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
-import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
+import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecution;
-import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
@@ -421,24 +420,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         log.info("Executing task: " + executableTask);
         TaskExecution taskExecution = taskExecutor.newTaskExecution(this, executableTask);
 
-        TaskExecutionResult result;
-        try
+        TaskExecutionResult result = taskExecution.execute();
+        if ( result == null )
         {
-            result = taskExecution.execute();
-            if ( result == null )
-            {
-                throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
-            }
-        }
-        catch ( Throwable e )
-        {
-            log.error("Task execution threw an exception. Will be marked as FAILED_STOP", e);
-            String message = e.getMessage();
-            if ( message == null )
-            {
-                message = "Unknown";
-            }
-            result = new TaskExecutionResult(TaskExecutionStatus.FAILED_STOP, message);
+            throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
         }
         String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));
         try
