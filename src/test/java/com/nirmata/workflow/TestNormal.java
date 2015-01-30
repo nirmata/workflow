@@ -57,29 +57,32 @@ public class TestNormal extends BaseForTests
     {
         Timing timing = new Timing();
 
-        TestTaskExecutor taskExecutor = new TestTaskExecutor(1)
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(2)
         {
             @Override
             public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask task)
             {
-                if ( !task.getTaskId().getId().equals("task1") && !task.getTaskId().getId().equals("task2") )
+                if ( task.getTaskId().getId().equals("task3") )
                 {
                     return () -> new TaskExecutionResult(TaskExecutionStatus.FAILED_STOP, "stop");
                 }
                 return super.newTaskExecution(workflowManager, task);
             }
         };
+        TaskType taskType = new TaskType("test", "1", true);
         WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
+            .addingTaskExecutor(taskExecutor, 10, taskType)
             .withCurator(curator, "test", "1")
             .build();
         try
         {
             workflowManager.start();
 
-            String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
-            RunId runId = workflowManager.submitTask(task);
+            Task task4 = new Task(new TaskId("task4"), taskType);
+            Task task3 = new Task(new TaskId("task3"), taskType, Lists.newArrayList(task4));
+            Task task2 = new Task(new TaskId("task2"), taskType, Lists.newArrayList(task3));
+            Task task1 = new Task(new TaskId("task1"), taskType, Lists.newArrayList(task2));
+            RunId runId = workflowManager.submitTask(task1);
 
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
             timing.sleepABit(); // make sure other tasks are not started
@@ -89,9 +92,10 @@ public class TestNormal extends BaseForTests
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-                (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2"))
-                );
+            (
+                Sets.newHashSet(new TaskId("task1")),
+                Sets.newHashSet(new TaskId("task2"))
+            );
             Assert.assertEquals(sets, expectedSets);
         }
         finally
