@@ -20,9 +20,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
+import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
+import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
+import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
@@ -49,6 +52,54 @@ import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
 public class TestNormal extends BaseForTests
 {
+    @Test
+    public void testFailedStop() throws Exception
+    {
+        Timing timing = new Timing();
+
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(1)
+        {
+            @Override
+            public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask task)
+            {
+                if ( !task.getTaskId().getId().equals("task1") && !task.getTaskId().getId().equals("task2") )
+                {
+                    return () -> new TaskExecutionResult(TaskExecutionStatus.FAILED_STOP, "stop");
+                }
+                return super.newTaskExecution(workflowManager, task);
+            }
+        };
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
+            Task task = getTask(fromString(json));
+            RunId runId = workflowManager.submitTask(task);
+
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+            timing.sleepABit(); // make sure other tasks are not started
+
+            RunInfo runInfo = workflowManager.getAdmin().getRunInfo(runId);
+            Assert.assertTrue(runInfo.isComplete());
+
+            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
+            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2"))
+                );
+            Assert.assertEquals(sets, expectedSets);
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+
     @Test
     public void testAutoCleanRun() throws Exception
     {
