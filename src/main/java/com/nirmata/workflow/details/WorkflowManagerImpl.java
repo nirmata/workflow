@@ -18,6 +18,7 @@ package com.nirmata.workflow.details;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
@@ -128,6 +129,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     return new TaskDetails(entry.getKey(), taskType, executableTask.getMetaData());
                 }))
                 ;
+        }
+        catch ( KeeperException.NoNodeException dummy )
+        {
+            return ImmutableMap.of();
         }
         catch ( Exception e )
         {
