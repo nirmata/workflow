@@ -17,6 +17,10 @@ Administration APIs
 
     Info about all the tasks completed, started or waiting for the given run.
 
+    * <<<public Map<TaskId, TaskDetails> getTaskDetails(RunId runId);>>>
+
+    A map of all task details for the given run.
+
     * <<<public boolean clean(RunId runId);>>>
 
     Delete all saved data for the given run. IMPORTANT: you should clean up old run data periodically so that
@@ -68,3 +72,21 @@ Administration APIs
     * <<<public TaskExecutionResult getResult();>>>
 
     For completed tasks, the result data.
+
+* TaskDetails
+
+    * <<<public TaskId getTaskId();>>>
+
+    The TaskId.
+
+    * <<<public boolean isExecutable();>>>
+
+    Returns true if this is an executable task.
+
+    * <<<public TaskType getTaskType();>>>
+
+    The task type (if executable).
+
+    * <<<public Map<String, String> getMetaData();>>>
+
+    The task's metadata.
