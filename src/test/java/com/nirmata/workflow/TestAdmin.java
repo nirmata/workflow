@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.admin.RunInfo;
+import com.nirmata.workflow.admin.TaskDetails;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.details.ZooKeeperConstants;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.nirmata.workflow.details.JsonSerializer.fromString;
 import static com.nirmata.workflow.details.JsonSerializer.getTask;
@@ -90,12 +92,13 @@ public class TestAdmin extends BaseForTests
     }
 
     @Test
-    public void testTaskInfo() throws Exception
+    public void testTaskInfoAndDetails() throws Exception
     {
+        Map<String, String> metaData = IntStream.range(1, 5).boxed().collect(Collectors.toMap(Object::toString, Object::toString));
         TaskType taskType = new TaskType("test", "1", true);
         Task childTask = new Task(new TaskId(), taskType);
         Task task1 = new Task(new TaskId(), taskType);
-        Task task2 = new Task(new TaskId(), taskType, Lists.newArrayList(childTask));
+        Task task2 = new Task(new TaskId(), taskType, Lists.newArrayList(childTask), metaData);
         Task root = new Task(new TaskId(), Lists.newArrayList(task1, task2));
 
         CountDownLatch startedLatch = new CountDownLatch(2);
@@ -133,6 +136,17 @@ public class TestAdmin extends BaseForTests
 
             timing.sleepABit();
 
+            Map<TaskId, TaskDetails> taskDetails = workflowManager.getAdmin().getTaskDetails(runId);
+            Assert.assertEquals(taskDetails.size(), 4);
+            Assert.assertTrue(taskDetails.containsKey(root.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(task1.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(task2.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(childTask.getTaskId()));
+            Assert.assertTrue(taskDetails.get(root.getTaskId()).matchesTask(root));
+            Assert.assertTrue(taskDetails.get(task1.getTaskId()).matchesTask(task1));
+            Assert.assertTrue(taskDetails.get(task2.getTaskId()).matchesTask(task2));
+            Assert.assertTrue(taskDetails.get(childTask.getTaskId()).matchesTask(childTask));
+
             Map<TaskId, TaskInfo> taskInfos = workflowManager.getAdmin().getTaskInfo(runId).stream().collect(Collectors.toMap(TaskInfo::getTaskId, Function.identity()));
             Assert.assertEquals(taskInfos.size(), 3);
             Assert.assertTrue(taskInfos.containsKey(task1.getTaskId()));
@@ -159,6 +173,17 @@ public class TestAdmin extends BaseForTests
             Assert.assertTrue(taskInfos.get(task2.getTaskId()).isComplete());
             Assert.assertEquals(taskInfos.get(task1.getTaskId()).getResult().getResultData().get("taskId"), task1.getTaskId().getId());
             Assert.assertEquals(taskInfos.get(task2.getTaskId()).getResult().getResultData().get("taskId"), task2.getTaskId().getId());
+
+            taskDetails = workflowManager.getAdmin().getTaskDetails(runId);
+            Assert.assertEquals(taskDetails.size(), 4);
+            Assert.assertTrue(taskDetails.containsKey(root.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(task1.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(task2.getTaskId()));
+            Assert.assertTrue(taskDetails.containsKey(childTask.getTaskId()));
+            Assert.assertTrue(taskDetails.get(root.getTaskId()).matchesTask(root));
+            Assert.assertTrue(taskDetails.get(task1.getTaskId()).matchesTask(task1));
+            Assert.assertTrue(taskDetails.get(task2.getTaskId()).matchesTask(task2));
+            Assert.assertTrue(taskDetails.get(childTask.getTaskId()).matchesTask(childTask));
         }
         finally
         {

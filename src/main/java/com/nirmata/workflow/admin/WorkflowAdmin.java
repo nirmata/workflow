@@ -16,7 +16,9 @@
 package com.nirmata.workflow.admin;
 
 import com.nirmata.workflow.models.RunId;
+import com.nirmata.workflow.models.TaskId;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Admin operations
@@ -47,6 +49,14 @@ public interface WorkflowAdmin
      * @return task infos
      */
     public List<TaskInfo> getTaskInfo(RunId runId);
+
+    /**
+     * Returns a map of all task details for the given run
+     *
+     * @param runId run
+     * @return task details
+     */
+    public Map<TaskId, TaskDetails> getTaskDetails(RunId runId);
 
     /**
      * Delete all saved data for the given run.

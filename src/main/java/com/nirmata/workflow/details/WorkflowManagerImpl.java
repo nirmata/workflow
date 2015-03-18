@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.admin.RunInfo;
+import com.nirmata.workflow.admin.TaskDetails;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
@@ -108,6 +109,30 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     public RunId submitTask(Task task)
     {
         return submitSubTask(null, task);
+    }
+
+    @Override
+    public Map<TaskId, TaskDetails> getTaskDetails(RunId runId)
+    {
+        try
+        {
+            String runPath = ZooKeeperConstants.getRunPath(runId);
+            byte[] runnableTaskJson = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(runnableTaskJson));
+            return runnableTask.getTasks()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
+                    ExecutableTask executableTask = entry.getValue();
+                    TaskType taskType = executableTask.getTaskType().equals(nullTaskType) ? null : executableTask.getTaskType();
+                    return new TaskDetails(entry.getKey(), taskType, executableTask.getMetaData());
+                }))
+                ;
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

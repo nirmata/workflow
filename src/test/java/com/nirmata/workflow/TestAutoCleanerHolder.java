@@ -18,10 +18,12 @@ package com.nirmata.workflow;
 import com.google.common.collect.Lists;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
+import com.nirmata.workflow.admin.TaskDetails;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.models.RunId;
+import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.test.Timing;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -29,6 +31,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class TestAutoCleanerHolder
@@ -90,6 +93,12 @@ public class TestAutoCleanerHolder
             {
                 cleaned.add(runId);
                 return true;
+            }
+
+            @Override
+            public Map<TaskId, TaskDetails> getTaskDetails(RunId runId)
+            {
+                throw new UnsupportedOperationException();
             }
         };
 
