@@ -16,12 +16,11 @@
 
 package com.nirmata.workflow;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
@@ -33,9 +32,7 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
-import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
 import java.time.Duration;
@@ -43,19 +40,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+
+import static com.nirmata.workflow.WorkflowAssertions.assertThat;
 
 public class TestNormal extends BaseForTests
 {
     @Test
     public void testFailedStop() throws Exception
     {
-        Timing timing = new Timing();
-
         TestTaskExecutor taskExecutor = new TestTaskExecutor(2)
         {
             @Override
@@ -69,11 +65,10 @@ public class TestNormal extends BaseForTests
             }
         };
         TaskType taskType = new TaskType("test", "1", true);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
@@ -83,39 +78,28 @@ public class TestNormal extends BaseForTests
             Task task1 = new Task(new TaskId("task1"), taskType, Lists.newArrayList(task2));
             RunId runId = workflowManager.submitTask(task1);
 
-            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+            assertThat(timing.awaitLatch(taskExecutor.latch)).isTrue();
             timing.sleepABit(); // make sure other tasks are not started
 
-            RunInfo runInfo = workflowManager.getAdmin().getRunInfo(runId);
-            Assert.assertTrue(runInfo.isComplete());
+            assertThat(workflowManager.getAdmin().getRunInfo(runId)).isComplete();
 
-            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
-            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-                (
-                    Sets.newHashSet(new TaskId("task1")),
-                    Sets.newHashSet(new TaskId("task2"))
-                );
-            Assert.assertEquals(sets, expectedSets);
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            taskExecutor.checker.assertTasksSetsContainOnly(
+                    ImmutableSet.of(new TaskId("task1")),
+                    ImmutableSet.of(new TaskId("task2"))
+            );
         }
     }
 
     @Test
     public void testAutoCleanRun() throws Exception
     {
-        Timing timing = new Timing();
-
         TaskExecutor taskExecutor = (w, t) -> () -> new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         TaskType taskType = new TaskType("test", "1", true);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .withAutoCleaner(new StandardAutoCleaner(Duration.ofMillis(1)), Duration.ofMillis(1))
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .withAutoCleaner(new StandardAutoCleaner(Duration.ofMillis(1)), Duration.ofMillis(1))
+                .build())
         {
             workflowManager.start();
 
@@ -125,11 +109,7 @@ public class TestNormal extends BaseForTests
 
             timing.sleepABit();
 
-            Assert.assertEquals(workflowManager.getAdmin().getRunInfo().size(), 0); // asserts that the cleaner ran
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(workflowManager.getAdmin().getRunInfo()).isEmpty(); // asserts that the cleaner ran
         }
     }
 
@@ -152,11 +132,10 @@ public class TestNormal extends BaseForTests
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
         TaskType taskType = new TaskType("test", "1", true);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
@@ -164,17 +143,12 @@ public class TestNormal extends BaseForTests
             Task task1 = new Task(new TaskId(), taskType, Lists.newArrayList(task2));
             RunId runId = workflowManager.submitTask(task1);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.acquireSemaphore(executionLatch, 1));
+            assertThat(timing.acquireSemaphore(executionLatch, 1)).isTrue();
 
             workflowManager.cancelRun(runId);
             continueLatch.countDown();
 
-            Assert.assertFalse(executionLatch.tryAcquire(1, 5, TimeUnit.SECONDS));  // no more executions should occur
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(executionLatch.tryAcquire(1, 5, TimeUnit.SECONDS)).isFalse();  // no more executions should occur
         }
     }
 
@@ -182,11 +156,10 @@ public class TestNormal extends BaseForTests
     public void testSingleClientSimple() throws Exception
     {
         TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
@@ -195,23 +168,13 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+            assertThat(timing.awaitLatch(taskExecutor.latch)).isTrue();
 
-            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
-            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-                (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
-                );
-            Assert.assertEquals(sets, expectedSets);
-
-            taskExecutor.getChecker().assertNoDuplicates();
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            taskExecutor.checker.assertTasksSetsContainOnly(
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
+            );
         }
     }
 
@@ -240,21 +203,14 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManagers.get(QTY - 1).submitTask(task);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+            assertThat(timing.awaitLatch(taskExecutor.latch)).isTrue();
 
-            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
-            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-                (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
-                );
-            Assert.assertEquals(sets, expectedSets);
-
-            taskExecutor.getChecker().assertNoDuplicates();
-        }
-        finally
+            taskExecutor.checker.assertTasksSetsContainOnly(
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
+            );
+        } finally
         {
             workflowManagers.forEach(CloseableUtils::closeQuietly);
         }
@@ -263,13 +219,14 @@ public class TestNormal extends BaseForTests
     @Test
     public void testNoData() throws Exception
     {
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(new TestTaskExecutor(1), 10, new TaskType("test", "1", true))
-            .withCurator(curator, "test", "1")
-            .build();
-
-        Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(new RunId(), new TaskId());
-        Assert.assertFalse(taskData.isPresent());
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(new TestTaskExecutor(1), 10, new TaskType("test", "1", true))
+                .withCurator(curator, "test", "1")
+                .build())
+        {
+            Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(new RunId(), new TaskId());
+            assertThat(taskData).isEmpty();
+        }
     }
 
     @Test
@@ -284,31 +241,26 @@ public class TestNormal extends BaseForTests
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "test", resultData);
         };
         TaskType taskType = new TaskType("test", "1", true);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
             TaskId taskId = new TaskId();
             RunId runId = workflowManager.submitTask(new Task(taskId, taskType));
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(latch));
+            assertThat(timing.awaitLatch(latch)).isTrue();
             timing.sleepABit();
 
             Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(runId, taskId);
-            Assert.assertTrue(taskData.isPresent());
-            Map<String, String> expected = Maps.newHashMap();
-            expected.put("one", "1");
-            expected.put("two", "2");
-            Assert.assertEquals(taskData.get().getResultData(), expected);
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(taskData).isPresent();
+
+            assertThat(taskData.get().getResultData())
+                    .hasSize(2)
+                    .containsEntry("one", "1")
+                    .containsEntry("two", "2");
         }
     }
 
@@ -338,32 +290,23 @@ public class TestNormal extends BaseForTests
                 }
             }
             RunId subTaskRunId = task.getTaskId().equals(groupAParent.getTaskId()) ? workflowManager.submitSubTask(task.getRunId(), groupBTask) : null;
-            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "test", Maps.newHashMap(), subTaskRunId);
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "test", Maps.newLinkedHashMap(), subTaskRunId);
         };
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
             workflowManager.submitTask(groupAParent);
 
-            Timing timing = new Timing();
-            TaskId polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
-            Assert.assertEquals(polledTaskId, groupAParent.getTaskId());
-            polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
-            Assert.assertEquals(polledTaskId, groupBTask.getTaskId());
+            assertThat(poll(tasks)).isEqualTo(groupAParent.getTaskId());
+            assertThat(poll(tasks)).isEqualTo(groupBTask.getTaskId());
             timing.sleepABit();
-            Assert.assertNull(tasks.peek());
+            assertThat(tasks).isEmpty();
 
             latch.countDown();
-            polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
-            Assert.assertEquals(polledTaskId, groupAChild.getTaskId());
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(poll(tasks)).isEqualTo(groupAChild.getTaskId());
         }
     }
 
@@ -375,13 +318,12 @@ public class TestNormal extends BaseForTests
         TaskType taskType3 = new TaskType("type3", "1", true);
 
         TestTaskExecutor taskExecutor = new TestTaskExecutor(6);
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType1)
-            .addingTaskExecutor(taskExecutor, 10, taskType2)
-            .addingTaskExecutor(taskExecutor, 10, taskType3)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType1)
+                .addingTaskExecutor(taskExecutor, 10, taskType2)
+                .addingTaskExecutor(taskExecutor, 10, taskType3)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
@@ -390,23 +332,13 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+            assertThat(timing.awaitLatch(taskExecutor.latch)).isTrue();
 
-            List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
-            List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-                (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
-                );
-            Assert.assertEquals(sets, expectedSets);
-
-            taskExecutor.getChecker().assertNoDuplicates();
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            taskExecutor.checker.assertTasksSetsContainOnly(
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
+            );
         }
     }
 
@@ -435,13 +367,12 @@ public class TestNormal extends BaseForTests
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
 
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor1, 10, taskType1)
-            .addingTaskExecutor(taskExecutor2, 10, taskType2)
-            .addingTaskExecutor(taskExecutor3, 10, taskType3)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor1, 10, taskType1)
+                .addingTaskExecutor(taskExecutor2, 10, taskType2)
+                .addingTaskExecutor(taskExecutor3, 10, taskType3)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
@@ -450,24 +381,18 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
-            Set<TaskId> set1 = Sets.newHashSet(queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
-            Set<TaskId> set2 = Sets.newHashSet(queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
-            Set<TaskId> set3 = Sets.newHashSet(queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
-
-            Assert.assertEquals(set1, Sets.newHashSet(new TaskId("task1"), new TaskId("task2")));
-            Assert.assertEquals(set2, Sets.newHashSet(new TaskId("task3"), new TaskId("task4")));
-            Assert.assertEquals(set3, Sets.newHashSet(new TaskId("task5"), new TaskId("task6")));
+            assertThat(Arrays.asList(poll(queue1), poll(queue1)))
+                    .containsOnly(new TaskId("task1"), new TaskId("task2"));
+            assertThat(Arrays.asList(poll(queue2), poll(queue2)))
+                    .containsOnly(new TaskId("task3"), new TaskId("task4"));
+            assertThat(Arrays.asList(poll(queue3), poll(queue3)))
+                    .containsOnly(new TaskId("task5"), new TaskId("task6"));
 
             timing.sleepABit();
 
-            Assert.assertNull(queue1.peek());
-            Assert.assertNull(queue2.peek());
-            Assert.assertNull(queue3.peek());
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(queue1).isEmpty();
+            assertThat(queue2).isEmpty();
+            assertThat(queue3).isEmpty();
         }
     }
 }

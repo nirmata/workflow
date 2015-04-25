@@ -32,9 +32,6 @@ import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.test.Timing;
-import org.apache.curator.utils.CloseableUtils;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
 import java.util.Map;
@@ -42,6 +39,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static com.nirmata.workflow.WorkflowAssertions.assertThat;
 
 public class TestAdmin extends BaseForTests
 {
@@ -53,12 +52,13 @@ public class TestAdmin extends BaseForTests
             latch.countDown();
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true))
+                .withCurator(curator, "test", "1")
+                .build())
         {
+
             workflowManager.start();
 
             String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
@@ -66,28 +66,24 @@ public class TestAdmin extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             RunId runId = workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(latch));
+            assertThat(timing.awaitLatch(latch)).isTrue();
 
             String runParentPath = ZooKeeperConstants.getRunParentPath();
             String startedTasksParentPath = ZooKeeperConstants.getStartedTasksParentPath();
             String completedTaskParentPath = ZooKeeperConstants.getCompletedTaskParentPath();
 
-            CuratorFramework nmCurator = ((WorkflowManagerImpl)workflowManager).getCurator();
+            CuratorFramework nmCurator = ((WorkflowManagerImpl) workflowManager).getCurator();
 
-            Assert.assertTrue(nmCurator.checkExists().forPath(runParentPath).getNumChildren() > 0);
-            Assert.assertTrue(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren() > 0);
-            Assert.assertTrue(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren() > 0);
+            assertThat(nmCurator.checkExists().forPath(runParentPath).getNumChildren()).isGreaterThan(0);
+            assertThat(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren()).isGreaterThan(0);
+            assertThat(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren()).isGreaterThan(0);
 
-            Assert.assertTrue(workflowManager.getAdmin().clean(runId));
+            assertThat(workflowManager.getAdmin().clean(runId)).isTrue();
             timing.sleepABit();
-            Assert.assertEquals(nmCurator.checkExists().forPath(runParentPath).getNumChildren(), 0);
-            Assert.assertEquals(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren(), 0);
-            Assert.assertEquals(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren(), 0);
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+
+            assertThat(nmCurator.checkExists().forPath(runParentPath).getNumChildren()).isZero();
+            assertThat(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren()).isZero();
+            assertThat(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren()).isZero();
         }
     }
 
@@ -121,73 +117,56 @@ public class TestAdmin extends BaseForTests
             resultData.put("taskId", task.getTaskId().getId());
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "", resultData);
         };
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
             RunId runId = workflowManager.submitTask(root);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(startedLatch));
+            assertThat(timing.awaitLatch(startedLatch)).isTrue();
 
             timing.sleepABit();
 
             Map<TaskId, TaskDetails> taskDetails = workflowManager.getAdmin().getTaskDetails(runId);
-            Assert.assertEquals(taskDetails.size(), 4);
-            Assert.assertTrue(taskDetails.containsKey(root.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(task1.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(task2.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(childTask.getTaskId()));
-            Assert.assertTrue(taskDetails.get(root.getTaskId()).matchesTask(root));
-            Assert.assertTrue(taskDetails.get(task1.getTaskId()).matchesTask(task1));
-            Assert.assertTrue(taskDetails.get(task2.getTaskId()).matchesTask(task2));
-            Assert.assertTrue(taskDetails.get(childTask.getTaskId()).matchesTask(childTask));
+            assertThat(taskDetails)
+                    .containsOnlyKeys(root.getTaskId(), task1.getTaskId(), task2.getTaskId(), childTask.getTaskId());
+
+            assertThat(taskDetails.get(root.getTaskId())).matchesTask(root);
+            assertThat(taskDetails.get(task1.getTaskId())).matchesTask(task1);
+            assertThat(taskDetails.get(task2.getTaskId())).matchesTask(task2);
+            assertThat(taskDetails.get(childTask.getTaskId())).matchesTask(childTask);
 
             Map<TaskId, TaskInfo> taskInfos = workflowManager.getAdmin().getTaskInfo(runId).stream().collect(Collectors.toMap(TaskInfo::getTaskId, Function.identity()));
-            Assert.assertEquals(taskInfos.size(), 3);
-            Assert.assertTrue(taskInfos.containsKey(task1.getTaskId()));
-            Assert.assertTrue(taskInfos.containsKey(task2.getTaskId()));
-            Assert.assertTrue(taskInfos.containsKey(childTask.getTaskId()));
-            Assert.assertFalse(taskInfos.get(childTask.getTaskId()).hasStarted());
-            Assert.assertTrue(taskInfos.get(task1.getTaskId()).hasStarted());
-            Assert.assertTrue(taskInfos.get(task1.getTaskId()).isComplete());
-            Assert.assertTrue(taskInfos.get(task2.getTaskId()).hasStarted());
-            Assert.assertFalse(taskInfos.get(task2.getTaskId()).isComplete());
-            Assert.assertEquals(taskInfos.get(task1.getTaskId()).getResult().getResultData().get("taskId"), task1.getTaskId().getId());
+            assertThat(taskInfos)
+                    .containsOnlyKeys(task1.getTaskId(), task2.getTaskId(), childTask.getTaskId());
+
+            assertThat(taskInfos.get(task1.getTaskId())).isComplete();
+            assertThat(taskInfos.get(task2.getTaskId())).isNotComplete();
+            assertThat(taskInfos.get(childTask.getTaskId())).hasNotStarted();
 
             waitLatch.countDown();
             timing.sleepABit();
 
             taskInfos = workflowManager.getAdmin().getTaskInfo(runId).stream().collect(Collectors.toMap(TaskInfo::getTaskId, Function.identity()));
-            Assert.assertEquals(taskInfos.size(), 3);
-            Assert.assertTrue(taskInfos.containsKey(task1.getTaskId()));
-            Assert.assertTrue(taskInfos.containsKey(task2.getTaskId()));
-            Assert.assertTrue(taskInfos.get(childTask.getTaskId()).hasStarted());
-            Assert.assertTrue(taskInfos.get(task1.getTaskId()).hasStarted());
-            Assert.assertTrue(taskInfos.get(task1.getTaskId()).isComplete());
-            Assert.assertTrue(taskInfos.get(task2.getTaskId()).hasStarted());
-            Assert.assertTrue(taskInfos.get(task2.getTaskId()).isComplete());
-            Assert.assertEquals(taskInfos.get(task1.getTaskId()).getResult().getResultData().get("taskId"), task1.getTaskId().getId());
-            Assert.assertEquals(taskInfos.get(task2.getTaskId()).getResult().getResultData().get("taskId"), task2.getTaskId().getId());
+            assertThat(taskInfos)
+                    .containsOnlyKeys(task1.getTaskId(), task2.getTaskId(), childTask.getTaskId());
+
+            assertThat(taskInfos.get(task1.getTaskId())).isComplete();
+            assertThat(taskInfos.get(task2.getTaskId())).isComplete();
+            assertThat(taskInfos.get(childTask.getTaskId())).isComplete();
 
             taskDetails = workflowManager.getAdmin().getTaskDetails(runId);
-            Assert.assertEquals(taskDetails.size(), 4);
-            Assert.assertTrue(taskDetails.containsKey(root.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(task1.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(task2.getTaskId()));
-            Assert.assertTrue(taskDetails.containsKey(childTask.getTaskId()));
-            Assert.assertTrue(taskDetails.get(root.getTaskId()).matchesTask(root));
-            Assert.assertTrue(taskDetails.get(task1.getTaskId()).matchesTask(task1));
-            Assert.assertTrue(taskDetails.get(task2.getTaskId()).matchesTask(task2));
-            Assert.assertTrue(taskDetails.get(childTask.getTaskId()).matchesTask(childTask));
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(taskDetails)
+                    .containsOnlyKeys(root.getTaskId(), task1.getTaskId(), task2.getTaskId(), childTask.getTaskId());
+
+            assertThat(taskDetails.get(root.getTaskId())).matchesTask(root);
+            assertThat(taskDetails.get(task1.getTaskId())).matchesTask(task1);
+            assertThat(taskDetails.get(task2.getTaskId())).matchesTask(task2);
+            assertThat(taskDetails.get(childTask.getTaskId())).matchesTask(childTask);
         }
     }
 
@@ -216,45 +195,35 @@ public class TestAdmin extends BaseForTests
             }
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
-            .addingTaskExecutor(taskExecutor, 10, taskType)
-            .withCurator(curator, "test", "1")
-            .build();
-        try
+        try (WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 10, taskType)
+                .withCurator(curator, "test", "1")
+                .build())
         {
             workflowManager.start();
 
             RunId runId1 = workflowManager.submitTask(task1);
             RunId runId2 = workflowManager.submitTask(task2);
 
-            Timing timing = new Timing();
-            Assert.assertTrue(timing.awaitLatch(startedLatch));
+            assertThat(timing.awaitLatch(startedLatch)).isTrue();
 
             timing.sleepABit();
 
             RunInfo runInfo1 = workflowManager.getAdmin().getRunInfo(runId1);
-            Assert.assertTrue(runInfo1.isComplete());
+            assertThat(runInfo1.isComplete()).isTrue();
 
             Map<RunId, RunInfo> runs = workflowManager.getAdmin().getRunInfo().stream().collect(Collectors.toMap(RunInfo::getRunId, Function.identity()));
-            Assert.assertEquals(runs.size(), 2);
-            Assert.assertTrue(runs.containsKey(runId1));
-            Assert.assertTrue(runs.containsKey(runId2));
-            Assert.assertTrue(runs.get(runId1).isComplete());
-            Assert.assertFalse(runs.get(runId2).isComplete());
+            assertThat(runs).containsOnlyKeys(runId1, runId2);
+            assertThat(runs.get(runId1)).isComplete();
+            assertThat(runs.get(runId2)).isNotComplete();
 
             waitLatch.countDown();
             timing.sleepABit();
 
             runs = workflowManager.getAdmin().getRunInfo().stream().collect(Collectors.toMap(RunInfo::getRunId, Function.identity()));
-            Assert.assertEquals(runs.size(), 2);
-            Assert.assertTrue(runs.containsKey(runId1));
-            Assert.assertTrue(runs.containsKey(runId2));
-            Assert.assertTrue(runs.get(runId1).isComplete());
-            Assert.assertTrue(runs.get(runId2).isComplete());
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(runs).containsOnlyKeys(runId1, runId2);
+            assertThat(runs.get(runId1)).isComplete();
+            assertThat(runs.get(runId2)).isComplete();
         }
     }
 }

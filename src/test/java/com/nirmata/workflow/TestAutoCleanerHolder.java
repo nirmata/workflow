@@ -25,7 +25,6 @@ import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.test.Timing;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.time.Clock;
 import java.time.Duration;
@@ -34,29 +33,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class TestAutoCleanerHolder
 {
     @Test
     public void testNull() throws InterruptedException
     {
         Timing timing = new Timing();
-        AutoCleanerHolder holder = new AutoCleanerHolder(null, Duration.ofDays(10));
-        Assert.assertFalse(holder.shouldRun());
-        Assert.assertFalse(holder.shouldRun());
-        timing.sleepABit();
-        Assert.assertFalse(holder.shouldRun());
-        Assert.assertFalse(holder.shouldRun());
 
-        Assert.assertNotNull(holder.getRunPeriod());
+        AutoCleanerHolder holder = new AutoCleanerHolder(null, Duration.ofDays(10));
+        assertThat(holder.shouldRun()).isFalse();
+        timing.sleepABit();
+        assertThat(holder.shouldRun()).isFalse();
+
+        assertThat(holder.getRunPeriod()).isGreaterThan(Duration.ZERO);
     }
 
     @Test
     public void testPeriod() throws InterruptedException
     {
         AutoCleanerHolder holder = new AutoCleanerHolder(new StandardAutoCleaner(Duration.ofSeconds(2)), Duration.ofSeconds(1));
-        Assert.assertFalse(holder.shouldRun());
+        assertThat(holder.shouldRun()).isFalse();
         TimeUnit.SECONDS.sleep(2);
-        Assert.assertTrue(holder.shouldRun());
+        assertThat(holder.shouldRun()).isTrue();
 
         RunId runningId = new RunId();
         RunId completedId = new RunId();
@@ -103,7 +103,6 @@ public class TestAutoCleanerHolder
         };
 
         holder.run(admin);
-        Assert.assertEquals(cleaned.size(), 1);
-        Assert.assertEquals(cleaned.get(0), completedId);
+        assertThat(cleaned).containsOnly(completedId);
     }
 }

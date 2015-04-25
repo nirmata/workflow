@@ -26,19 +26,20 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+
+import static com.nirmata.workflow.WorkflowAssertions.assertThat;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class TestDelayPriorityTasks extends BaseForTests
 {
     @Test
     public void testDelay() throws Exception
     {
-        final long delayMs = TimeUnit.SECONDS.toMillis(5);
+        final long delayMs = 5000;
 
         BlockingQueue<Long> queue = new LinkedBlockingQueue<>();
         TaskExecutor taskExecutor = (workflowManager, executableTask) -> () ->
@@ -58,16 +59,15 @@ public class TestDelayPriorityTasks extends BaseForTests
             long startMs = System.currentTimeMillis();
             workflowManager.submitTask(task);
 
-            Long ticksMs = queue.poll(1, TimeUnit.SECONDS);
-            Assert.assertNotNull(ticksMs);
-            Assert.assertTrue((ticksMs - startMs) < 1000);  // should have executed immediately
+            assertThat(queue.poll(1000, MILLISECONDS))
+                    .isLessThan(startMs + 1000); // should have executed immediately
 
             task = new Task(new TaskId(), taskType, Lists.newArrayList(), Task.makeSpecialMeta(System.currentTimeMillis() + delayMs));
             startMs = System.currentTimeMillis();
             workflowManager.submitTask(task);
-            ticksMs = queue.poll(delayMs * 2, TimeUnit.MILLISECONDS);
-            Assert.assertNotNull(ticksMs);
-            Assert.assertTrue((ticksMs - startMs) >= delayMs, "Bad timing: " + (ticksMs - startMs));
+
+            assertThat(queue.poll(delayMs * 2, MILLISECONDS))
+                    .isGreaterThanOrEqualTo(startMs + delayMs);
         }
     }
 
@@ -89,13 +89,13 @@ public class TestDelayPriorityTasks extends BaseForTests
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
         TaskType taskType = new TaskType("test", "1", true, TaskMode.PRIORITY);
-        try ( WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+        try ( WorkflowManagerImpl workflowManager = (WorkflowManagerImpl) WorkflowManagerBuilder.builder()
             .addingTaskExecutor(taskExecutor, 1, taskType)
             .withCurator(curator, "test", "1")
             .build() )
         {
             Scheduler.debugQueuedTasks = new Semaphore(0);
-            ((WorkflowManagerImpl)workflowManager).debugDontStartConsumers = true; // make sure all tasks are added to ZK before they start getting consumed
+            workflowManager.debugDontStartConsumers = true; // make sure all tasks are added to ZK before they start getting consumed
             workflowManager.start();
 
             Task task1 = new Task(new TaskId("1"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(1));
@@ -109,14 +109,14 @@ public class TestDelayPriorityTasks extends BaseForTests
             workflowManager.submitTask(task4);
             workflowManager.submitTask(task5);
 
-            Assert.assertTrue(Scheduler.debugQueuedTasks.tryAcquire(5, 5, TimeUnit.SECONDS));
-            ((WorkflowManagerImpl)workflowManager).startQueueConsumers();
+            assertThat(Scheduler.debugQueuedTasks.tryAcquire(5, 5000, MILLISECONDS)).isTrue();
+            workflowManager.startQueueConsumers();
 
-            Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "1");
-            Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "3");
-            Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "2");
-            Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "5");
-            Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "4");
+            assertThat(queue.poll(1000, MILLISECONDS)).isEqualTo("1");
+            assertThat(queue.poll(1000, MILLISECONDS)).isEqualTo("3");
+            assertThat(queue.poll(1000, MILLISECONDS)).isEqualTo("2");
+            assertThat(queue.poll(1000, MILLISECONDS)).isEqualTo("5");
+            assertThat(queue.poll(1000, MILLISECONDS)).isEqualTo("4");
         }
         finally
         {
