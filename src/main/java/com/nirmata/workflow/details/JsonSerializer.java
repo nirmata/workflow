@@ -204,16 +204,19 @@ public class JsonSerializer
         node.put("type", taskType.getType());
         node.put("version", taskType.getVersion());
         node.put("isIdempotent", taskType.isIdempotent());
+        node.put("hasDelay", taskType.hasDelay());
         return node;
     }
 
     public static TaskType getTaskType(JsonNode node)
     {
+        boolean hasDelay = node.has("hasDelay") && node.get("hasDelay").booleanValue(); // for backward compatability
         return new TaskType
         (
             node.get("type").asText(),
             node.get("version").asText(),
-            node.get("isIdempotent").asBoolean()
+            node.get("isIdempotent").asBoolean(),
+            hasDelay
         );
     }
 

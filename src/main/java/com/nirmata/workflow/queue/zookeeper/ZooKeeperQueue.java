@@ -59,7 +59,7 @@ public class ZooKeeperQueue implements Queue
             }
             else
             {
-                long delayUntilEpoch = System.currentTimeMillis();
+                long delayUntilEpoch = 1;
                 try
                 {
                     String value = executableTask.getMetaData().get(Task.META_TASK_DELAY);
