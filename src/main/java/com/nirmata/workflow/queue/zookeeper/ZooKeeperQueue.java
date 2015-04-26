@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nirmata.workflow.queue.zookeeper;
 
 import com.google.common.base.Preconditions;
-import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.Queue;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.queue.DistributedDelayQueue;
-import org.apache.curator.framework.recipes.queue.DistributedQueue;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.utils.CloseableUtils;
 import org.slf4j.Logger;
@@ -32,8 +31,7 @@ import org.slf4j.LoggerFactory;
 public class ZooKeeperQueue implements Queue
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final DistributedQueue<ExecutableTask> queue;
-    private final DistributedDelayQueue<ExecutableTask> delayQueue;
+    private final InternalQueueBase queue;
 
     public ZooKeeperQueue(CuratorFramework curator, TaskType taskType)
     {
@@ -44,8 +42,35 @@ public class ZooKeeperQueue implements Queue
         {
             builder = builder.lockPath(ZooKeeperConstants.getQueuePath(taskType));
         }
-        queue = taskType.hasDelay() ? null : builder.buildQueue();
-        delayQueue = taskType.hasDelay() ? builder.buildDelayQueue() : null;
+
+        queue = makeQueue(builder, taskType);
+    }
+
+    static InternalQueueBase makeQueue(QueueBuilder<ExecutableTask> builder, TaskType taskType)
+    {
+        InternalQueueBase localQueue = null;
+        switch ( taskType.getMode() )
+        {
+        default:
+        case STANDARD:
+        {
+            localQueue = new StandardQueue(builder.buildQueue());
+            break;
+        }
+
+        case DELAY:
+        {
+            localQueue = new DelayQueue(builder.buildDelayQueue());
+            break;
+        }
+
+        case PRIORITY:
+        {
+            localQueue = new PriorityQueue(builder.buildPriorityQueue(Integer.getInteger("workflow-min-items-before-refresh", 10)));
+            break;
+        }
+        }
+        return localQueue;
     }
 
     @Override
@@ -53,27 +78,20 @@ public class ZooKeeperQueue implements Queue
     {
         try
         {
-            if ( queue != null )
+            long value = 0;
+            try
             {
-                queue.put(executableTask);
+                String valueStr = executableTask.getMetaData().get(Task.META_TASK_DELAY_OR_PRIORITY);
+                if ( valueStr != null )
+                {
+                    value = Long.parseLong(valueStr);
+                }
             }
-            else
+            catch ( NumberFormatException ignore )
             {
-                long delayUntilEpoch = 1;
-                try
-                {
-                    String value = executableTask.getMetaData().get(Task.META_TASK_DELAY);
-                    if ( value != null )
-                    {
-                        delayUntilEpoch = Long.parseLong(value);
-                    }
-                }
-                catch ( NumberFormatException ignore )
-                {
-                    // ignore
-                }
-                delayQueue.put(executableTask, delayUntilEpoch);
+                // ignore
             }
+            queue.put(executableTask, value);
         }
         catch ( Exception e )
         {
@@ -87,14 +105,7 @@ public class ZooKeeperQueue implements Queue
     {
         try
         {
-            if ( queue != null )
-            {
-                queue.start();
-            }
-            else
-            {
-                delayQueue.start();
-            }
+            queue.start();
         }
         catch ( Exception e )
         {
@@ -107,6 +118,5 @@ public class ZooKeeperQueue implements Queue
     public void close()
     {
         CloseableUtils.closeQuietly(queue);
-        CloseableUtils.closeQuietly(delayQueue);
     }
 }

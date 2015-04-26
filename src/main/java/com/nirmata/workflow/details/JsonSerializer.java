@@ -31,6 +31,7 @@ import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
+import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -204,19 +205,19 @@ public class JsonSerializer
         node.put("type", taskType.getType());
         node.put("version", taskType.getVersion());
         node.put("isIdempotent", taskType.isIdempotent());
-        node.put("hasDelay", taskType.hasDelay());
+        node.put("mode", taskType.getMode().getCode());
         return node;
     }
 
     public static TaskType getTaskType(JsonNode node)
     {
-        boolean hasDelay = node.has("hasDelay") && node.get("hasDelay").booleanValue(); // for backward compatability
+        TaskMode taskMode = node.has("mode") ? TaskMode.fromCode(node.get("mode").intValue()) : null; // for backward compatability
         return new TaskType
         (
             node.get("type").asText(),
             node.get("version").asText(),
             node.get("isIdempotent").asBoolean(),
-            hasDelay
+            taskMode
         );
     }
 

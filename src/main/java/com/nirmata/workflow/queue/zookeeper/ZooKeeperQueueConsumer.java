@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nirmata.workflow.queue.zookeeper;
 
 import com.google.common.base.Preconditions;
@@ -23,7 +24,6 @@ import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.TaskRunner;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.queue.QueueBase;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.utils.CloseableUtils;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator.framework.recipes.queue.QueueConsumer<ExecutableTask>
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final QueueBase<ExecutableTask> queue;
+    private final InternalQueueBase queue;
     private final TaskRunner taskRunner;
     private final AtomicBoolean isOpen = new AtomicBoolean(false);
 
@@ -48,7 +48,7 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
         {
             builder = builder.lockPath(ZooKeeperConstants.getQueueLockPath(taskType));
         }
-        queue = taskType.hasDelay() ? builder.buildDelayQueue() : builder.buildQueue();
+        queue = ZooKeeperQueue.makeQueue(builder, taskType);
     }
 
     @Override

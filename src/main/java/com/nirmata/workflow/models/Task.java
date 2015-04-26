@@ -39,7 +39,7 @@ public class Task
      * The value is the <code>Long.toString(epoch)</code> value of the future ticks/epoch
      * when the task should run.
      */
-    public static final String META_TASK_DELAY = "__delay";
+    public static final String META_TASK_DELAY_OR_PRIORITY = "__delay_or_priority";
 
     /**
      * @param taskId this task's ID - must be unique
