@@ -35,6 +35,13 @@ public class Task
     private final Map<String, String> metaData;
 
     /**
+     * Metadata value that specifies the delay if the task is true for <code>hasDelay</code>.
+     * The value is the <code>Long.toString(epoch)</code> value of the future ticks/epoch
+     * when the task should run.
+     */
+    public static final String META_TASK_DELAY = "__delay";
+
+    /**
      * @param taskId this task's ID - must be unique
      * @param taskType the task type
      */

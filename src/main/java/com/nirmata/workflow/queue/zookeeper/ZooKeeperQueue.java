@@ -18,9 +18,11 @@ package com.nirmata.workflow.queue.zookeeper;
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.details.ZooKeeperConstants;
+import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.Queue;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.queue.DistributedDelayQueue;
 import org.apache.curator.framework.recipes.queue.DistributedQueue;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.utils.CloseableUtils;
@@ -31,6 +33,7 @@ public class ZooKeeperQueue implements Queue
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DistributedQueue<ExecutableTask> queue;
+    private final DistributedDelayQueue<ExecutableTask> delayQueue;
 
     public ZooKeeperQueue(CuratorFramework curator, TaskType taskType)
     {
@@ -41,7 +44,8 @@ public class ZooKeeperQueue implements Queue
         {
             builder = builder.lockPath(ZooKeeperConstants.getQueuePath(taskType));
         }
-        queue = builder.buildQueue();
+        queue = taskType.hasDelay() ? null : builder.buildQueue();
+        delayQueue = taskType.hasDelay() ? builder.buildDelayQueue() : null;
     }
 
     @Override
@@ -49,7 +53,27 @@ public class ZooKeeperQueue implements Queue
     {
         try
         {
-            queue.put(executableTask);
+            if ( queue != null )
+            {
+                queue.put(executableTask);
+            }
+            else
+            {
+                long delayUntilEpoch = 1;
+                try
+                {
+                    String value = executableTask.getMetaData().get(Task.META_TASK_DELAY);
+                    if ( value != null )
+                    {
+                        delayUntilEpoch = Long.parseLong(value);
+                    }
+                }
+                catch ( NumberFormatException ignore )
+                {
+                    // ignore
+                }
+                delayQueue.put(executableTask, delayUntilEpoch);
+            }
         }
         catch ( Exception e )
         {
@@ -63,7 +87,14 @@ public class ZooKeeperQueue implements Queue
     {
         try
         {
-            queue.start();
+            if ( queue != null )
+            {
+                queue.start();
+            }
+            else
+            {
+                delayQueue.start();
+            }
         }
         catch ( Exception e )
         {
@@ -76,5 +107,6 @@ public class ZooKeeperQueue implements Queue
     public void close()
     {
         CloseableUtils.closeQuietly(queue);
+        CloseableUtils.closeQuietly(delayQueue);
     }
 }

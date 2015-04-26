@@ -57,7 +57,7 @@ dependencies {
 
     Every task has a TaskType. The TaskType is used by your TaskExecutor implementation to do the work of the task. TaskType's have three fields:
     "type": a string that contains any value you define; "version": a version string used to version the tasks; "isIdempotent": whether or not
-    the task is idempotent.
+    the task is idempotent. Task types can also allow for delays before a task executes.
 
 * TaskExecutor
 

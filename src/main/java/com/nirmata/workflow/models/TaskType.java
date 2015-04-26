@@ -34,13 +34,21 @@ public class TaskType
     private final String type;
     private final String version;
     private final boolean isIdempotent;
+    private final boolean hasDelay;
+
+    // for backward compatibility
+    public TaskType(String type, String version, boolean isIdempotent)
+    {
+        this(type, version, isIdempotent, false);
+    }
 
     /**
      * @param type any value to represent the task type
      * @param version the version of this task type
      * @param isIdempotent whether or not this task is idempotent (see class description for details)
+     * @param hasDelay if true, tasks are allowed to specify a delay before executing
      */
-    public TaskType(String type, String version, boolean isIdempotent)
+    public TaskType(String type, String version, boolean isIdempotent, boolean hasDelay)
     {
         Preconditions.checkArgument(!type.contains("/"), "type cannot contain '/'");
         Preconditions.checkArgument(!version.contains("/"), "version cannot contain '/'");
@@ -48,6 +56,7 @@ public class TaskType
         this.version = Preconditions.checkNotNull(version, "version cannot be null");
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
         this.isIdempotent = isIdempotent;
+        this.hasDelay = hasDelay;
     }
 
     public String getVersion()
@@ -65,6 +74,12 @@ public class TaskType
         return isIdempotent;
     }
 
+    public boolean hasDelay()
+    {
+        return hasDelay;
+    }
+
+    @SuppressWarnings("SimplifiableIfStatement")
     @Override
     public boolean equals(Object o)
     {
@@ -83,17 +98,16 @@ public class TaskType
         {
             return false;
         }
+        if ( hasDelay != taskType.hasDelay )
+        {
+            return false;
+        }
         if ( !type.equals(taskType.type) )
         {
             return false;
         }
-        //noinspection RedundantIfStatement
-        if ( !version.equals(taskType.version) )
-        {
-            return false;
-        }
+        return version.equals(taskType.version);
 
-        return true;
     }
 
     @Override
@@ -102,6 +116,7 @@ public class TaskType
         int result = type.hashCode();
         result = 31 * result + version.hashCode();
         result = 31 * result + (isIdempotent ? 1 : 0);
+        result = 31 * result + (hasDelay ? 1 : 0);
         return result;
     }
 
@@ -112,6 +127,7 @@ public class TaskType
             "type='" + type + '\'' +
             ", version='" + version + '\'' +
             ", isIdempotent=" + isIdempotent +
+            ", hasDelay=" + hasDelay +
             '}';
     }
 }
