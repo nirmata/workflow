@@ -15,6 +15,16 @@ Reference
 |                         |             | workflow instance crashes or there is some other kind of |
 |                         |             | error. non-idempotent tasks will only be attempted once. |
 *-------------------------*-------------*----------------------------------------------------------*
+| HasDelay                | Boolean     | Whether or not this task can have a delay\               |
+|                         |             | \                                                        |
+|                         |             | Delayed tasks don't excecute immediately. They execute   |
+|                         |             | at a future time specified by the task metadata          |
+|                         |             | "__delay" (use <<<Task.META_TASK_DELAY>>>). The value is |
+|                         |             | the <<<Long.toString(epoch)>>> value of the future       |
+|                         |             | ticks/epoch when the task should run. E.g. to have the   |
+|                         |             | task run 1 minute from when submitted use                |
+|                         |             | <<<System.currentTimeMillis() + 60000>>>.                |
+*-------------------------*-------------*----------------------------------------------------------*
 | <<Task>>                |             | <<Models a task>>                                        |
 *-------------------------*-------------*----------------------------------------------------------*
 | TaskId                  | String      | Unique ID for the task                                   |
