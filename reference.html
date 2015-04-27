@@ -53,7 +53,7 @@
                   <li id="publishDate">Last Published: 2015-04-26
                       <span class="divider">|</span>
                    </li>
-                  <li id="projectVersion">Version: 0.4.0
+                  <li id="projectVersion">Version: 0.4.1
                       </li>
                       
                 
@@ -204,9 +204,9 @@
 <td align="center">Boolean</td>
 <td align="center">Whether or not this task is idempotent&#xa0;<br />&#xa0;<br />Idempotent tasks can be restarted/re-executed when a workflow instance crashes or there is some other kind of error. non-idempotent tasks will only be attempted once.</td></tr>
 <tr class="a">
-<td align="center">HasDelay</td>
-<td align="center">Boolean</td>
-<td align="center">Whether or not this task can have a delay&#xa0;<br />&#xa0;<br />Delayed tasks don't excecute immediately. They execute at a future time specified by the task metadata &quot;__delay&quot; (use <tt>Task.META_TASK_DELAY</tt>). The value is the <tt>Long.toString(epoch)</tt> value of the future ticks/epoch when the task should run. E.g. to have the task run 1 minute from when submitted use <tt>System.currentTimeMillis() + 60000</tt>.</td></tr>
+<td align="center">Mode</td>
+<td align="center">Task Mode</td>
+<td align="center">Task queueing mode (see below)</td></tr>
 <tr class="b">
 <td align="center"><b>Task</b></td>
 <td align="center"></td>
@@ -267,6 +267,19 @@
 <td align="center">Sub Task RunId</td>
 <td align="center">String</td>
 <td align="center">Optional sub-task (see below)</td></tr></table></div>
+<div class="section">
+<h3><a name="Task_Modes"></a>Task Modes</h3>
+<p>Tasks can be queued to execute in the order submitted, with a given priority, or a given delay. The possible values are:</p>
+<table border="1" class="table table-striped">
+<tr class="a">
+<td align="center">STANDARD</td>
+<td align="center">Executed in order submitted</td></tr>
+<tr class="b">
+<td align="center">DELAY</td>
+<td align="center">Delayed tasks don't excecute immediately. They execute at a future time specified by the task metadata &quot;__submit_value&quot; (use <tt>Task.makeSpecialMeta()</tt>). The value is the <tt>Long.toString(epoch)</tt> value of the future ticks/epoch when the task should run. E.g. to have the task run 1 minute from when submitted use <tt>System.currentTimeMillis() + 60000</tt>.</td></tr>
+<tr class="a">
+<td align="center">PRIORITY</td>
+<td align="center">Priority tasks are executed with the approximate priority given when submitted. i.e. a task submitted with priority 1 should execute before a task submitted with priority 5 even if the priority 1 task was submitted after the priority 5 task (of course only if the priority 5 task hasn't executed yet). Just as for DELAY, set the proiority using the task metadata &quot;__submit_value&quot; (or <tt>Task.makeSpecialMeta()</tt>).</td></tr></table></div>
 <div class="section">
 <h3><a name="Status_Codes"></a>Status Codes</h3>
 <p>When a task executes, it returns a result that specifies the task status. The status controls the remainder of the tasks in the workflow. The possible values are:</p>
