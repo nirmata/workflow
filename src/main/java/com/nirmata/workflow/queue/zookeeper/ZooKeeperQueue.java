@@ -81,7 +81,7 @@ public class ZooKeeperQueue implements Queue
             long value = 0;
             try
             {
-                String valueStr = executableTask.getMetaData().get(Task.META_TASK_DELAY_OR_PRIORITY);
+                String valueStr = executableTask.getMetaData().get(Task.META_TASK_SUBMIT_VALUE);
                 if ( valueStr != null )
                 {
                     value = Long.parseLong(valueStr);

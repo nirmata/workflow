@@ -15,15 +15,7 @@ Reference
 |                         |             | workflow instance crashes or there is some other kind of |
 |                         |             | error. non-idempotent tasks will only be attempted once. |
 *-------------------------*-------------*----------------------------------------------------------*
-| HasDelay                | Boolean     | Whether or not this task can have a delay\               |
-|                         |             | \                                                        |
-|                         |             | Delayed tasks don't excecute immediately. They execute   |
-|                         |             | at a future time specified by the task metadata          |
-|                         |             | "__delay" (use <<<Task.META_TASK_DELAY>>>). The value is |
-|                         |             | the <<<Long.toString(epoch)>>> value of the future       |
-|                         |             | ticks/epoch when the task should run. E.g. to have the   |
-|                         |             | task run 1 minute from when submitted use                |
-|                         |             | <<<System.currentTimeMillis() + 60000>>>.                |
+| Mode                    | Task Mode   | Task queueing mode (see below)                           |
 *-------------------------*-------------*----------------------------------------------------------*
 | <<Task>>                |             | <<Models a task>>                                        |
 *-------------------------*-------------*----------------------------------------------------------*
@@ -63,6 +55,29 @@ Reference
 *-------------------------*-------------*----------------------------------------------------------*
 | Sub Task RunId          | String      | Optional sub-task (see below)                            |
 *-------------------------*-------------*----------------------------------------------------------*
+
+* Task Modes
+
+    Tasks can be queued to execute in the order submitted, with a given priority, or a given delay.
+    The possible values are:
+
+*------------------*------------------------------------------------------------------------*
+| STANDARD         | Executed in order submitted                                            |
+*------------------*------------------------------------------------------------------------*
+| DELAY            | Delayed tasks don't excecute immediately. They execute at a future     |
+|                  | time specified by the task metadata "__submit_value"                   |
+|                  | (use <<<Task.makeSpecialMeta()>>>). The value is the                   |
+|                  | <<<Long.toString(epoch)>>> value of the future ticks/epoch when the    |
+|                  | task should run. E.g. to have the task run 1 minute from when          |
+|                  | submitted use <<<System.currentTimeMillis() + 60000>>>.                |
+*------------------*------------------------------------------------------------------------*
+| PRIORITY         | Priority tasks are executed with the approximate priority given when   |
+|                  | submitted. i.e. a task submitted with priority 1 should execute before |
+|                  | a task submitted with priority 5 even if the priority 1 task was       |
+|                  | submitted after the priority 5 task (of course only if the priority 5  |
+|                  | task hasn't executed yet). Just as for DELAY, set the proiority using  |
+|                  | the task metadata "__submit_value" (or <<<Task.makeSpecialMeta()>>>).  |
+*------------------*------------------------------------------------------------------------*
 
 * Status Codes
 

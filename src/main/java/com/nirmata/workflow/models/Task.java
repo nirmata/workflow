@@ -35,11 +35,22 @@ public class Task
     private final Map<String, String> metaData;
 
     /**
-     * Metadata value that specifies the delay if the task is true for <code>hasDelay</code>.
-     * The value is the <code>Long.toString(epoch)</code> value of the future ticks/epoch
-     * when the task should run.
+     * Metadata value used by special purpose executors
      */
-    public static final String META_TASK_DELAY_OR_PRIORITY = "__delay_or_priority";
+    public static final String META_TASK_SUBMIT_VALUE = "__submit_value";
+
+    /**
+     * Utility to create a new meta map with the given submit value
+     *
+     * @param value the submit value
+     * @return new meta map
+     */
+    public static Map<String, String> makeSpecialMeta(long value)
+    {
+        Map<String, String> meta = Maps.newHashMap();
+        meta.put(META_TASK_SUBMIT_VALUE, Long.toString(value));
+        return meta;
+    }
 
     /**
      * @param taskId this task's ID - must be unique

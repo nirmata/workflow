@@ -60,9 +60,7 @@ public class TestDelayPriorityTasks extends BaseForTests
             Assert.assertNotNull(ticksMs);
             Assert.assertTrue((ticksMs - startMs) < 1000);  // should have executed immediately
 
-            Map<String, String> metaData = Maps.newHashMap();
-            metaData.put(Task.META_TASK_DELAY_OR_PRIORITY, Long.toString(System.currentTimeMillis() + delayMs));
-            task = new Task(new TaskId(), taskType, Lists.newArrayList(), metaData);
+            task = new Task(new TaskId(), taskType, Lists.newArrayList(), Task.makeSpecialMeta(System.currentTimeMillis() + delayMs));
             startMs = System.currentTimeMillis();
             workflowManager.submitTask(task);
             ticksMs = queue.poll(delayMs * 2, TimeUnit.MILLISECONDS);
@@ -96,11 +94,11 @@ public class TestDelayPriorityTasks extends BaseForTests
         {
             workflowManager.start();
 
-            Task task1 = new Task(new TaskId("1"), taskType, Lists.newArrayList(), meta(1));
-            Task task2 = new Task(new TaskId("2"), taskType, Lists.newArrayList(), meta(10));
-            Task task3 = new Task(new TaskId("3"), taskType, Lists.newArrayList(), meta(5));
-            Task task4 = new Task(new TaskId("4"), taskType, Lists.newArrayList(), meta(30));
-            Task task5 = new Task(new TaskId("5"), taskType, Lists.newArrayList(), meta(20));
+            Task task1 = new Task(new TaskId("1"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(1));
+            Task task2 = new Task(new TaskId("2"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(10));
+            Task task3 = new Task(new TaskId("3"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(5));
+            Task task4 = new Task(new TaskId("4"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(30));
+            Task task5 = new Task(new TaskId("5"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(20));
             workflowManager.submitTask(task1);
             workflowManager.submitTask(task2);
             workflowManager.submitTask(task3);
@@ -113,12 +111,5 @@ public class TestDelayPriorityTasks extends BaseForTests
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "5");
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "4");
         }
-    }
-
-    private Map<String, String> meta(long value)
-    {
-        Map<String, String> map = Maps.newHashMap();
-        map.put(Task.META_TASK_DELAY_OR_PRIORITY, Long.toString(value));
-        return map;
     }
 }
