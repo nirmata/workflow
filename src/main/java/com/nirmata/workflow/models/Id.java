@@ -16,12 +16,13 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
+import java.io.Serializable;
 import java.util.UUID;
 
 /**
  * Base for IDs
  */
-public class Id
+public class Id implements Serializable
 {
     private final String id;
 

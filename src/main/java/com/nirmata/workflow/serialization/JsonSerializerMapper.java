@@ -91,8 +91,7 @@ public class JsonSerializerMapper
         methods = Preconditions.checkNotNull(methods, "No serializer found for: " + clazz);
         try
         {
-            //noinspection unchecked
-            return (T)methods.getter.invoke(null, node);
+            return clazz.cast(methods.getter.invoke(null, node));
         }
         catch ( Exception e )
         {

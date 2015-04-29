@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 
 import static com.nirmata.workflow.serialization.JsonSerializer.*;
 
-public class TestJsonSerializer
+public class TestSerializer
 {
     private static final Random random = new Random();
 
@@ -177,7 +177,12 @@ public class TestJsonSerializer
     @Test
     public void testAlternateSerializers()
     {
+        JDKSerializer serializer = new JDKSerializer();
 
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        byte[] bytes = serializer.serialize(startedTask);
+        StartedTask unStartedTask = serializer.deserialize(bytes, StartedTask.class);
+        Assert.assertEquals(startedTask, unStartedTask);
     }
 
     private Task randomTask(int index)

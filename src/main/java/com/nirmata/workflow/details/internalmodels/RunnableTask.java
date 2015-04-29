@@ -21,12 +21,13 @@ import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class RunnableTask
+public class RunnableTask implements Serializable
 {
     private final Map<TaskId, ExecutableTask> tasks;
     private final List<RunnableTaskDag> taskDags;

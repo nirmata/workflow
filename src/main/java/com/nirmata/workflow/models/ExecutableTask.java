@@ -17,13 +17,14 @@ package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.io.Serializable;
 import java.util.Map;
 
 /**
  * Models a task that has been scheduled for execution
  * as part of a run
  */
-public class ExecutableTask
+public class ExecutableTask implements Serializable
 {
     private final RunId runId;
     private final TaskId taskId;
