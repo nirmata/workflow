@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +28,7 @@ import java.util.Optional;
 /**
  * Models a task
  */
-public class Task
+public class Task implements Serializable
 {
     private final TaskId taskId;
     private final Optional<TaskType> taskType;

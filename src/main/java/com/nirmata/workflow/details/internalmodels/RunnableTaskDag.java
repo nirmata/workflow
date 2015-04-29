@@ -18,9 +18,10 @@ package com.nirmata.workflow.details.internalmodels;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.nirmata.workflow.models.TaskId;
+import java.io.Serializable;
 import java.util.Collection;
 
-public class RunnableTaskDag
+public class RunnableTaskDag implements Serializable
 {
     private final TaskId taskId;
     private final Collection<TaskId> dependencies;

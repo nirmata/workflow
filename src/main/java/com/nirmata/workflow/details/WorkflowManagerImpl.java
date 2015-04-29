@@ -39,6 +39,7 @@ import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
+import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ZKPaths;
@@ -64,6 +65,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     private final List<QueueConsumer> consumers;
     private final SchedulerSelector schedulerSelector;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
+    private final Serializer serializer;
 
     private static final TaskType nullTaskType = new TaskType("", "", false);
 
@@ -74,8 +76,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         CLOSED
     }
 
-    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder)
+    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder, Serializer serializer)
     {
+        this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
         autoCleanerHolder = Preconditions.checkNotNull(autoCleanerHolder, "autoCleanerHolder cannot be null");
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         queueFactory = Preconditions.checkNotNull(queueFactory, "queueFactory cannot be null");
@@ -91,13 +94,25 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         return curator;
     }
 
+    @VisibleForTesting
+    volatile boolean debugDontStartConsumers = false;
+
     @Override
     public void start()
     {
         Preconditions.checkState(state.compareAndSet(State.LATENT, State.STARTED), "Already started");
 
-        consumers.forEach(QueueConsumer::start);
+        if ( !debugDontStartConsumers )
+        {
+            startQueueConsumers();
+        }
         schedulerSelector.start();
+    }
+
+    @VisibleForTesting
+    void startQueueConsumers()
+    {
+        consumers.forEach(QueueConsumer::start);
     }
 
     @Override
@@ -118,8 +133,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         try
         {
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            byte[] runnableTaskJson = curator.getData().forPath(runPath);
-            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(runnableTaskJson));
+            byte[] runnableTaskBytes = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = serializer.deserialize(runnableTaskBytes, RunnableTask.class);
             return runnableTask.getTasks()
                 .entrySet()
                 .stream()
@@ -156,9 +171,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         try
         {
-            byte[] runnableTaskJson = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(runnableTask));
+            byte[] runnableTaskBytes = serializer.serialize(runnableTask);
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskJson);
+            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
         }
         catch ( Exception e )
         {
@@ -177,8 +192,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         try
         {
             Stat stat = new Stat();
-            byte[] json = curator.getData().storingStatIn(stat).forPath(runPath);
-            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            byte[] bytes = curator.getData().storingStatIn(stat).forPath(runPath);
+            RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
             Scheduler.completeRunnableTask(log, this, runId, runnableTask, stat.getVersion());
             return true;
         }
@@ -198,8 +213,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
         try
         {
-            byte[] json = curator.getData().forPath(completedTaskPath);
-            TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
+            byte[] bytes = curator.getData().forPath(completedTaskPath);
+            TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
             return Optional.of(taskExecutionResult);
         }
         catch ( KeeperException.NoNodeException dummy )
@@ -240,8 +255,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         String runPath = ZooKeeperConstants.getRunPath(runId);
         try
         {
-            byte[] json = curator.getData().forPath(runPath);
-            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            byte[] bytes = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
             runnableTask.getTasks().keySet().forEach(taskId -> {
                 String startedTaskPath = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
                 try
@@ -300,8 +315,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         try
         {
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            byte[] json = curator.getData().forPath(runPath);
-            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+            byte[] bytes = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
             return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
         }
         catch ( Exception e )
@@ -322,8 +337,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     try
                     {
                         RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(fullPath));
-                        byte[] json = curator.getData().forPath(fullPath);
-                        RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(json));
+                        byte[] bytes = curator.getData().forPath(fullPath);
+                        RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
                         return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
                     }
                     catch ( KeeperException.NoNodeException ignore )
@@ -354,8 +369,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         try
         {
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            byte[] runJson = curator.getData().forPath(runPath);
-            RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(runJson));
+            byte[] runBytes = curator.getData().forPath(runPath);
+            RunnableTask runnableTask = serializer.deserialize(runBytes, RunnableTask.class);
 
             Set<TaskId> notStartedTasks = runnableTask.getTasks().values().stream().filter(ExecutableTask::isExecutable).map(ExecutableTask::getTaskId).collect(Collectors.toSet());
             Map<TaskId, StartedTask> startedTasks = Maps.newHashMap();
@@ -365,8 +380,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(fullPath));
                 try
                 {
-                    byte[] json = curator.getData().forPath(fullPath);
-                    StartedTask startedTask = JsonSerializer.getStartedTask(JsonSerializer.fromBytes(json));
+                    byte[] bytes = curator.getData().forPath(fullPath);
+                    StartedTask startedTask = serializer.deserialize(bytes, StartedTask.class);
                     startedTasks.put(taskId, startedTask);
                     notStartedTasks.remove(taskId);
                 }
@@ -388,8 +403,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 {
                     try
                     {
-                        byte[] json = curator.getData().forPath(fullPath);
-                        TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(json));
+                        byte[] bytes = curator.getData().forPath(fullPath);
+                        TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
                         taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), taskExecutionResult));
                         notStartedTasks.remove(taskId);
                     }
@@ -418,6 +433,11 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             throw new RuntimeException(e);
         }
         return taskInfos;
+    }
+
+    public Serializer getSerializer()
+    {
+        return serializer;
     }
 
     @VisibleForTesting
@@ -456,10 +476,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
         }
-        String json = JsonSerializer.nodeToString(JsonSerializer.newTaskExecutionResult(result));
+        byte[] bytes = serializer.serialize(result);
         try
         {
-            curator.create().creatingParentsIfNeeded().forPath(path, json.getBytes());
+            curator.create().creatingParentsIfNeeded().forPath(path, bytes);
         }
         catch ( KeeperException.NodeExistsException ignore )
         {

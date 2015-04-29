@@ -43,7 +43,7 @@ public class ZooKeeperQueueConsumer implements QueueConsumer, org.apache.curator
         this.taskRunner = Preconditions.checkNotNull(taskRunner, "taskRunner cannot be null");
         workflowManager = Preconditions.checkNotNull(workflowManager, "workflowManager cannot be null");
         String path = ZooKeeperConstants.getQueuePath(taskType);
-        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(workflowManager.getCurator(), this, new TaskQueueSerializer(), path);
+        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(workflowManager.getCurator(), this, new TaskQueueSerializer(workflowManager.getSerializer()), path);
         if ( taskType.isIdempotent() )
         {
             builder = builder.lockPath(ZooKeeperConstants.getQueueLockPath(taskType));

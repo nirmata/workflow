@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow.details;
+package com.nirmata.workflow.serialization;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
@@ -43,9 +43,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static com.nirmata.workflow.details.JsonSerializer.*;
+import static com.nirmata.workflow.serialization.JsonSerializer.*;
 
-public class TestJsonSerializer
+public class TestSerializer
 {
     private static final Random random = new Random();
 
@@ -159,6 +159,30 @@ public class TestJsonSerializer
         Task unTask = getTask(fromString(json));
 
         Assert.assertEquals(task, unTask);
+    }
+
+    @Test
+    public void testJsonSerializerMapper()
+    {
+        JsonSerializerMapper mapper = new JsonSerializerMapper();
+        Task task = randomTask(0);
+        JsonNode node = mapper.make(task);
+        String str = nodeToString(node);
+        System.out.println(str);
+
+        Task unTask = mapper.get(fromString(str), Task.class);
+        Assert.assertEquals(task, unTask);
+    }
+
+    @Test
+    public void testAlternateSerializers()
+    {
+        JDKSerializer serializer = new JDKSerializer();
+
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        byte[] bytes = serializer.serialize(startedTask);
+        StartedTask unStartedTask = serializer.deserialize(bytes, StartedTask.class);
+        Assert.assertEquals(startedTask, unStartedTask);
     }
 
     private Task randomTask(int index)

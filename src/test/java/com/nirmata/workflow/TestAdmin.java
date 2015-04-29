@@ -30,6 +30,7 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
+import com.nirmata.workflow.serialization.JsonSerializerMapper;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
@@ -41,9 +42,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static com.nirmata.workflow.details.JsonSerializer.fromString;
-import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
 public class TestAdmin extends BaseForTests
 {
@@ -64,7 +62,8 @@ public class TestAdmin extends BaseForTests
             workflowManager.start();
 
             String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             RunId runId = workflowManager.submitTask(task);
 
             Timing timing = new Timing();
@@ -81,6 +80,7 @@ public class TestAdmin extends BaseForTests
             Assert.assertTrue(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren() > 0);
 
             Assert.assertTrue(workflowManager.getAdmin().clean(runId));
+            timing.sleepABit();
             Assert.assertEquals(nmCurator.checkExists().forPath(runParentPath).getNumChildren(), 0);
             Assert.assertEquals(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren(), 0);
             Assert.assertEquals(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren(), 0);

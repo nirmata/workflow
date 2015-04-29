@@ -43,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -116,7 +117,7 @@ class Scheduler
             }
             else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
             {
-                RunnableTask runnableTask = JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(event.getData().getData()));
+                RunnableTask runnableTask = workflowManager.getSerializer().deserialize(event.getData().getData(), RunnableTask.class);
                 if ( runnableTask.getParentRunId().isPresent() )
                 {
                     updatedRunIds.add(runnableTask.getParentRunId().get());
@@ -170,7 +171,7 @@ class Scheduler
             ChildData currentData = completedTasksCache.getCurrentData(completedTaskPath);
             if ( currentData != null )
             {
-                TaskExecutionResult taskExecutionResult = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(currentData.getData()));
+                TaskExecutionResult taskExecutionResult = workflowManager.getSerializer().deserialize(currentData.getData(), TaskExecutionResult.class);
                 return taskExecutionResult.getStatus().isCancelingStatus();
             }
             return false;
@@ -184,7 +185,7 @@ class Scheduler
             RunId parentRunId = runnableTask.getParentRunId().orElse(null);
             RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTimeUtc(), LocalDateTime.now(Clock.systemUTC()), parentRunId);
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            byte[] json = JsonSerializer.toBytes(JsonSerializer.newRunnableTask(completedRunnableTask));
+            byte[] json = workflowManager.getSerializer().serialize(completedRunnableTask);
             workflowManager.getCurator().setData().withVersion(version).forPath(runPath, json);
         }
         catch ( Exception e )
@@ -194,6 +195,9 @@ class Scheduler
             throw new RuntimeException(message, e);
         }
     }
+
+    @VisibleForTesting
+    static volatile Semaphore debugQueuedTasks = null;
 
     private void updateTasks(RunId runId)
     {
@@ -259,7 +263,7 @@ class Scheduler
         ChildData currentData = runsCache.getCurrentData(ZooKeeperConstants.getRunPath(runId));
         if ( currentData != null )
         {
-            return JsonSerializer.getRunnableTask(JsonSerializer.fromBytes(currentData.getData()));
+            return workflowManager.getSerializer().deserialize(currentData.getData(), RunnableTask.class);
         }
         return null;
     }
@@ -270,11 +274,16 @@ class Scheduler
         try
         {
             StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
-            byte[] data = JsonSerializer.toBytes(JsonSerializer.newStartedTask(startedTask));
+            byte[] data = workflowManager.getSerializer().serialize(startedTask);
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = queues.get(task.getTaskType());
             queue.put(task);
             log.info("Queued task: " + task);
+
+            if ( debugQueuedTasks != null )
+            {
+                debugQueuedTasks.release();
+            }
         }
         catch ( KeeperException.NodeExistsException ignore )
         {
@@ -305,7 +314,7 @@ class Scheduler
         ChildData currentData = completedTasksCache.getCurrentData(completedTaskPath);
         if ( currentData != null )
         {
-            TaskExecutionResult result = JsonSerializer.getTaskExecutionResult(JsonSerializer.fromBytes(currentData.getData()));
+            TaskExecutionResult result = workflowManager.getSerializer().deserialize(currentData.getData(), TaskExecutionResult.class);
             if ( result.getSubTaskRunId().isPresent() )
             {
                 RunnableTask runnableTask = getRunnableTask(result.getSubTaskRunId().get());

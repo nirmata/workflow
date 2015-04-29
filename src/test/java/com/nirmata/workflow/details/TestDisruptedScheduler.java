@@ -25,6 +25,7 @@ import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
+import com.nirmata.workflow.serialization.JsonSerializerMapper;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -43,9 +44,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.IntStream;
-
-import static com.nirmata.workflow.details.JsonSerializer.fromString;
-import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
 public class TestDisruptedScheduler
 {
@@ -129,7 +127,8 @@ public class TestDisruptedScheduler
         Client nonScheduler = clients.get(0).equals(scheduler) ? clients.get(1) : clients.get(0);
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-        Task task = getTask(fromString(json));
+        JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+        Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
         nonScheduler.workflowManager.submitTask(task);  // additional test - submit to the non-scheduler
 
         while ( executedTasks.size() == 0 ) // wait until some tasks have started

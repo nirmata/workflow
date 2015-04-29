@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
+import java.io.Serializable;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.Optional;
 /**
  * Models an execution result.
  */
-public class TaskExecutionResult
+public class TaskExecutionResult implements Serializable
 {
     private final TaskExecutionStatus status;
     private final String message;

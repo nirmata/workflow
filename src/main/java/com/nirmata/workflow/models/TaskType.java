@@ -16,6 +16,7 @@
 package com.nirmata.workflow.models;
 
 import com.google.common.base.Preconditions;
+import java.io.Serializable;
 
 /**
  * <p>
@@ -29,7 +30,7 @@ import com.google.common.base.Preconditions;
  *     will only be attempted once.
  * </p>
  */
-public class TaskType
+public class TaskType implements Serializable
 {
     private final String type;
     private final String version;

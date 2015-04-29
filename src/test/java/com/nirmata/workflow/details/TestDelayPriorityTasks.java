@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow;
+package com.nirmata.workflow.details;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.nirmata.workflow.BaseForTests;
+import com.nirmata.workflow.WorkflowManager;
+import com.nirmata.workflow.WorkflowManagerBuilder;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.Task;
@@ -26,9 +28,9 @@ import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class TestDelayPriorityTasks extends BaseForTests
@@ -92,6 +94,8 @@ public class TestDelayPriorityTasks extends BaseForTests
             .withCurator(curator, "test", "1")
             .build() )
         {
+            Scheduler.debugQueuedTasks = new Semaphore(0);
+            ((WorkflowManagerImpl)workflowManager).debugDontStartConsumers = true; // make sure all tasks are added to ZK before they start getting consumed
             workflowManager.start();
 
             Task task1 = new Task(new TaskId("1"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(1));
@@ -105,11 +109,18 @@ public class TestDelayPriorityTasks extends BaseForTests
             workflowManager.submitTask(task4);
             workflowManager.submitTask(task5);
 
+            Assert.assertTrue(Scheduler.debugQueuedTasks.tryAcquire(5, 5, TimeUnit.SECONDS));
+            ((WorkflowManagerImpl)workflowManager).startQueueConsumers();
+
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "1");
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "3");
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "2");
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "5");
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "4");
+        }
+        finally
+        {
+            Scheduler.debugQueuedTasks = null;
         }
     }
 }
