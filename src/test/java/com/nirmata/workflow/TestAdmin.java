@@ -80,6 +80,7 @@ public class TestAdmin extends BaseForTests
             Assert.assertTrue(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren() > 0);
 
             Assert.assertTrue(workflowManager.getAdmin().clean(runId));
+            timing.sleepABit();
             Assert.assertEquals(nmCurator.checkExists().forPath(runParentPath).getNumChildren(), 0);
             Assert.assertEquals(nmCurator.checkExists().forPath(startedTasksParentPath).getNumChildren(), 0);
             Assert.assertEquals(nmCurator.checkExists().forPath(completedTaskParentPath).getNumChildren(), 0);
