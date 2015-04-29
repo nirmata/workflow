@@ -211,7 +211,7 @@ public class JsonSerializer
 
     public static TaskType getTaskType(JsonNode node)
     {
-        TaskMode taskMode = node.has("mode") ? TaskMode.fromCode(node.get("mode").intValue()) : null; // for backward compatability
+        TaskMode taskMode = node.has("mode") ? TaskMode.fromCode(node.get("mode").intValue()) : TaskMode.STANDARD; // for backward compatability
         return new TaskType
         (
             node.get("type").asText(),
