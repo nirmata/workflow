@@ -16,21 +16,27 @@
 package com.nirmata.workflow.queue.zookeeper;
 
 import com.nirmata.workflow.models.ExecutableTask;
+import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
-
-import static com.nirmata.workflow.details.JsonSerializer.*;
 
 public class TaskQueueSerializer implements QueueSerializer<ExecutableTask>
 {
+    private final Serializer serializer;
+
+    public TaskQueueSerializer(Serializer serializer)
+    {
+        this.serializer = serializer;
+    }
+
     @Override
     public byte[] serialize(ExecutableTask executableTask)
     {
-        return toBytes(newExecutableTask(executableTask));
+        return serializer.serialize(executableTask);
     }
 
     @Override
     public ExecutableTask deserialize(byte[] bytes)
     {
-        return getExecutableTask(fromBytes(bytes));
+        return serializer.deserialize(bytes, ExecutableTask.class);
     }
 }

@@ -22,6 +22,7 @@ import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.Queue;
+import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.queue.QueueBuilder;
 import org.apache.curator.utils.CloseableUtils;
@@ -33,11 +34,11 @@ public class ZooKeeperQueue implements Queue
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final InternalQueueBase queue;
 
-    public ZooKeeperQueue(CuratorFramework curator, TaskType taskType)
+    public ZooKeeperQueue(Serializer serializer, CuratorFramework curator, TaskType taskType)
     {
         curator = Preconditions.checkNotNull(curator, "curator cannot be null");
         String path = ZooKeeperConstants.getQueuePath(taskType);
-        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(), path);
+        QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(serializer), path);
         if ( taskType.isIdempotent() )
         {
             builder = builder.lockPath(ZooKeeperConstants.getQueuePath(taskType));
@@ -48,7 +49,7 @@ public class ZooKeeperQueue implements Queue
 
     static InternalQueueBase makeQueue(QueueBuilder<ExecutableTask> builder, TaskType taskType)
     {
-        InternalQueueBase localQueue = null;
+        InternalQueueBase localQueue;
         switch ( taskType.getMode() )
         {
         default:

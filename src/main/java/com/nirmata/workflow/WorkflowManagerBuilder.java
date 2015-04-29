@@ -25,6 +25,8 @@ import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
+import com.nirmata.workflow.serialization.Serializer;
+import com.nirmata.workflow.serialization.StandardSerializer;
 import org.apache.curator.framework.CuratorFramework;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -40,6 +42,7 @@ public class WorkflowManagerBuilder
     private String instanceName;
     private CuratorFramework curator;
     private AutoCleanerHolder autoCleanerHolder = newNullHolder();
+    private Serializer serializer = new StandardSerializer();
 
     private final List<TaskExecutorSpec> specs = Lists.newArrayList();
 
@@ -135,7 +138,7 @@ public class WorkflowManagerBuilder
      */
     public WorkflowManager build()
     {
-        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs, autoCleanerHolder);
+        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs, autoCleanerHolder, serializer);
     }
 
     /**
@@ -163,6 +166,19 @@ public class WorkflowManagerBuilder
     public WorkflowManagerBuilder withAutoCleaner(AutoCleaner autoCleaner, Duration runPeriod)
     {
         autoCleanerHolder = (autoCleaner == null) ? newNullHolder() : new AutoCleanerHolder(autoCleaner, runPeriod);
+        return this;
+    }
+
+    /**
+     * <em>optional</em><br>
+     * By default, a JSON serializer is used to store data in ZooKeeper. Use this to specify an alternate serializer
+     *
+     * @param serializer serializer to use
+     * @return this (for chaining)
+     */
+    public WorkflowManagerBuilder withSerializer(Serializer serializer)
+    {
+        this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
         return this;
     }
 

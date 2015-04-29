@@ -27,7 +27,7 @@ public class ZooKeeperQueueFactory implements QueueFactory
     @Override
     public Queue createQueue(WorkflowManagerImpl workflowManager, TaskType taskType)
     {
-        return new ZooKeeperQueue(workflowManager.getCurator(), taskType);
+        return new ZooKeeperQueue(workflowManager.getSerializer(), workflowManager.getCurator(), taskType);
     }
 
     @Override

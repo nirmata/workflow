@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.nirmata.workflow;
 
 import com.google.common.collect.Lists;
@@ -31,6 +32,7 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
+import com.nirmata.workflow.serialization.JsonSerializerMapper;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
 import org.testng.Assert;
@@ -46,9 +48,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import static com.nirmata.workflow.details.JsonSerializer.fromString;
-import static com.nirmata.workflow.details.JsonSerializer.getTask;
 
 public class TestNormal extends BaseForTests
 {
@@ -92,10 +91,10 @@ public class TestNormal extends BaseForTests
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-            (
-                Sets.newHashSet(new TaskId("task1")),
-                Sets.newHashSet(new TaskId("task2"))
-            );
+                (
+                    Sets.newHashSet(new TaskId("task1")),
+                    Sets.newHashSet(new TaskId("task2"))
+                );
             Assert.assertEquals(sets, expectedSets);
         }
         finally
@@ -192,7 +191,8 @@ public class TestNormal extends BaseForTests
             workflowManager.start();
 
             String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
             Timing timing = new Timing();
@@ -200,11 +200,11 @@ public class TestNormal extends BaseForTests
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-            (
-                Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                Sets.newHashSet(new TaskId("task6"))
-            );
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
             Assert.assertEquals(sets, expectedSets);
 
             taskExecutor.getChecker().assertNoDuplicates();
@@ -236,7 +236,8 @@ public class TestNormal extends BaseForTests
             workflowManagers.forEach(WorkflowManager::start);
 
             String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManagers.get(QTY - 1).submitTask(task);
 
             Timing timing = new Timing();
@@ -244,11 +245,11 @@ public class TestNormal extends BaseForTests
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
-            (
-                Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                Sets.newHashSet(new TaskId("task6"))
-            );
+                (
+                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
+                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    Sets.newHashSet(new TaskId("task6"))
+                );
             Assert.assertEquals(sets, expectedSets);
 
             taskExecutor.getChecker().assertNoDuplicates();
@@ -385,7 +386,8 @@ public class TestNormal extends BaseForTests
             workflowManager.start();
 
             String json = Resources.toString(Resources.getResource("multi-tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
             Timing timing = new Timing();
@@ -444,7 +446,8 @@ public class TestNormal extends BaseForTests
             workflowManager.start();
 
             String json = Resources.toString(Resources.getResource("multi-tasks.json"), Charset.defaultCharset());
-            Task task = getTask(fromString(json));
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
             Timing timing = new Timing();

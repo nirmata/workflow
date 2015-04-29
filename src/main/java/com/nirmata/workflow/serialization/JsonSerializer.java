@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow.details;
+package com.nirmata.workflow.serialization;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.nirmata.workflow.details.RunnableTaskDagBuilder;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
@@ -43,32 +44,32 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JsonSerializer
+class JsonSerializer
 {
     private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static ObjectNode newNode()
+    static ObjectNode newNode()
     {
         return mapper.createObjectNode();
     }
 
-    public static ArrayNode newArrayNode()
+    static ArrayNode newArrayNode()
     {
         return mapper.createArrayNode();
     }
 
-    public static ObjectMapper getMapper()
+    static ObjectMapper getMapper()
     {
         return mapper;
     }
 
-    public static byte[] toBytes(JsonNode node)
+    static byte[] toBytes(JsonNode node)
     {
         return nodeToString(node).getBytes();
     }
 
-    public static String nodeToString(JsonNode node)
+    static String nodeToString(JsonNode node)
     {
         try
         {
@@ -81,12 +82,12 @@ public class JsonSerializer
         }
     }
 
-    public static JsonNode fromBytes(byte[] bytes)
+    static JsonNode fromBytes(byte[] bytes)
     {
         return fromString(new String(bytes));
     }
 
-    public static JsonNode fromString(String str)
+    static JsonNode fromString(String str)
     {
         try
         {
@@ -99,7 +100,7 @@ public class JsonSerializer
         }
     }
 
-    public static JsonNode newTask(Task task)
+    static JsonNode newTask(Task task)
     {
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         ArrayNode tasks = newArrayNode();
@@ -153,7 +154,7 @@ public class JsonSerializer
         return newTask;
     }
 
-    public static Task getTask(JsonNode node)
+    static Task getTask(JsonNode node)
     {
         Map<TaskId, WorkTask> workMap = Maps.newHashMap();
         node.get("tasks").forEach(n -> {
@@ -171,7 +172,7 @@ public class JsonSerializer
         return buildTask(workMap, Maps.newHashMap(), rootTaskId);
     }
 
-    public static JsonNode newRunnableTaskDag(RunnableTaskDag runnableTaskDag)
+    static JsonNode newRunnableTaskDag(RunnableTaskDag runnableTaskDag)
     {
         ArrayNode tab = newArrayNode();
         runnableTaskDag.getDependencies().forEach(taskId -> tab.add(taskId.getId()));
@@ -183,7 +184,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static RunnableTaskDag getRunnableTaskDag(JsonNode node)
+    static RunnableTaskDag getRunnableTaskDag(JsonNode node)
     {
         List<TaskId> children = Lists.newArrayList();
         JsonNode childrenNode = node.get("dependencies");
@@ -199,7 +200,7 @@ public class JsonSerializer
         );
     }
 
-    public static JsonNode newTaskType(TaskType taskType)
+    static JsonNode newTaskType(TaskType taskType)
     {
         ObjectNode node = newNode();
         node.put("type", taskType.getType());
@@ -209,7 +210,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static TaskType getTaskType(JsonNode node)
+    static TaskType getTaskType(JsonNode node)
     {
         TaskMode taskMode = node.has("mode") ? TaskMode.fromCode(node.get("mode").intValue()) : TaskMode.STANDARD; // for backward compatability
         return new TaskType
@@ -221,7 +222,7 @@ public class JsonSerializer
         );
     }
 
-    public static JsonNode newExecutableTask(ExecutableTask executableTask)
+    static JsonNode newExecutableTask(ExecutableTask executableTask)
     {
         ObjectNode node = newNode();
         node.put("runId", executableTask.getRunId().getId());
@@ -232,7 +233,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static ExecutableTask getExecutableTask(JsonNode node)
+    static ExecutableTask getExecutableTask(JsonNode node)
     {
         return new ExecutableTask
         (
@@ -244,7 +245,7 @@ public class JsonSerializer
         );
     }
 
-    public static JsonNode newRunnableTask(RunnableTask runnableTask)
+    static JsonNode newRunnableTask(RunnableTask runnableTask)
     {
         ArrayNode taskDags = newArrayNode();
         runnableTask.getTaskDags().forEach(taskDag -> taskDags.add(newRunnableTaskDag(taskDag)));
@@ -261,7 +262,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static RunnableTask getRunnableTask(JsonNode node)
+    static RunnableTask getRunnableTask(JsonNode node)
     {
         List<RunnableTaskDag> taskDags = Lists.newArrayList();
         node.get("taskDags").forEach(n -> taskDags.add(getRunnableTaskDag(n)));
@@ -280,7 +281,7 @@ public class JsonSerializer
         return new RunnableTask(tasks, taskDags, startTime, completionTime, parentRunId);
     }
 
-    public static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)
+    static JsonNode newTaskExecutionResult(TaskExecutionResult taskExecutionResult)
     {
         ObjectNode node = newNode();
         node.put("status", taskExecutionResult.getStatus().name().toLowerCase());
@@ -291,7 +292,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static TaskExecutionResult getTaskExecutionResult(JsonNode node)
+    static TaskExecutionResult getTaskExecutionResult(JsonNode node)
     {
         JsonNode subTaskRunIdNode = node.get("subTaskRunId");
         return new TaskExecutionResult
@@ -304,7 +305,7 @@ public class JsonSerializer
         );
     }
 
-    public static JsonNode newStartedTask(StartedTask startedTask)
+    static JsonNode newStartedTask(StartedTask startedTask)
     {
         ObjectNode node = newNode();
         node.put("instanceName", startedTask.getInstanceName());
@@ -312,7 +313,7 @@ public class JsonSerializer
         return node;
     }
 
-    public static StartedTask getStartedTask(JsonNode node)
+    static StartedTask getStartedTask(JsonNode node)
     {
         return new StartedTask
         (
@@ -321,7 +322,7 @@ public class JsonSerializer
         );
     }
 
-    public static Map<String, String> getMap(JsonNode node)
+    static Map<String, String> getMap(JsonNode node)
     {
         Map<String, String> map = Maps.newHashMap();
         if ( (node != null) && !node.isNull() )
