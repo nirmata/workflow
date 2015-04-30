@@ -162,6 +162,20 @@ Reference
     Used in reporting. This will be the value recorded as tasks are executed. Via reporting, you can determine which instance has executed a given task.
     Default is: InetAddress.getLocalHost().getHostName()
 
+    * <<<public WorkflowManagerBuilder withQueueFactory(QueueFactory queueFactory);>>>
+
+    Pluggable queue factory. Default uses ZooKeeper for queuing.
+
+    * <<<public WorkflowManagerBuilder withAutoCleaner(AutoCleaner autoCleaner, Duration runPeriod);>>>
+
+    Sets an auto-cleaner that will run every given period. This is used to clean old runs. IMPORTANT: the auto cleaner
+    will only run on the instance that is the current scheduler.
+
+    * <<<public WorkflowManagerBuilder withSerializer(Serializer serializer);>>>
+
+    By default, a JSON serializer is used to store data in ZooKeeper. Use this to specify an alternate serializer.
+
+
 ** TaskExecutor
 
     TaskExecutor is an interface and you are required to provide an implementation. The Workflow Manager uses your TaskExecutor

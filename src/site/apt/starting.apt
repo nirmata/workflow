@@ -106,6 +106,12 @@ dependencies {
 |                    | is used to clean old runs. IMPORTANT: the auto cleaner will only run   |
 |                    | on the instance that is the current scheduler.                         |
 *--------------------*------------------------------------------------------------------------*
+| withSerializer     | optional - By default, a JSON serializer is used to store data in      |
+|                    | ZooKeeper. Use this to specify an alternate serializer.                |
+*--------------------*------------------------------------------------------------------------*
+| withQueueFactory   | optional - Pluggable queue factory. Default uses ZooKeeper for         |
+|                    | queuing.                                                               |
+*--------------------*------------------------------------------------------------------------*
 
 * WorkflowManager
 
