@@ -7,3 +7,4 @@ com.nirmata.workflow.executor
 com.nirmata.workflow.models
 com.nirmata.workflow.queue
 com.nirmata.workflow.queue.zookeeper
+com.nirmata.workflow.serialization
