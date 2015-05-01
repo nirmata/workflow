@@ -19,7 +19,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.TestTaskExecutor;
-import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.WorkflowManagerBuilder;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.Task;
@@ -32,7 +31,6 @@ import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingCluster;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
-import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -40,10 +38,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestDisruptedScheduler
 {
@@ -77,7 +76,7 @@ public class TestDisruptedScheduler
     private static class Client implements Closeable
     {
         final CuratorFramework curator;
-        final WorkflowManager workflowManager;
+        final WorkflowManagerImpl workflowManager;
 
         private Client(int id, TestingCluster cluster, Set<TaskId> executedTasks, CountDownLatch executedTasksLatch)
         {
@@ -94,7 +93,7 @@ public class TestDisruptedScheduler
                 }
             };
 
-            workflowManager = WorkflowManagerBuilder.builder()
+            workflowManager = (WorkflowManagerImpl) WorkflowManagerBuilder.builder()
                 .addingTaskExecutor(taskExecutor, 10, taskType)
                 .withCurator(curator, "test", "1")
                 .withInstanceName("i-" + id)
@@ -113,17 +112,14 @@ public class TestDisruptedScheduler
     @Test
     public void testDisruptedScheduler() throws Exception
     {
-        final int QTY = 3;
-        IntStream.range(0, QTY).forEach(i -> clients.add(new Client(i, cluster, executedTasks, executedTasksLatch)));
+        Stream.of(1, 2, 3).forEach((i) -> clients.add(new Client(i, cluster, executedTasks, executedTasksLatch)));
 
         timing.sleepABit();
 
-        Optional<Client> clientOptional = clients
-            .stream()
-            .findFirst()
-            .filter(client -> ((WorkflowManagerImpl)client.workflowManager).getSchedulerSelector().getLeaderSelector().hasLeadership());
-        Assert.assertTrue(clientOptional.isPresent());
-        Client scheduler = clientOptional.get();
+        Client scheduler = clients.stream()
+                .filter(client -> client.workflowManager.getSchedulerSelector().getLeaderSelector().hasLeadership())
+                .findFirst().get();
+
         Client nonScheduler = clients.get(0).equals(scheduler) ? clients.get(1) : clients.get(0);
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
@@ -131,17 +127,17 @@ public class TestDisruptedScheduler
         Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
         nonScheduler.workflowManager.submitTask(task);  // additional test - submit to the non-scheduler
 
-        while ( executedTasks.size() == 0 ) // wait until some tasks have started
+        while ( executedTasks.isEmpty() ) // wait until some tasks have started
         {
             Thread.sleep(100);
         }
 
         CountDownLatch latch = new CountDownLatch(1);
-        ((WorkflowManagerImpl)scheduler.workflowManager).getSchedulerSelector().debugLatch.set(latch);
-        ((WorkflowManagerImpl)scheduler.workflowManager).getSchedulerSelector().getLeaderSelector().interruptLeadership();  // interrupt the scheduler wherever it is
-        Assert.assertTrue(executedTasks.size() < 6);
-        Assert.assertTrue(timing.awaitLatch(latch)); // wait for the scheduler method to exit
+        scheduler.workflowManager.getSchedulerSelector().debugLatch.set(latch);
+        scheduler.workflowManager.getSchedulerSelector().getLeaderSelector().interruptLeadership();  // interrupt the scheduler wherever it is
+        assertThat(executedTasks.size()).isLessThan(6);
+        assertThat(timing.awaitLatch(latch)).isTrue(); // wait for the scheduler method to exit
 
-        Assert.assertTrue(timing.awaitLatch(executedTasksLatch));   // all tasks should complete
+        assertThat(timing.awaitLatch(executedTasksLatch)).isTrue();   // all tasks should complete
     }
 }

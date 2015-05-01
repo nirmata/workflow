@@ -29,7 +29,6 @@ import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.util.List;
 import java.util.Queue;
@@ -39,19 +38,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class TestEdges extends BaseForTests
 {
     @Test
     public void testMultiConcurrent() throws Exception
     {
-        final int RETRIES = 3;
-
         try
         {
-            IntStream.range(0, RETRIES).forEach(i -> {
-                System.out.println("Retry " + i);
-                multiConcurrentRetry();
-            });
+            IntStream.range(0, 3).forEach((i) -> multiConcurrentRetry(i));
         }
         finally
         {
@@ -59,8 +55,9 @@ public class TestEdges extends BaseForTests
         }
     }
 
-    private void multiConcurrentRetry()
+    private void multiConcurrentRetry(int retry)
     {
+        System.out.println("Retry " + retry);
         final int WORKFLOW_QTY = 3;
         final int ITERATIONS = 10;
 
@@ -83,12 +80,13 @@ public class TestEdges extends BaseForTests
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
 
-        List<WorkflowManager> workflowManagers = IntStream.range(0, WORKFLOW_QTY).mapToObj(i -> {
+        List<WorkflowManager> workflowManagers = IntStream.range(0, WORKFLOW_QTY).mapToObj((i) ->
+        {
             TaskType type = ((i & 1) != 0) ? type1 : type2;
             return WorkflowManagerBuilder.builder()
-                .addingTaskExecutor(taskExecutor, 10, type)
-                .withCurator(curator, "test-" + i, "1")
-                .build();
+                    .addingTaskExecutor(taskExecutor, 10, type)
+                    .withCurator(curator, "test-" + i, "1")
+                    .build();
         }).collect(Collectors.toList());
         try
         {
@@ -97,14 +95,14 @@ public class TestEdges extends BaseForTests
             Timing timing = new Timing();
             for ( int i = 0; i < ITERATIONS; ++i )
             {
-                Assert.assertEquals(Scheduler.debugBadRunIdCount.get(), 0);
+                assertThat(Scheduler.debugBadRunIdCount.get()).isZero();
                 System.out.println("Iteration " + i);
                 for ( int j = 0; j < WORKFLOW_QTY; ++j )
                 {
                     TaskType type = ((j & 1) != 0) ? type1 : type2;
                     workflowManagers.get(j).submitTask(new Task(new TaskId(), type));
                 }
-                Assert.assertTrue(timing.acquireSemaphore(semaphore, WORKFLOW_QTY));
+                assertThat(timing.acquireSemaphore(semaphore, WORKFLOW_QTY)).isTrue();
             }
         }
         finally
@@ -133,24 +131,18 @@ public class TestEdges extends BaseForTests
             tasks.add(t.getTaskId());
             return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         };
-        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+        try(WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
             .addingTaskExecutor(taskExecutor, 10, idempotentType)
             .addingTaskExecutor(taskExecutor, 10, nonIdempotentType)
             .withCurator(curator, "test", "1")
-            .build();
-        try
+            .build())
         {
             workflowManager.start();
             workflowManager.submitTask(root);
 
             new Timing().sleepABit();
 
-            Assert.assertEquals(tasks.size(), 1);
-            Assert.assertEquals(tasks.poll(), idempotentTask.getTaskId());
-        }
-        finally
-        {
-            CloseableUtils.closeQuietly(workflowManager);
+            assertThat(tasks).containsOnly(idempotentTask.getTaskId());
         }
     }
 }

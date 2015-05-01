@@ -19,18 +19,24 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
+import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import java.util.concurrent.BlockingQueue;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public abstract class BaseForTests
 {
+    protected Timing timing;
     protected TestingServer server;
     protected CuratorFramework curator;
 
     @BeforeMethod
     public void setup() throws Exception
     {
+        timing = new Timing();
         server = new TestingServer();
 
         curator = CuratorFrameworkFactory.builder().connectString(server.getConnectString()).retryPolicy(new RetryOneTime(1)).build();
@@ -42,5 +48,10 @@ public abstract class BaseForTests
     {
         CloseableUtils.closeQuietly(curator);
         CloseableUtils.closeQuietly(server);
+    }
+
+    protected <T> T poll(BlockingQueue<T> queue) throws InterruptedException
+    {
+        return queue.poll(timing.milliseconds(), MILLISECONDS);
     }
 }

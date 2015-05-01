@@ -29,7 +29,6 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -44,6 +43,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.nirmata.workflow.serialization.JsonSerializer.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestSerializer
 {
@@ -58,7 +58,7 @@ public class TestSerializer
         System.out.println(str);
 
         RunnableTaskDag unRunnableTaskDag = getRunnableTaskDag(fromString(str));
-        Assert.assertEquals(runnableTaskDag, unRunnableTaskDag);
+        assertThat(runnableTaskDag).isEqualTo(unRunnableTaskDag);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class TestSerializer
         System.out.println(str);
 
         ExecutableTask unExecutableTask = getExecutableTask(fromString(str));
-        Assert.assertEquals(executableTask, unExecutableTask);
+        assertThat(executableTask).isEqualTo(unExecutableTask);
     }
 
     @Test
@@ -78,12 +78,10 @@ public class TestSerializer
     {
         Map<TaskId, ExecutableTask> tasks = Stream.generate(() -> "")
             .limit(random.nextInt(3) + 1)
-            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new RunId(), new TaskId(), randomTaskType(), randomMap(), random.nextBoolean())))
-            ;
+            .collect(Collectors.toMap(s -> new TaskId(), s -> new ExecutableTask(new RunId(), new TaskId(), randomTaskType(), randomMap(), random.nextBoolean())));
         List<RunnableTaskDag> taskDags = Stream.generate(() -> new RunnableTaskDag(new TaskId(), randomTasks()))
             .limit(random.nextInt(3) + 1)
-            .collect(Collectors.toList())
-            ;
+            .collect(Collectors.toList());
         LocalDateTime completionTime = random.nextBoolean() ? LocalDateTime.now() : null;
         RunId parentRunId = random.nextBoolean() ? new RunId() : null;
         RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(), completionTime, parentRunId);
@@ -92,7 +90,7 @@ public class TestSerializer
         System.out.println(str);
 
         RunnableTask unRunnableTask = getRunnableTask(fromString(str));
-        Assert.assertEquals(runnableTask, unRunnableTask);
+        assertThat(runnableTask).isEqualTo(unRunnableTask);
     }
 
     @Test
@@ -104,7 +102,7 @@ public class TestSerializer
         System.out.println(str);
 
         TaskExecutionResult unTaskExecutionResult = getTaskExecutionResult(fromString(str));
-        Assert.assertEquals(taskExecutionResult, unTaskExecutionResult);
+        assertThat(taskExecutionResult).isEqualTo(unTaskExecutionResult);
     }
 
     @Test
@@ -116,7 +114,7 @@ public class TestSerializer
         System.out.println(str);
 
         StartedTask unStartedTask = getStartedTask(fromString(str));
-        Assert.assertEquals(startedTask, unStartedTask);
+        assertThat(startedTask).isEqualTo(unStartedTask);
     }
 
     @Test
@@ -128,7 +126,7 @@ public class TestSerializer
         System.out.println(str);
 
         TaskType unTaskType = getTaskType(fromString(str));
-        Assert.assertEquals(taskType, unTaskType);
+        assertThat(taskType).isEqualTo(unTaskType);
     }
 
     @Test
@@ -140,7 +138,7 @@ public class TestSerializer
         System.out.println(str);
 
         Task unTask = getTask(fromString(str));
-        Assert.assertEquals(task, unTask);
+        assertThat(task).isEqualTo(unTask);
     }
 
     @Test
@@ -156,9 +154,8 @@ public class TestSerializer
         Task task = new Task(new TaskId("root"), Lists.newArrayList(task1, task2));
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-        Task unTask = getTask(fromString(json));
-
-        Assert.assertEquals(task, unTask);
+        Task untask = getTask(fromString(json));
+        assertThat(task).isEqualTo(untask);
     }
 
     @Test
@@ -171,7 +168,7 @@ public class TestSerializer
         System.out.println(str);
 
         Task unTask = mapper.get(fromString(str), Task.class);
-        Assert.assertEquals(task, unTask);
+        assertThat(task).isEqualTo(unTask);
     }
 
     @Test
@@ -182,7 +179,7 @@ public class TestSerializer
         StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
         byte[] bytes = serializer.serialize(startedTask);
         StartedTask unStartedTask = serializer.deserialize(bytes, StartedTask.class);
-        Assert.assertEquals(startedTask, unStartedTask);
+        assertThat(startedTask).isEqualTo(unStartedTask);
     }
 
     private Task randomTask(int index)

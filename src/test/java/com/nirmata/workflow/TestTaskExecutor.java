@@ -25,34 +25,11 @@ import java.util.concurrent.CountDownLatch;
 
 public class TestTaskExecutor implements TaskExecutor
 {
-    private final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
-    private final int latchQty;
-    private volatile CountDownLatch latch;
-
-    public TestTaskExecutor()
-    {
-        this(1);
-    }
+    final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
+    final CountDownLatch latch;
 
     public TestTaskExecutor(int latchQty)
     {
-        this.latchQty = latchQty;
-        latch = new CountDownLatch(latchQty);
-    }
-
-    public CountDownLatch getLatch()
-    {
-        return latch;
-    }
-
-    public ConcurrentTaskChecker getChecker()
-    {
-        return checker;
-    }
-
-    public void reset()
-    {
-        checker.reset();
         latch = new CountDownLatch(latchQty);
     }
 
