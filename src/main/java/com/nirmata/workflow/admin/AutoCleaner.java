@@ -15,7 +15,6 @@
  */
 package com.nirmata.workflow.admin;
 
-@FunctionalInterface
 public interface AutoCleaner
 {
     /**

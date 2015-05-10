@@ -49,7 +49,7 @@ public class JsonSerializerMapper
         ImmutableMap.Builder<Class<?>, Methods> builder = ImmutableMap.builder();
         for ( Method method : JsonSerializer.class.getDeclaredMethods() )
         {
-            if ( method.getName().startsWith(NEW_PREFIX) && (method.getReturnType() == JsonNode.class) && (method.getParameterCount() == 1) )
+            if ( method.getName().startsWith(NEW_PREFIX) && (method.getReturnType() == JsonNode.class) && (method.getParameterTypes().length == 1) )
             {
                 String className = method.getName().substring(NEW_PREFIX.length());
                 Method getter = getGetter(className);

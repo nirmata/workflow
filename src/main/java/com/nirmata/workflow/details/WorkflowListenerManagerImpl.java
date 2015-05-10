@@ -15,15 +15,18 @@
  */
 package com.nirmata.workflow.details;
 
+import com.google.common.base.Function;
 import com.nirmata.workflow.events.WorkflowEvent;
 import com.nirmata.workflow.events.WorkflowListener;
 import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.listen.Listenable;
 import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.utils.CloseableUtils;
 import java.io.IOException;
 
@@ -50,33 +53,46 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
             startedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             runsCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
 
-            runsCache.getListenable().addListener((client, event) -> {
-                RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            runsCache.getListenable().addListener(new PathChildrenCacheListener()
+            {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
                 {
-                    postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId));
-                }
-                else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
-                {
-                    postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_UPDATED, runId));
-                }
-            });
-
-            startedTasksCache.getListenable().addListener((client, event) -> {
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-                {
-                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromStartedTasksPath(event.getData().getPath()));
-                    TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(event.getData().getPath()));
-                    postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, taskId));
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                    if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                    {
+                        WorkflowListenerManagerImpl.this.postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId));
+                    } else if (event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED) {
+                        WorkflowListenerManagerImpl.this.postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_UPDATED, runId));
+                    }
                 }
             });
 
-            completedTasksCache.getListenable().addListener((client, event) -> {
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+            startedTasksCache.getListenable().addListener(new PathChildrenCacheListener()
+            {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
                 {
-                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
-                    TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(event.getData().getPath()));
-                    postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, taskId));
+                    if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                    {
+                        RunId runId = new RunId(ZooKeeperConstants.getRunIdFromStartedTasksPath(event.getData().getPath()));
+                        TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(event.getData().getPath()));
+                        WorkflowListenerManagerImpl.this.postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, taskId));
+                    }
+                }
+            });
+
+            completedTasksCache.getListenable().addListener(new PathChildrenCacheListener()
+            {
+                @Override
+                public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
+                {
+                    if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                    {
+                        RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
+                        TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(event.getData().getPath()));
+                        WorkflowListenerManagerImpl.this.postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, taskId));
+                    }
                 }
             });
         }
@@ -100,11 +116,16 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
         return listenerContainer;
     }
 
-    private void postEvent(WorkflowEvent event)
+    private void postEvent(final WorkflowEvent event)
     {
-        listenerContainer.forEach(l -> {
-            l.receiveEvent(event);
-            return null;
+        listenerContainer.forEach(new Function<WorkflowListener, Void>()
+        {
+            @Override
+            public Void apply(WorkflowListener l)
+            {
+                l.receiveEvent(event);
+                return null;
+            }
         });
     }
 }

@@ -25,14 +25,15 @@ import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.test.Timing;
+import org.joda.time.Duration;
+import org.joda.time.LocalDateTime;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import static org.joda.time.DateTimeZone.UTC;
 
 public class TestAutoCleanerHolder
 {
@@ -40,7 +41,7 @@ public class TestAutoCleanerHolder
     public void testNull() throws InterruptedException
     {
         Timing timing = new Timing();
-        AutoCleanerHolder holder = new AutoCleanerHolder(null, Duration.ofDays(10));
+        AutoCleanerHolder holder = new AutoCleanerHolder(null, Duration.standardDays(10));
         Assert.assertFalse(holder.shouldRun());
         Assert.assertFalse(holder.shouldRun());
         timing.sleepABit();
@@ -53,7 +54,7 @@ public class TestAutoCleanerHolder
     @Test
     public void testPeriod() throws InterruptedException
     {
-        AutoCleanerHolder holder = new AutoCleanerHolder(new StandardAutoCleaner(Duration.ofSeconds(2)), Duration.ofSeconds(1));
+        AutoCleanerHolder holder = new AutoCleanerHolder(new StandardAutoCleaner(Duration.standardSeconds(2)), Duration.standardSeconds(1));
         Assert.assertFalse(holder.shouldRun());
         TimeUnit.SECONDS.sleep(2);
         Assert.assertTrue(holder.shouldRun());
@@ -62,9 +63,9 @@ public class TestAutoCleanerHolder
         RunId completedId = new RunId();
         RunId completedButRecentId = new RunId();
         List<RunInfo> runs = Lists.newArrayList(
-            new RunInfo(runningId, LocalDateTime.now(Clock.systemUTC())),
-            new RunInfo(completedButRecentId, LocalDateTime.now(Clock.systemUTC()), LocalDateTime.now(Clock.systemUTC())),
-            new RunInfo(completedId, LocalDateTime.now(Clock.systemUTC()), LocalDateTime.now(Clock.systemUTC()).minusSeconds(3))
+            new RunInfo(runningId, LocalDateTime.now(UTC)),
+            new RunInfo(completedButRecentId, LocalDateTime.now(UTC), LocalDateTime.now(UTC)),
+            new RunInfo(completedId, LocalDateTime.now(UTC), LocalDateTime.now(UTC).minusSeconds(3))
         );
 
         List<RunId> cleaned = Lists.newArrayList();

@@ -16,10 +16,10 @@
 
 package com.nirmata.workflow;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
@@ -35,14 +35,13 @@ import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
+import org.joda.time.Duration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -92,8 +91,8 @@ public class TestNormal extends BaseForTests
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
                 (
-                    Sets.newHashSet(new TaskId("task1")),
-                    Sets.newHashSet(new TaskId("task2"))
+                    ImmutableSet.of(new TaskId("task1")),
+                    ImmutableSet.of(new TaskId("task2"))
                 );
             Assert.assertEquals(sets, expectedSets);
         }
@@ -113,7 +112,7 @@ public class TestNormal extends BaseForTests
         WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
             .addingTaskExecutor(taskExecutor, 10, taskType)
             .withCurator(curator, "test", "1")
-            .withAutoCleaner(new StandardAutoCleaner(Duration.ofMillis(1)), Duration.ofMillis(1))
+            .withAutoCleaner(new StandardAutoCleaner(Duration.millis(1)), Duration.millis(1))
             .build();
         try
         {
@@ -201,9 +200,9 @@ public class TestNormal extends BaseForTests
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
                 (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
                 );
             Assert.assertEquals(sets, expectedSets);
 
@@ -246,9 +245,9 @@ public class TestNormal extends BaseForTests
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
                 (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
                 );
             Assert.assertEquals(sets, expectedSets);
 
@@ -268,8 +267,8 @@ public class TestNormal extends BaseForTests
             .withCurator(curator, "test", "1")
             .build();
 
-        Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(new RunId(), new TaskId());
-        Assert.assertFalse(taskData.isPresent());
+        TaskExecutionResult taskData = workflowManager.getTaskExecutionResult(new RunId(), new TaskId());
+        Assert.assertNull(taskData);
     }
 
     @Test
@@ -299,12 +298,12 @@ public class TestNormal extends BaseForTests
             Assert.assertTrue(timing.awaitLatch(latch));
             timing.sleepABit();
 
-            Optional<TaskExecutionResult> taskData = workflowManager.getTaskExecutionResult(runId, taskId);
-            Assert.assertTrue(taskData.isPresent());
+            TaskExecutionResult taskData = workflowManager.getTaskExecutionResult(runId, taskId);
+            Assert.assertNotNull(taskData);
             Map<String, String> expected = Maps.newHashMap();
             expected.put("one", "1");
             expected.put("two", "2");
-            Assert.assertEquals(taskData.get().getResultData(), expected);
+            Assert.assertEquals(taskData.getResultData(), expected);
         }
         finally
         {
@@ -396,9 +395,9 @@ public class TestNormal extends BaseForTests
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
             List<Set<TaskId>> expectedSets = Arrays.<Set<TaskId>>asList
                 (
-                    Sets.newHashSet(new TaskId("task1"), new TaskId("task2")),
-                    Sets.newHashSet(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
-                    Sets.newHashSet(new TaskId("task6"))
+                    ImmutableSet.of(new TaskId("task1"), new TaskId("task2")),
+                    ImmutableSet.of(new TaskId("task3"), new TaskId("task4"), new TaskId("task5")),
+                    ImmutableSet.of(new TaskId("task6"))
                 );
             Assert.assertEquals(sets, expectedSets);
 
@@ -451,13 +450,13 @@ public class TestNormal extends BaseForTests
             workflowManager.submitTask(task);
 
             Timing timing = new Timing();
-            Set<TaskId> set1 = Sets.newHashSet(queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
-            Set<TaskId> set2 = Sets.newHashSet(queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
-            Set<TaskId> set3 = Sets.newHashSet(queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+            Set<TaskId> set1 = ImmutableSet.of(queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+            Set<TaskId> set2 = ImmutableSet.of(queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
+            Set<TaskId> set3 = ImmutableSet.of(queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
 
-            Assert.assertEquals(set1, Sets.newHashSet(new TaskId("task1"), new TaskId("task2")));
-            Assert.assertEquals(set2, Sets.newHashSet(new TaskId("task3"), new TaskId("task4")));
-            Assert.assertEquals(set3, Sets.newHashSet(new TaskId("task5"), new TaskId("task6")));
+            Assert.assertEquals(set1, ImmutableSet.of(new TaskId("task1"), new TaskId("task2")));
+            Assert.assertEquals(set2, ImmutableSet.of(new TaskId("task3"), new TaskId("task4")));
+            Assert.assertEquals(set3, ImmutableSet.of(new TaskId("task5"), new TaskId("task6")));
 
             timing.sleepABit();
 

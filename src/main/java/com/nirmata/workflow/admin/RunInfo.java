@@ -17,8 +17,7 @@ package com.nirmata.workflow.admin;
 
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.RunId;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import org.joda.time.LocalDateTime;
 
 /**
  * Run information
@@ -27,7 +26,7 @@ public class RunInfo
 {
     private final RunId runId;
     private final LocalDateTime startTimeUtc;
-    private final Optional<LocalDateTime> completionTimeUtc;
+    private final LocalDateTime completionTimeUtc;
 
     public RunInfo(RunId runId, LocalDateTime startTimeUtc)
     {
@@ -38,7 +37,7 @@ public class RunInfo
     {
         this.runId = Preconditions.checkNotNull(runId, "runId cannot be null");
         this.startTimeUtc = Preconditions.checkNotNull(startTimeUtc, "startTimeUtc cannot be null");
-        this.completionTimeUtc = Optional.ofNullable(completionTimeUtc);
+        this.completionTimeUtc = completionTimeUtc;
     }
 
     public RunId getRunId()
@@ -51,14 +50,17 @@ public class RunInfo
         return startTimeUtc;
     }
 
+    /**
+     * @return time of completion or null if not complete.
+     */
     public LocalDateTime getCompletionTimeUtc()
     {
-        return completionTimeUtc.get();
+        return completionTimeUtc;
     }
 
     public boolean isComplete()
     {
-        return completionTimeUtc.isPresent();
+        return completionTimeUtc != null;
     }
 
     @Override
@@ -75,7 +77,14 @@ public class RunInfo
 
         RunInfo runInfo = (RunInfo)o;
 
-        if ( !completionTimeUtc.equals(runInfo.completionTimeUtc) )
+        if ( completionTimeUtc == null )
+        {
+            if ( runInfo.completionTimeUtc != null )
+            {
+                return false;
+            }
+        }
+        else if ( !completionTimeUtc.equals(runInfo.completionTimeUtc) )
         {
             return false;
         }
@@ -97,7 +106,7 @@ public class RunInfo
     {
         int result = runId.hashCode();
         result = 31 * result + startTimeUtc.hashCode();
-        result = 31 * result + completionTimeUtc.hashCode();
+        result = 31 * result + (completionTimeUtc == null ? 0 : completionTimeUtc.hashCode());
         return result;
     }
 

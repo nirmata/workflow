@@ -21,7 +21,6 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Contains the meta-data and type from a submitted {@link Task}
@@ -29,13 +28,13 @@ import java.util.Optional;
 public class TaskDetails
 {
     private final TaskId taskId;
-    private final Optional<TaskType> taskType;
+    private final TaskType taskType;
     private final Map<String, String> metaData;
 
     public TaskDetails(TaskId taskId, TaskType taskType, Map<String, String> metaData)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
-        this.taskType = Optional.ofNullable(taskType);
+        this.taskType = taskType;
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
 
         this.metaData = ImmutableMap.copyOf(metaData);
@@ -48,12 +47,15 @@ public class TaskDetails
 
     public boolean isExecutable()
     {
-        return taskType.isPresent();
+        return taskType != null;
     }
 
+    /**
+     * Task type or null, if not executable.
+     */
     public TaskType getTaskType()
     {
-        return taskType.get();
+        return taskType;
     }
 
     public Map<String, String> getMetaData()
@@ -94,7 +96,14 @@ public class TaskDetails
             return false;
         }
         //noinspection RedundantIfStatement
-        if ( !taskType.equals(that.taskType) )
+        if ( taskType == null )
+        {
+            if ( that.taskType != null )
+            {
+                return false;
+            }
+        }
+        else if ( !taskType.equals(that.taskType) )
         {
             return false;
         }
@@ -106,7 +115,7 @@ public class TaskDetails
     public int hashCode()
     {
         int result = taskId.hashCode();
-        result = 31 * result + taskType.hashCode();
+        result = 31 * result + (taskType == null ? 0 : taskType.hashCode());
         result = 31 * result + metaData.hashCode();
         return result;
     }

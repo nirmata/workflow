@@ -28,7 +28,6 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RunnableTaskDagBuilder
 {
@@ -58,7 +57,7 @@ public class RunnableTaskDagBuilder
     private void build(Task task, ImmutableList.Builder<RunnableTaskDag> entriesBuilder, ImmutableMap.Builder<TaskId, Task> tasksBuilder)
     {
         DefaultDirectedGraph<TaskId, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        worker(graph, task, null, tasksBuilder, Sets.newHashSet());
+        worker(graph, task, null, tasksBuilder, Sets.<TaskId>newLinkedHashSet());
 
         CycleDetector<TaskId, DefaultEdge> cycleDetector = new CycleDetector<>(graph);
         if ( cycleDetector.detectCycles() )
@@ -70,12 +69,15 @@ public class RunnableTaskDagBuilder
         while ( orderIterator.hasNext() )
         {
             TaskId taskId = orderIterator.next();
-            Set<DefaultEdge> taskIdEdges = graph.edgesOf(taskId);
-            Set<TaskId> processed = taskIdEdges
-                .stream()
-                .map(graph::getEdgeSource)
-                .filter(edge -> !edge.equals(taskId) && !edge.getId().equals(""))
-                .collect(Collectors.toSet());
+            Set<TaskId> processed = Sets.newLinkedHashSet();
+            for ( DefaultEdge taskIDEdge: graph.edgesOf(taskId) )
+            {
+                TaskId edge = graph.getEdgeSource(taskIDEdge);
+                if ( !edge.equals(taskId) && !edge.getId().equals("") )
+                {
+                    processed.add(edge);
+                }
+            }
             entriesBuilder.add(new RunnableTaskDag(taskId, processed));
         }
     }
@@ -92,6 +94,9 @@ public class RunnableTaskDagBuilder
         {
             graph.addEdge(parentId, task.getTaskId());
         }
-        task.getChildrenTasks().forEach(child -> worker(graph, child, task.getTaskId(), tasksBuilder, usedTasksSet));
+        for ( Task child: task.getChildrenTasks() )
+        {
+            worker(graph, child, task.getTaskId(), tasksBuilder, usedTasksSet);
+        }
     }
 }

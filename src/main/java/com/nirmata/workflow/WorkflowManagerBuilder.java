@@ -28,9 +28,9 @@ import com.nirmata.workflow.queue.zookeeper.ZooKeeperQueueFactory;
 import com.nirmata.workflow.serialization.Serializer;
 import com.nirmata.workflow.serialization.StandardSerializer;
 import org.apache.curator.framework.CuratorFramework;
+import org.joda.time.Duration;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.List;
 
 /**
@@ -196,6 +196,6 @@ public class WorkflowManagerBuilder
 
     private AutoCleanerHolder newNullHolder()
     {
-        return new AutoCleanerHolder(null, Duration.ofDays(Integer.MAX_VALUE));
+        return new AutoCleanerHolder(null, Duration.standardDays(Integer.MAX_VALUE));
     }
 }
