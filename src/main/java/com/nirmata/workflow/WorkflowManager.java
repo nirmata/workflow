@@ -24,7 +24,6 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.CuratorFramework;
 import java.io.Closeable;
-import java.util.Optional;
 
 /**
  * Main API - create via {@link WorkflowManagerBuilder}
@@ -89,9 +88,9 @@ public interface WorkflowManager extends Closeable
      *
      * @param runId the run
      * @param taskId the task
-     * @return if found, a loaded optional with the result. Otherwise, an empty optional.
+     * @return if found, a loaded optional with the result. Otherwise, null.
      */
-    public Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId);
+    public TaskExecutionResult getTaskExecutionResult(RunId runId, TaskId taskId);
 
     /**
      * Return administration operations

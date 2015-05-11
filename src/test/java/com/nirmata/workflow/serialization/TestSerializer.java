@@ -29,12 +29,11 @@ import com.nirmata.workflow.models.Task;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
+import org.joda.time.LocalDateTime;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +43,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.nirmata.workflow.serialization.JsonSerializer.*;
+import static org.joda.time.DateTimeZone.UTC;
 
 public class TestSerializer
 {
@@ -84,9 +84,9 @@ public class TestSerializer
             .limit(random.nextInt(3) + 1)
             .collect(Collectors.toList())
             ;
-        LocalDateTime completionTime = random.nextBoolean() ? LocalDateTime.now() : null;
+        LocalDateTime completionTime = random.nextBoolean() ? LocalDateTime.now(UTC) : null;
         RunId parentRunId = random.nextBoolean() ? new RunId() : null;
-        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(), completionTime, parentRunId);
+        RunnableTask runnableTask = new RunnableTask(tasks, taskDags, LocalDateTime.now(UTC), completionTime, parentRunId);
         JsonNode node = newRunnableTask(runnableTask);
         String str = nodeToString(node);
         System.out.println(str);
@@ -110,7 +110,7 @@ public class TestSerializer
     @Test
     public void testStartedTask()
     {
-        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(UTC));
         JsonNode node = newStartedTask(startedTask);
         String str = nodeToString(node);
         System.out.println(str);
@@ -179,7 +179,7 @@ public class TestSerializer
     {
         JDKSerializer serializer = new JDKSerializer();
 
-        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(UTC));
         byte[] bytes = serializer.serialize(startedTask);
         StartedTask unStartedTask = serializer.deserialize(bytes, StartedTask.class);
         Assert.assertEquals(startedTask, unStartedTask);

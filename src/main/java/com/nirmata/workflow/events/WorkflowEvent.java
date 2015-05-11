@@ -17,7 +17,6 @@ package com.nirmata.workflow.events;
 
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
-import java.util.Optional;
 
 /**
  * Models a workflow event
@@ -52,7 +51,7 @@ public class WorkflowEvent
 
     private final EventType type;
     private final RunId runId;
-    private final Optional<TaskId> taskId;
+    private final TaskId taskId;
 
     public WorkflowEvent(EventType type, RunId runId)
     {
@@ -63,7 +62,7 @@ public class WorkflowEvent
     {
         this.type = type;
         this.runId = runId;
-        this.taskId = Optional.ofNullable(taskId);
+        this.taskId = taskId;
     }
 
     public EventType getType()
@@ -76,7 +75,10 @@ public class WorkflowEvent
         return runId;
     }
 
-    public Optional<TaskId> getTaskId()
+    /**
+     * @return task id or null if not started.
+     */
+    public TaskId getTaskId()
     {
         return taskId;
     }
@@ -99,7 +101,14 @@ public class WorkflowEvent
         {
             return false;
         }
-        if ( !taskId.equals(that.taskId) )
+        if ( taskId == null )
+        {
+            if ( that.taskId != null )
+            {
+                return false;
+            }
+        }
+        else if ( !taskId.equals(that.taskId) )
         {
             return false;
         }
@@ -117,7 +126,7 @@ public class WorkflowEvent
     {
         int result = type.hashCode();
         result = 31 * result + runId.hashCode();
-        result = 31 * result + taskId.hashCode();
+        result = 31 * result + (taskId == null ? 0 : taskId.hashCode());
         return result;
     }
 

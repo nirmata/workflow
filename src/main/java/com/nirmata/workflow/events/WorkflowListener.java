@@ -15,7 +15,6 @@
  */
 package com.nirmata.workflow.events;
 
-@FunctionalInterface
 public interface WorkflowListener
 {
     /**

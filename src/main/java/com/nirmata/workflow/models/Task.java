@@ -23,7 +23,6 @@ import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Models a task
@@ -31,7 +30,7 @@ import java.util.Optional;
 public class Task implements Serializable
 {
     private final TaskId taskId;
-    private final Optional<TaskType> taskType;
+    private final TaskType taskType;
     private final List<Task> childrenTasks;
     private final Map<String, String> metaData;
 
@@ -48,7 +47,7 @@ public class Task implements Serializable
      */
     public static Map<String, String> makeSpecialMeta(long value)
     {
-        Map<String, String> meta = Maps.newHashMap();
+        Map<String, String> meta = Maps.newLinkedHashMap();
         meta.put(META_TASK_SUBMIT_VALUE, Long.toString(value));
         return meta;
     }
@@ -59,7 +58,7 @@ public class Task implements Serializable
      */
     public Task(TaskId taskId, TaskType taskType)
     {
-        this(taskId, taskType, Lists.newArrayList(), Maps.newHashMap());
+        this(taskId, taskType, Lists.<Task>newArrayList(), Maps.<String, String>newLinkedHashMap());
     }
 
     /**
@@ -71,7 +70,7 @@ public class Task implements Serializable
      */
     public Task(TaskId taskId, List<Task> childrenTasks)
     {
-        this(taskId, null, childrenTasks, Maps.newHashMap());
+        this(taskId, null, childrenTasks, Maps.<String, String>newLinkedHashMap());
     }
 
     /**
@@ -81,7 +80,7 @@ public class Task implements Serializable
      */
     public Task(TaskId taskId, TaskType taskType, List<Task> childrenTasks)
     {
-        this(taskId, taskType, childrenTasks, Maps.newHashMap());
+        this(taskId, taskType, childrenTasks, Maps.<String, String>newLinkedHashMap());
     }
 
     /**
@@ -95,7 +94,7 @@ public class Task implements Serializable
         metaData = Preconditions.checkNotNull(metaData, "metaData cannot be null");
         childrenTasks = Preconditions.checkNotNull(childrenTasks, "childrenTasks cannot be null");
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
-        this.taskType = Optional.ofNullable(taskType);
+        this.taskType = taskType;
 
         this.metaData = ImmutableMap.copyOf(metaData);
         this.childrenTasks = ImmutableList.copyOf(childrenTasks);
@@ -111,14 +110,17 @@ public class Task implements Serializable
         return taskId;
     }
 
+    /**
+     * @return task type or null if not executable.
+     */
     public TaskType getTaskType()
     {
-        return taskType.get();
+        return taskType;
     }
 
     public boolean isExecutable()
     {
-        return taskType.isPresent();
+        return taskType != null;
     }
 
     public Map<String, String> getMetaData()
@@ -149,7 +151,14 @@ public class Task implements Serializable
             return false;
         }
         //noinspection RedundantIfStatement
-        if ( !taskType.equals(task.taskType) )
+        if ( taskType == null )
+        {
+            if ( task.taskType != null )
+            {
+                return false;
+            }
+        }
+        else if ( !taskType.equals(task.taskType) )
         {
             return false;
         }
@@ -161,7 +170,7 @@ public class Task implements Serializable
     public int hashCode()
     {
         int result = taskId.hashCode();
-        result = 31 * result + taskType.hashCode();
+        result = 31 * result + (taskType == null ? 0 : taskType.hashCode());
         result = 31 * result + childrenTasks.hashCode();
         return result;
     }

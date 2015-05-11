@@ -17,11 +17,12 @@ package com.nirmata.workflow.details;
 
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.admin.AutoCleaner;
+import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AutoCleanerHolder
@@ -48,10 +49,14 @@ public class AutoCleanerHolder
         log.info("Running");
         if ( autoCleaner != null )
         {
-            admin.getRunInfo().stream().filter(autoCleaner::canBeCleaned).forEach(r -> {
-                log.info("Auto cleaning: " + r);
-                admin.clean(r.getRunId());
-            });
+            for ( RunInfo r: admin.getRunInfo() )
+            {
+                if ( autoCleaner.canBeCleaned(r) )
+                {
+                    log.info("Auto cleaning: " + r);
+                    admin.clean(r.getRunId());
+                }
+            }
         }
         lastRun.set(Instant.now());
     }
@@ -62,7 +67,7 @@ public class AutoCleanerHolder
         {
             return false;
         }
-        Duration periodSinceLast = Duration.between(lastRun.get(), Instant.now());
-        return (periodSinceLast.compareTo(runPeriod) >= 0);
+        Duration periodSinceLast = new Duration(lastRun.get(), Instant.now());
+        return ( periodSinceLast.compareTo(runPeriod) >= 0 );
     }
 }

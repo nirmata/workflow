@@ -18,8 +18,7 @@ package com.nirmata.workflow.admin;
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import org.joda.time.LocalDateTime;
 
 /**
  * Task information
@@ -27,9 +26,9 @@ import java.util.Optional;
 public class TaskInfo
 {
     private final TaskId taskId;
-    private final Optional<String> instanceName;
-    private final Optional<LocalDateTime> startDateUtc;
-    private final Optional<TaskExecutionResult> result;
+    private final String instanceName;
+    private final LocalDateTime startDateUtc;
+    private final TaskExecutionResult result;
 
     public TaskInfo(TaskId taskId)
     {
@@ -44,9 +43,9 @@ public class TaskInfo
     public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, TaskExecutionResult result)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
-        this.instanceName = Optional.ofNullable(instanceName);
-        this.startDateUtc = Optional.ofNullable(startDateUtc);
-        this.result = Optional.ofNullable(result);
+        this.instanceName = instanceName;
+        this.startDateUtc = startDateUtc;
+        this.result = result;
     }
 
     public TaskId getTaskId()
@@ -54,29 +53,38 @@ public class TaskInfo
         return taskId;
     }
 
+    /**
+     * @return instance name or null if not started.
+     */
     public String getInstanceName()
     {
-        return instanceName.get();
+        return instanceName;
     }
 
+    /**
+     * @return start data name or null if not started.
+     */
     public LocalDateTime getStartDateUtc()
     {
-        return startDateUtc.get();
+        return startDateUtc;
     }
 
+    /**
+     * @return result or null if not complete
+     */
     public TaskExecutionResult getResult()
     {
-        return result.get();
+        return result;
     }
 
     public boolean hasStarted()
     {
-        return startDateUtc.isPresent() && instanceName.isPresent();
+        return startDateUtc != null && instanceName != null;
     }
 
     public boolean isComplete()
     {
-        return result.isPresent();
+        return result != null;
     }
 
     @Override
@@ -93,15 +101,36 @@ public class TaskInfo
 
         TaskInfo taskInfo = (TaskInfo)o;
 
-        if ( !instanceName.equals(taskInfo.instanceName) )
+        if ( instanceName == null )
+        {
+            if ( taskInfo.instanceName != null )
+            {
+                return false;
+            }
+        }
+        else if ( !instanceName.equals(taskInfo.instanceName) )
         {
             return false;
         }
-        if ( !result.equals(taskInfo.result) )
+        if ( result == null )
+        {
+            if ( taskInfo.result != null )
+            {
+                return false;
+            }
+        }
+        else if ( !result.equals(taskInfo.result) )
         {
             return false;
         }
-        if ( !startDateUtc.equals(taskInfo.startDateUtc) )
+        if ( startDateUtc == null )
+        {
+            if ( taskInfo.startDateUtc != null )
+            {
+                return false;
+            }
+        }
+        else if ( !startDateUtc.equals(taskInfo.startDateUtc) )
         {
             return false;
         }
@@ -118,9 +147,9 @@ public class TaskInfo
     public int hashCode()
     {
         int result1 = taskId.hashCode();
-        result1 = 31 * result1 + instanceName.hashCode();
-        result1 = 31 * result1 + startDateUtc.hashCode();
-        result1 = 31 * result1 + result.hashCode();
+        result1 = 31 * result1 + (instanceName == null ? 0 : instanceName.hashCode());
+        result1 = 31 * result1 + (startDateUtc == null ? 0 : startDateUtc.hashCode());
+        result1 = 31 * result1 + (result == null ? 0 : result.hashCode());
         return result1;
     }
 

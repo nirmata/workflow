@@ -34,20 +34,22 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
+import org.joda.time.LocalDateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 class JsonSerializer
 {
     private static final Logger log = LoggerFactory.getLogger(JsonSerializer.class);
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final DateTimeFormatter ISO_UTC = ISODateTimeFormat.dateTime().withZoneUTC();
 
     static ObjectNode newNode()
     {
@@ -104,18 +106,23 @@ class JsonSerializer
     {
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         ArrayNode tasks = newArrayNode();
-        builder.getTasks().values().forEach(thisTask -> {
+        for ( Task thisTask : builder.getTasks().values() )
+        {
             ObjectNode node = newNode();
             node.put("taskId", thisTask.getTaskId().getId());
             node.set("taskType", thisTask.isExecutable() ? newTaskType(thisTask.getTaskType()) : null);
             node.putPOJO("metaData", thisTask.getMetaData());
             node.put("isExecutable", thisTask.isExecutable());
 
-            List<String> childrenTaskIds = thisTask.getChildrenTasks().stream().map(t -> t.getTaskId().getId()).collect(Collectors.toList());
+            List<String> childrenTaskIds = new ArrayList<>(thisTask.getChildrenTasks().size());
+            for ( Task t : thisTask.getChildrenTasks() )
+            {
+                childrenTaskIds.add(t.getTaskId().getId());
+            }
             node.putPOJO("childrenTaskIds", childrenTaskIds);
 
             tasks.add(node);
-        });
+        }
 
         ObjectNode node = newNode();
         node.put("rootTaskId", task.getTaskId().getId());
@@ -148,7 +155,11 @@ class JsonSerializer
             throw new RuntimeException(message);
         }
 
-        List<Task> childrenTasks = task.childrenTaskIds.stream().map(id -> buildTask(workMap, buildMap, id)).collect(Collectors.toList());
+        List<Task> childrenTasks = new ArrayList<>(task.childrenTaskIds.size());
+        for ( String id : task.childrenTaskIds )
+        {
+            childrenTasks.add(buildTask(workMap, buildMap, id));
+        }
         Task newTask = new Task(taskId, task.taskType, childrenTasks, task.metaData);
         buildMap.put(taskId, newTask);
         return newTask;
@@ -156,26 +167,33 @@ class JsonSerializer
 
     static Task getTask(JsonNode node)
     {
-        Map<TaskId, WorkTask> workMap = Maps.newHashMap();
-        node.get("tasks").forEach(n -> {
+        Map<TaskId, WorkTask> workMap = Maps.newLinkedHashMap();
+        for ( JsonNode n: node.get("tasks") )
+        {
             WorkTask workTask = new WorkTask();
             JsonNode taskTypeNode = n.get("taskType");
             workTask.taskId = new TaskId(n.get("taskId").asText());
             workTask.taskType = ((taskTypeNode != null) && !taskTypeNode.isNull()) ? getTaskType(taskTypeNode) : null;
             workTask.metaData = getMap(n.get("metaData"));
             workTask.childrenTaskIds = Lists.newArrayList();
-            n.get("childrenTaskIds").forEach(c -> workTask.childrenTaskIds.add(c.asText()));
+            for ( JsonNode c : n.get("childrenTaskIds") )
+            {
+                workTask.childrenTaskIds.add(c.asText());
+            }
 
             workMap.put(workTask.taskId, workTask);
-        });
+        }
         String rootTaskId = node.get("rootTaskId").asText();
-        return buildTask(workMap, Maps.newHashMap(), rootTaskId);
+        return buildTask(workMap, Maps.<TaskId, Task>newLinkedHashMap(), rootTaskId);
     }
 
     static JsonNode newRunnableTaskDag(RunnableTaskDag runnableTaskDag)
     {
         ArrayNode tab = newArrayNode();
-        runnableTaskDag.getDependencies().forEach(taskId -> tab.add(taskId.getId()));
+        for ( TaskId taskId: runnableTaskDag.getDependencies() )
+        {
+            tab.add(taskId.getId());
+        }
 
         ObjectNode node = newNode();
         node.put("taskId", runnableTaskDag.getTaskId().getId());
@@ -190,7 +208,10 @@ class JsonSerializer
         JsonNode childrenNode = node.get("dependencies");
         if ( (childrenNode != null) && (childrenNode.size() > 0) )
         {
-            childrenNode.forEach(n -> children.add(new TaskId(n.asText())));
+            for (JsonNode n : childrenNode)
+            {
+                children.add(new TaskId(n.asText()));
+            }
         }
 
         return new RunnableTaskDag
@@ -248,26 +269,35 @@ class JsonSerializer
     static JsonNode newRunnableTask(RunnableTask runnableTask)
     {
         ArrayNode taskDags = newArrayNode();
-        runnableTask.getTaskDags().forEach(taskDag -> taskDags.add(newRunnableTaskDag(taskDag)));
+        for ( RunnableTaskDag taskDag: runnableTask.getTaskDags() )
+        {
+            taskDags.add(newRunnableTaskDag(taskDag));
+        }
 
         ObjectNode tasks = newNode();
-        runnableTask.getTasks().entrySet().forEach(entry -> tasks.set(entry.getKey().getId(), newExecutableTask(entry.getValue())));
+        for ( Map.Entry<TaskId, ExecutableTask> entry: runnableTask.getTasks().entrySet() )
+        {
+            tasks.set(entry.getKey().getId(), newExecutableTask(entry.getValue()));
+        }
 
         ObjectNode node = newNode();
         node.set("taskDags", taskDags);
         node.set("tasks", tasks);
-        node.put("startTimeUtc", runnableTask.getStartTimeUtc().format(DateTimeFormatter.ISO_DATE_TIME));
-        node.put("completionTimeUtc", runnableTask.getCompletionTimeUtc().isPresent() ? runnableTask.getCompletionTimeUtc().get().format(DateTimeFormatter.ISO_DATE_TIME) : null);
-        node.put("parentRunId", runnableTask.getParentRunId().isPresent() ? runnableTask.getParentRunId().get().getId() : null);
+        node.put("startTimeUtc", writeIsoUtc(runnableTask.getStartTimeUtc()));
+        node.put("completionTimeUtc", writeIsoUtc(runnableTask.getCompletionTimeUtc()));
+        node.put("parentRunId", runnableTask.getParentRunId() != null ? runnableTask.getParentRunId().getId() : null);
         return node;
     }
 
     static RunnableTask getRunnableTask(JsonNode node)
     {
         List<RunnableTaskDag> taskDags = Lists.newArrayList();
-        node.get("taskDags").forEach(n -> taskDags.add(getRunnableTaskDag(n)));
+        for ( JsonNode n : node.get("taskDags") )
+        {
+            taskDags.add(getRunnableTaskDag(n));
+        }
 
-        Map<TaskId, ExecutableTask> tasks = Maps.newHashMap();
+        Map<TaskId, ExecutableTask> tasks = Maps.newLinkedHashMap();
         Iterator<Map.Entry<String, JsonNode>> fields = node.get("tasks").fields();
         while ( fields.hasNext() )
         {
@@ -275,8 +305,8 @@ class JsonSerializer
             tasks.put(new TaskId(next.getKey()), getExecutableTask(next.getValue()));
         }
 
-        LocalDateTime startTime = LocalDateTime.parse(node.get("startTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME);
-        LocalDateTime completionTime = node.get("completionTimeUtc").isNull() ? null : LocalDateTime.parse(node.get("completionTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME);
+        LocalDateTime startTime = readIsoUtc(node.get("startTimeUtc"));
+        LocalDateTime completionTime = readIsoUtc(node.get("completionTimeUtc"));
         RunId parentRunId = node.get("parentRunId").isNull() ? null : new RunId(node.get("parentRunId").asText());
         return new RunnableTask(tasks, taskDags, startTime, completionTime, parentRunId);
     }
@@ -287,8 +317,8 @@ class JsonSerializer
         node.put("status", taskExecutionResult.getStatus().name().toLowerCase());
         node.put("message", taskExecutionResult.getMessage());
         node.putPOJO("resultData", taskExecutionResult.getResultData());
-        node.put("subTaskRunId", taskExecutionResult.getSubTaskRunId().isPresent() ? taskExecutionResult.getSubTaskRunId().get().getId() : null);
-        node.put("completionTimeUtc", taskExecutionResult.getCompletionTimeUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("subTaskRunId", taskExecutionResult.getSubTaskRunId() != null ? taskExecutionResult.getSubTaskRunId().getId() : null);
+        node.put("completionTimeUtc", writeIsoUtc(taskExecutionResult.getCompletionTimeUtc()));
         return node;
     }
 
@@ -300,8 +330,7 @@ class JsonSerializer
             TaskExecutionStatus.valueOf(node.get("status").asText().toUpperCase()),
             node.get("message").asText(),
             getMap(node.get("resultData")),
-            ((subTaskRunIdNode != null) && !subTaskRunIdNode.isNull()) ? new RunId(subTaskRunIdNode.asText()) : null,
-            LocalDateTime.parse(node.get("completionTimeUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
+            ((subTaskRunIdNode != null) && !subTaskRunIdNode.isNull()) ? new RunId(subTaskRunIdNode.asText()) : null, readIsoUtc(node.get("completionTimeUtc"))
         );
     }
 
@@ -309,7 +338,7 @@ class JsonSerializer
     {
         ObjectNode node = newNode();
         node.put("instanceName", startedTask.getInstanceName());
-        node.put("startDateUtc", startedTask.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("startDateUtc", writeIsoUtc(startedTask.getStartDateUtc()));
         return node;
     }
 
@@ -318,13 +347,13 @@ class JsonSerializer
         return new StartedTask
         (
             node.get("instanceName").asText(),
-            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
+            readIsoUtc(node.get("startDateUtc"))
         );
     }
 
     static Map<String, String> getMap(JsonNode node)
     {
-        Map<String, String> map = Maps.newHashMap();
+        Map<String, String> map = Maps.newLinkedHashMap();
         if ( (node != null) && !node.isNull() )
         {
             Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
@@ -335,6 +364,23 @@ class JsonSerializer
             }
         }
         return map;
+    }
+
+    private static LocalDateTime readIsoUtc(JsonNode node) {
+        if (node.isNull())
+        {
+            return null;
+        }
+        String text = node.asText(); // Joda is strict wrt the timezone being present.
+        if (Character.isDigit(text.charAt(text.length() - 1)))
+        {
+            text += 'Z';
+        }
+        return ISO_UTC.parseLocalDateTime(text);
+    }
+
+    private static String writeIsoUtc(LocalDateTime date) {
+        return date != null ? ISO_UTC.print(date) : null;
     }
 
     private JsonSerializer()

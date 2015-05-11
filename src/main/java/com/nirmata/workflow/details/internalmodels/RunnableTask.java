@@ -21,19 +21,18 @@ import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
+import org.joda.time.LocalDateTime;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class RunnableTask implements Serializable
 {
     private final Map<TaskId, ExecutableTask> tasks;
     private final List<RunnableTaskDag> taskDags;
     private final LocalDateTime startTimeUtc;
-    private final Optional<LocalDateTime> completionTimeUtc;
-    private final Optional<RunId> parentRunId;
+    private final LocalDateTime completionTimeUtc;
+    private final RunId parentRunId;
 
     public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTimeUtc)
     {
@@ -48,8 +47,8 @@ public class RunnableTask implements Serializable
     public RunnableTask(Map<TaskId, ExecutableTask> tasks, List<RunnableTaskDag> taskDags, LocalDateTime startTimeUtc, LocalDateTime completionTimeUtc, RunId parentRunId)
     {
         this.startTimeUtc = Preconditions.checkNotNull(startTimeUtc, "startTimeUtc cannot be null");
-        this.completionTimeUtc = Optional.ofNullable(completionTimeUtc);
-        this.parentRunId = Optional.ofNullable(parentRunId);
+        this.completionTimeUtc = completionTimeUtc;
+        this.parentRunId = parentRunId;
         tasks = Preconditions.checkNotNull(tasks, "tasks cannot be null");
         taskDags = Preconditions.checkNotNull(taskDags, "taskDags cannot be null");
 
@@ -67,7 +66,10 @@ public class RunnableTask implements Serializable
         return taskDags;
     }
 
-    public Optional<LocalDateTime> getCompletionTimeUtc()
+    /**
+     * @return time of completion or null if not yet completed.
+     */
+    public LocalDateTime getCompletionTimeUtc()
     {
         return completionTimeUtc;
     }
@@ -77,7 +79,10 @@ public class RunnableTask implements Serializable
         return startTimeUtc;
     }
 
-    public Optional<RunId> getParentRunId()
+    /**
+     * @return id of parent or null, if this isn't a child task.
+     */
+    public RunId getParentRunId()
     {
         return parentRunId;
     }
@@ -96,11 +101,25 @@ public class RunnableTask implements Serializable
 
         RunnableTask that = (RunnableTask)o;
 
-        if ( !completionTimeUtc.equals(that.completionTimeUtc) )
+        if ( completionTimeUtc == null )
+        {
+            if ( that.completionTimeUtc != null )
+            {
+                return false;
+            }
+        }
+        else if ( !completionTimeUtc.equals(that.completionTimeUtc) )
         {
             return false;
         }
-        if ( !parentRunId.equals(that.parentRunId) )
+        if ( parentRunId == null )
+        {
+            if ( that.parentRunId != null )
+            {
+                return false;
+            }
+        }
+        else if ( !parentRunId.equals(that.parentRunId) )
         {
             return false;
         }
@@ -127,8 +146,8 @@ public class RunnableTask implements Serializable
         int result = tasks.hashCode();
         result = 31 * result + taskDags.hashCode();
         result = 31 * result + startTimeUtc.hashCode();
-        result = 31 * result + completionTimeUtc.hashCode();
-        result = 31 * result + parentRunId.hashCode();
+        result = 31 * result + (completionTimeUtc == null ? 0 : completionTimeUtc.hashCode());
+        result = 31 * result + (parentRunId == null ? 0 : parentRunId.hashCode());
         return result;
     }
 

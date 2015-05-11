@@ -15,9 +15,10 @@
  */
 package com.nirmata.workflow.admin;
 
-import java.time.Clock;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import org.joda.time.Duration;
+import org.joda.time.LocalDateTime;
+
+import static org.joda.time.DateTimeZone.UTC;
 
 /**
  * Default auto cleaner. Cleans if the run is completed and was completed past the given minimum age
@@ -36,8 +37,8 @@ public class StandardAutoCleaner implements AutoCleaner
     {
         if ( runInfo.isComplete() )
         {
-            LocalDateTime nowUtc = LocalDateTime.now(Clock.systemUTC());
-            Duration durationSinceCompletion = Duration.between(runInfo.getCompletionTimeUtc(), nowUtc);
+            LocalDateTime nowUtc = LocalDateTime.now(UTC);
+            Duration durationSinceCompletion = new Duration(runInfo.getCompletionTimeUtc().toDateTime(UTC), nowUtc.toDateTime(UTC));
             if ( durationSinceCompletion.compareTo(minAge) >= 0 )
             {
                 return true;

@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.nirmata.workflow.WorkflowManager;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.TaskDetails;
@@ -39,23 +40,23 @@ import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
+import com.nirmata.workflow.queue.TaskRunner;
 import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
+import org.joda.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
+import static org.joda.time.DateTimeZone.UTC;
 
 public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 {
@@ -112,7 +113,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     @VisibleForTesting
     void startQueueConsumers()
     {
-        consumers.forEach(QueueConsumer::start);
+        for (QueueConsumer consumer : consumers)
+        {
+            consumer.start();
+        }
     }
 
     @Override
@@ -135,15 +139,14 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             String runPath = ZooKeeperConstants.getRunPath(runId);
             byte[] runnableTaskBytes = curator.getData().forPath(runPath);
             RunnableTask runnableTask = serializer.deserialize(runnableTaskBytes, RunnableTask.class);
-            return runnableTask.getTasks()
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> {
-                    ExecutableTask executableTask = entry.getValue();
-                    TaskType taskType = executableTask.getTaskType().equals(nullTaskType) ? null : executableTask.getTaskType();
-                    return new TaskDetails(entry.getKey(), taskType, executableTask.getMetaData());
-                }))
-                ;
+            ImmutableMap.Builder<TaskId, TaskDetails> result = ImmutableMap.builder();
+            for (Map.Entry<TaskId, ExecutableTask> entry : runnableTask.getTasks().entrySet())
+            {
+                ExecutableTask executableTask = entry.getValue();
+                TaskType taskType = executableTask.getTaskType().equals(nullTaskType) ? null : executableTask.getTaskType();
+                result.put(entry.getKey(), new TaskDetails(entry.getKey(), taskType, executableTask.getMetaData()));
+            }
+            return result.build();
         }
         catch ( KeeperException.NoNodeException dummy )
         {
@@ -162,12 +165,12 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         RunId runId = new RunId();
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
-        Map<TaskId, ExecutableTask> tasks = builder
-            .getTasks()
-            .values()
-            .stream()
-            .collect(Collectors.toMap(Task::getTaskId, t -> new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable())));
-        RunnableTask runnableTask = new RunnableTask(tasks, builder.getEntries(), LocalDateTime.now(), null, parentRunId);
+        ImmutableMap.Builder<TaskId, ExecutableTask> tasks = ImmutableMap.builder();
+        for (Task t : builder.getTasks().values())
+        {
+            tasks.put(t.getTaskId(), new ExecutableTask(runId, t.getTaskId(), t.isExecutable() ? t.getTaskType() : nullTaskType, t.getMetaData(), t.isExecutable()));
+        }
+        RunnableTask runnableTask = new RunnableTask(tasks.build(), builder.getEntries(), LocalDateTime.now(UTC), null, parentRunId);
 
         try
         {
@@ -208,14 +211,13 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
-    public Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId)
+    public TaskExecutionResult getTaskExecutionResult(RunId runId, TaskId taskId)
     {
         String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
         try
         {
             byte[] bytes = curator.getData().forPath(completedTaskPath);
-            TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
-            return Optional.of(taskExecutionResult);
+            return serializer.deserialize(bytes, TaskExecutionResult.class);
         }
         catch ( KeeperException.NoNodeException dummy )
         {
@@ -225,7 +227,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             throw new RuntimeException(String.format("No data for runId %s taskId %s", runId, taskId), e);
         }
-        return Optional.empty();
+        return null;
     }
 
     public String getInstanceName()
@@ -239,7 +241,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
             CloseableUtils.closeQuietly(schedulerSelector);
-            consumers.forEach(CloseableUtils::closeQuietly);
+            for (QueueConsumer consumer: consumers)
+            {
+                CloseableUtils.closeQuietly(consumer);
+            }
         }
     }
 
@@ -257,7 +262,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             byte[] bytes = curator.getData().forPath(runPath);
             RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
-            runnableTask.getTasks().keySet().forEach(taskId -> {
+            for (TaskId taskId: runnableTask.getTasks().keySet())
+            {
                 String startedTaskPath = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
                 try
                 {
@@ -285,7 +291,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 {
                     throw new RuntimeException("Could not delete completed task at: " + completedTaskPath, e);
                 }
-            });
+            }
 
             try
             {
@@ -317,7 +323,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             String runPath = ZooKeeperConstants.getRunPath(runId);
             byte[] bytes = curator.getData().forPath(runPath);
             RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
-            return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
+            return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc());
         }
         catch ( Exception e )
         {
@@ -331,30 +337,29 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         try
         {
             String runParentPath = ZooKeeperConstants.getRunParentPath();
-            return curator.getChildren().forPath(runParentPath).stream()
-                .map(child -> {
-                    String fullPath = ZKPaths.makePath(runParentPath, child);
-                    try
-                    {
-                        RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(fullPath));
-                        byte[] bytes = curator.getData().forPath(fullPath);
-                        RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
-                        return new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc().orElse(null));
-                    }
-                    catch ( KeeperException.NoNodeException ignore )
-                    {
-                        // ignore - must have been deleted in the interim
-                    }
-                    catch ( Exception e )
-                    {
-                        throw new RuntimeException("Trying to read run info from: " + fullPath, e);
-                    }
-                    return null;
-                })
-                .filter(info -> (info != null))
-                .collect(Collectors.toList());
+            List<RunInfo> result = Lists.newArrayList();
+            for (String child: curator.getChildren().forPath(runParentPath))
+            {
+                String fullPath = ZKPaths.makePath(runParentPath, child);
+                try
+                {
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(fullPath));
+                    byte[] bytes = curator.getData().forPath(fullPath);
+                    RunnableTask runnableTask = serializer.deserialize(bytes, RunnableTask.class);
+                    result.add(new RunInfo(runId, runnableTask.getStartTimeUtc(), runnableTask.getCompletionTimeUtc()));
+                }
+                catch ( KeeperException.NoNodeException ignore )
+                {
+                    // ignore - must have been deleted in the interim
+                }
+                catch ( Exception e )
+                {
+                    throw new RuntimeException("Trying to read run info from: " + fullPath, e);
+                }
+            }
+            return result;
         }
-        catch ( Throwable e )
+        catch ( Exception e )
         {
             throw new RuntimeException(e);
         }
@@ -372,10 +377,18 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             byte[] runBytes = curator.getData().forPath(runPath);
             RunnableTask runnableTask = serializer.deserialize(runBytes, RunnableTask.class);
 
-            Set<TaskId> notStartedTasks = runnableTask.getTasks().values().stream().filter(ExecutableTask::isExecutable).map(ExecutableTask::getTaskId).collect(Collectors.toSet());
-            Map<TaskId, StartedTask> startedTasks = Maps.newHashMap();
+            Set<TaskId> notStartedTasks = Sets.newLinkedHashSet();
+            for ( ExecutableTask task : runnableTask.getTasks().values() )
+            {
+                if ( task.isExecutable() )
+                {
+                    notStartedTasks.add(task.getTaskId());
+                }
+            }
+            Map<TaskId, StartedTask> startedTasks = Maps.newLinkedHashMap();
 
-            curator.getChildren().forPath(startedTasksParentPath).stream().forEach(child -> {
+            for ( String child: curator.getChildren().forPath(startedTasksParentPath) )
+            {
                 String fullPath = ZKPaths.makePath(startedTasksParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(fullPath));
                 try
@@ -393,9 +406,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 {
                     throw new RuntimeException("Trying to read started task info from: " + fullPath, e);
                 }
-            });
+            }
 
-            curator.getChildren().forPath(completedTaskParentPath).stream().forEach(child -> {
+            for ( String child: curator.getChildren().forPath(completedTaskParentPath) )
+            {
                 String fullPath = ZKPaths.makePath(completedTaskParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(fullPath));
                 StartedTask startedTask = startedTasks.remove(taskId);
@@ -417,18 +431,22 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                         throw new RuntimeException("Trying to read completed task info from: " + fullPath, e);
                     }
                 }
-            });
+            }
 
             // remaining started tasks have not completed
-            startedTasks.entrySet().forEach(entry -> {
+            for ( Map.Entry<TaskId, StartedTask> entry: startedTasks.entrySet() )
+            {
                 StartedTask startedTask = entry.getValue();
                 taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc()));
-            });
+            }
 
             // finally, taskIds not added have not started
-            notStartedTasks.forEach(taskId -> taskInfos.add(new TaskInfo(taskId)));
+            for ( TaskId taskId: notStartedTasks )
+            {
+                taskInfos.add(new TaskInfo(taskId));
+            }
         }
-        catch ( Throwable e )
+        catch ( Exception e )
         {
             throw new RuntimeException(e);
         }
@@ -496,11 +514,21 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     private List<QueueConsumer> makeTaskConsumers(QueueFactory queueFactory, List<TaskExecutorSpec> specs)
     {
         ImmutableList.Builder<QueueConsumer> builder = ImmutableList.builder();
-        specs.forEach(spec -> IntStream.range(0, spec.getQty()).forEach(i -> {
-            QueueConsumer consumer = queueFactory.createQueueConsumer(this, t -> executeTask(spec.getTaskExecutor(), t), spec.getTaskType());
-            builder.add(consumer);
-        }));
-
+        for ( final TaskExecutorSpec spec : specs )
+        {
+            for ( int i = 0; i < spec.getQty(); i++ )
+            {
+                QueueConsumer consumer = queueFactory.createQueueConsumer(this, new TaskRunner()
+                {
+                    @Override
+                    public void executeTask(ExecutableTask t)
+                    {
+                        WorkflowManagerImpl.this.executeTask(spec.getTaskExecutor(), t);
+                    }
+                }, spec.getTaskType());
+                builder.add(consumer);
+            }
+        }
         return builder.build();
     }
 }

@@ -19,10 +19,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
+import com.nirmata.workflow.details.internalmodels.RunnableTaskDag;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.RunId;
@@ -31,21 +33,24 @@ import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.Queue;
 import com.nirmata.workflow.queue.QueueFactory;
+import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
+import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.zookeeper.KeeperException;
+import org.joda.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.time.Clock;
-import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.joda.time.DateTimeZone.UTC;
 
 class Scheduler
 {
@@ -60,11 +65,18 @@ class Scheduler
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
     private final LoadingCache<TaskType, Queue> queues = CacheBuilder.newBuilder()
-        .removalListener(Scheduler::remover)
+        .removalListener(new RemovalListener<TaskType, Queue>()
+        {
+            @Override
+            public void onRemoval(RemovalNotification<TaskType, Queue> notification)
+            {
+                CloseableUtils.closeQuietly(notification.getValue());
+            }
+        })
         .build(new CacheLoader<TaskType, Queue>()
         {
             @Override
-            public Queue load(TaskType taskType) throws Exception
+            public Queue load(TaskType taskType)
             {
                 log.info("Adding producer queue for: " + taskType);
                 Queue queue = queueFactory.createQueue(workflowManager, taskType);
@@ -72,11 +84,6 @@ class Scheduler
                 return queue;
             }
         });
-
-    private static void remover(RemovalNotification<TaskType, Queue> notification)
-    {
-        CloseableUtils.closeQuietly(notification.getValue());
-    }
 
     Scheduler(WorkflowManagerImpl workflowManager, QueueFactory queueFactory, AutoCleanerHolder autoCleanerHolder)
     {
@@ -91,36 +98,45 @@ class Scheduler
 
     void run()
     {
-        CountDownLatch initLatch = new CountDownLatch(2);
+        final CountDownLatch initLatch = new CountDownLatch(2);
 
-        BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
-        completedTasksCache.getListenable().addListener((client, event) -> {
-            if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
+        final BlockingQueue<RunId> updatedRunIds = Queues.newLinkedBlockingQueue();
+        completedTasksCache.getListenable().addListener(new PathChildrenCacheListener()
+        {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
             {
-                initLatch.countDown();
-            }
-            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-            {
-                RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
-                updatedRunIds.add(runId);
+                if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
+                {
+                    initLatch.countDown();
+                } else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                {
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
+                    updatedRunIds.add(runId);
+                }
             }
         });
-        runsCache.getListenable().addListener((client, event) -> {
-            if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
+        runsCache.getListenable().addListener(new PathChildrenCacheListener()
+        {
+            @Override
+            public void childEvent(CuratorFramework client, PathChildrenCacheEvent event)
             {
-                initLatch.countDown();
-            }
-            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-            {
-                RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
-                updatedRunIds.add(runId);
-            }
-            else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
-            {
-                RunnableTask runnableTask = workflowManager.getSerializer().deserialize(event.getData().getData(), RunnableTask.class);
-                if ( runnableTask.getParentRunId().isPresent() )
+                if ( event.getType() == PathChildrenCacheEvent.Type.INITIALIZED )
                 {
-                    updatedRunIds.add(runnableTask.getParentRunId().get());
+                    initLatch.countDown();
+                }
+                else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
+                {
+                    RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
+                    updatedRunIds.add(runId);
+                }
+                else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
+                {
+                    RunnableTask runnableTask = workflowManager.getSerializer().deserialize(event.getData().getData(), RunnableTask.class);
+                    if ( runnableTask.getParentRunId() != null )
+                    {
+                        updatedRunIds.add(runnableTask.getParentRunId());
+                    }
                 }
             }
         });
@@ -135,7 +151,7 @@ class Scheduler
 
             while ( !Thread.currentThread().isInterrupted() )
             {
-                RunId runId = updatedRunIds.poll(autoCleanerHolder.getRunPeriod().toMillis(), TimeUnit.MILLISECONDS);
+                RunId runId = updatedRunIds.poll(autoCleanerHolder.getRunPeriod().getMillis(), TimeUnit.MILLISECONDS);
                 if ( runId != null )
                 {
                     updateTasks(runId);
@@ -166,24 +182,28 @@ class Scheduler
 
     private boolean hasCanceledTasks(RunId runId, RunnableTask runnableTask)
     {
-        return runnableTask.getTasks().keySet().stream().anyMatch(taskId -> {
+        for (TaskId taskId: runnableTask.getTasks().keySet())
+        {
             String completedTaskPath = ZooKeeperConstants.getCompletedTaskPath(runId, taskId);
             ChildData currentData = completedTasksCache.getCurrentData(completedTaskPath);
             if ( currentData != null )
             {
                 TaskExecutionResult taskExecutionResult = workflowManager.getSerializer().deserialize(currentData.getData(), TaskExecutionResult.class);
-                return taskExecutionResult.getStatus().isCancelingStatus();
+                if ( taskExecutionResult.getStatus().isCancelingStatus() )
+                {
+                    return true;
+                }
             }
-            return false;
-        });
+        }
+        return false;
     }
 
     static void completeRunnableTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask, int version)
     {
         try
         {
-            RunId parentRunId = runnableTask.getParentRunId().orElse(null);
-            RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTimeUtc(), LocalDateTime.now(Clock.systemUTC()), parentRunId);
+            RunId parentRunId = runnableTask.getParentRunId();
+            RunnableTask completedRunnableTask = new RunnableTask(runnableTask.getTasks(), runnableTask.getTaskDags(), runnableTask.getStartTimeUtc(), LocalDateTime.now(UTC), parentRunId);
             String runPath = ZooKeeperConstants.getRunPath(runId);
             byte[] json = workflowManager.getSerializer().serialize(completedRunnableTask);
             workflowManager.getCurator().setData().withVersion(version).forPath(runPath, json);
@@ -213,7 +233,7 @@ class Scheduler
             log.error(message);
             throw new RuntimeException(message);
         }
-        if ( runnableTask.getCompletionTimeUtc().isPresent() )
+        if ( runnableTask.getCompletionTimeUtc() != null )
         {
             return;
         }
@@ -224,8 +244,9 @@ class Scheduler
             return; // one or more tasks has canceled the entire run
         }
 
-        Set<TaskId> completedTasks = Sets.newHashSet();
-        runnableTask.getTaskDags().forEach(entry -> {
+        Set<TaskId> completedTasks = Sets.newLinkedHashSet();
+        for ( RunnableTaskDag entry : runnableTask.getTaskDags() )
+        {
             TaskId taskId = entry.getTaskId();
             ExecutableTask task = runnableTask.getTasks().get(taskId);
             if ( task == null )
@@ -241,16 +262,21 @@ class Scheduler
             }
             else if ( !taskIsStarted(startedTasksCache, runId, taskId) )
             {
-                boolean allDependenciesAreComplete = entry
-                    .getDependencies()
-                    .stream()
-                    .allMatch(id -> taskIsComplete(completedTasksCache, runId, runnableTask.getTasks().get(id)));
+                boolean allDependenciesAreComplete = true;
+                for ( TaskId id: entry.getDependencies() )
+                {
+                    if ( !taskIsComplete(completedTasksCache, runId, runnableTask.getTasks().get(id)) )
+                    {
+                        allDependenciesAreComplete = false;
+                        break;
+                    }
+                }
                 if ( allDependenciesAreComplete )
                 {
                     queueTask(runId, task);
                 }
             }
-        });
+        }
 
         if ( completedTasks.equals(runnableTask.getTasks().keySet()))
         {
@@ -273,7 +299,7 @@ class Scheduler
         String path = ZooKeeperConstants.getStartedTaskPath(runId, task.getTaskId());
         try
         {
-            StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
+            StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(UTC));
             byte[] data = workflowManager.getSerializer().serialize(startedTask);
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = queues.get(task.getTaskType());
@@ -315,10 +341,10 @@ class Scheduler
         if ( currentData != null )
         {
             TaskExecutionResult result = workflowManager.getSerializer().deserialize(currentData.getData(), TaskExecutionResult.class);
-            if ( result.getSubTaskRunId().isPresent() )
+            if ( result.getSubTaskRunId() != null )
             {
-                RunnableTask runnableTask = getRunnableTask(result.getSubTaskRunId().get());
-                return (runnableTask != null) && runnableTask.getCompletionTimeUtc().isPresent();
+                RunnableTask runnableTask = getRunnableTask(result.getSubTaskRunId());
+                return (runnableTask != null) && runnableTask.getCompletionTimeUtc() != null;
             }
             return true;
         }

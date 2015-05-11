@@ -22,7 +22,6 @@ import com.nirmata.workflow.models.TaskExecutionResult;
  * task. The Workflow manager will call {@link #execute()} when the task should perform
  * its operation.
  */
-@FunctionalInterface
 public interface TaskExecution
 {
     /**
