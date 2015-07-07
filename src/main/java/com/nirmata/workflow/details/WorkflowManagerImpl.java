@@ -40,6 +40,7 @@ import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.serialization.Serializer;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ZKPaths;
@@ -47,6 +48,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -173,7 +175,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             byte[] runnableTaskBytes = serializer.serialize(runnableTask);
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
+            curator.setData().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
         }
         catch ( Exception e )
         {
@@ -182,7 +184,29 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         return runId;
     }
-
+    
+    public void updateTaskProgress(RunId runId, TaskId taskId, short progress)
+    {    
+        String path = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
+        try
+        {
+            byte[] bytes = curator.getData().forPath(path);
+            StartedTask startedTask = serializer.deserialize(bytes, StartedTask.class);
+            startedTask.setProgress(progress);
+            byte[] data = getSerializer().serialize(startedTask);
+            curator.setData().forPath(path, data);
+        }
+        catch ( KeeperException.NoNodeException ignore )
+        {
+            // ignore - must have been deleted in the interim, for example before we update 
+            // progress the task is completed
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException("Trying to read started task info from: " + path, e);
+        }
+    }
+    
     @Override
     public boolean cancelRun(RunId runId)
     {
@@ -418,11 +442,11 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     }
                 }
             });
-
+    
             // remaining started tasks have not completed
             startedTasks.entrySet().forEach(entry -> {
                 StartedTask startedTask = entry.getValue();
-                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc()));
+                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress()));
             });
 
             // finally, taskIds not added have not started

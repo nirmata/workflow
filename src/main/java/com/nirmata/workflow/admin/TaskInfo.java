@@ -29,6 +29,7 @@ public class TaskInfo
     private final TaskId taskId;
     private final Optional<String> instanceName;
     private final Optional<LocalDateTime> startDateUtc;
+    private Optional<Short> progress;
     private final Optional<TaskExecutionResult> result;
 
     public TaskInfo(TaskId taskId)
@@ -36,17 +37,18 @@ public class TaskInfo
         this(taskId, null, null, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, short progress)
     {
-        this(taskId, instanceName, startDateUtc, null);
+        this(taskId, instanceName, startDateUtc, progress, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, TaskExecutionResult result)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, short progress, TaskExecutionResult result)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.instanceName = Optional.ofNullable(instanceName);
         this.startDateUtc = Optional.ofNullable(startDateUtc);
         this.result = Optional.ofNullable(result);
+        this.progress = Optional.ofNullable(progress);
     }
 
     public TaskId getTaskId()
@@ -67,6 +69,11 @@ public class TaskInfo
     public TaskExecutionResult getResult()
     {
         return result.get();
+    }
+    
+    public short getProgress() 
+    {
+        return progress.get();
     }
 
     public boolean hasStarted()
