@@ -175,7 +175,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             byte[] runnableTaskBytes = serializer.serialize(runnableTask);
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            curator.setData().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
+            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
         }
         catch ( Exception e )
         {
