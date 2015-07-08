@@ -34,7 +34,7 @@ public class TaskInfo
 
     public TaskInfo(TaskId taskId)
     {
-        this(taskId, null, null, null);
+        this(taskId, null, null, (short)0, null);
     }
 
     public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, short progress)
