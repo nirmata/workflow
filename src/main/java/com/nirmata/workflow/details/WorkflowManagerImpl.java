@@ -186,7 +186,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
     
     public void updateTaskProgress(RunId runId, TaskId taskId, short progress)
-    {    
+    {   
+        if (progress<0 || progress>100) throw new IllegalArgumentException("invalid progress value(0-100)");
+ 
         String path = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
         try
         {
