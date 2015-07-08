@@ -47,7 +47,7 @@ public class StartedTask implements Serializable
         return progress;
     }
     
-    public int setProgress(int progress)
+    public short setProgress(short progress)
     {
         this.progress = progress;
     }

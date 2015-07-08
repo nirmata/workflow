@@ -431,7 +431,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     {
                         byte[] bytes = curator.getData().forPath(fullPath);
                         TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
-                        taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), taskExecutionResult));
+                        taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress(), taskExecutionResult));
                         notStartedTasks.remove(taskId);
                     }
                     catch ( KeeperException.NoNodeException ignore )

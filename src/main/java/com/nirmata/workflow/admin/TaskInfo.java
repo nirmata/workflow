@@ -48,7 +48,7 @@ public class TaskInfo
         this.instanceName = Optional.ofNullable(instanceName);
         this.startDateUtc = Optional.ofNullable(startDateUtc);
         this.result = Optional.ofNullable(result);
-        this.progress = Optional.ofNullable(progress);
+        this.progress = Optional.of(progress);
     }
 
     public TaskId getTaskId()
