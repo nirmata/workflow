@@ -28,6 +28,7 @@ import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
+import com.nirmata.workflow.events.WorkflowEvent;
 import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -185,9 +186,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         return runId;
     }
     
-    public void updateTaskProgress(RunId runId, TaskId taskId, short progress)
+    public void updateTaskProgress(RunId runId, TaskId taskId, int progress)
     {   
-        if (progress<0 || progress>100) throw new IllegalArgumentException("invalid progress value(0-100)");
+        Preconditions.checkArgument((progress >= 0) && (progress <= 100), "progress must be between 0 and 100");
  
         String path = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
         try

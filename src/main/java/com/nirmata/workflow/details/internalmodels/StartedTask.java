@@ -23,7 +23,7 @@ public class StartedTask implements Serializable
 {
     private final String instanceName;
     private final LocalDateTime startDateUtc;
-    private short progress;
+    private int progress;
 
     public StartedTask(String instanceName, LocalDateTime startDateUtc)
     {
@@ -42,12 +42,12 @@ public class StartedTask implements Serializable
         return startDateUtc;
     }
     
-    public short getProgress()
+    public int getProgress()
     {
         return progress;
     }
     
-    public void setProgress(short progress)
+    public void setProgress(int progress)
     {
         this.progress = progress;
     }

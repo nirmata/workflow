@@ -29,20 +29,20 @@ public class TaskInfo
     private final TaskId taskId;
     private final Optional<String> instanceName;
     private final Optional<LocalDateTime> startDateUtc;
-    private Optional<Short> progress;
+    private Optional<Integer> progress;
     private final Optional<TaskExecutionResult> result;
 
     public TaskInfo(TaskId taskId)
     {
-        this(taskId, null, null, (short)0, null);
+        this(taskId, null, null, 0, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, short progress)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, int progress)
     {
         this(taskId, instanceName, startDateUtc, progress, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, short progress, TaskExecutionResult result)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, int progress, TaskExecutionResult result)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.instanceName = Optional.ofNullable(instanceName);
@@ -71,7 +71,7 @@ public class TaskInfo
         return result.get();
     }
     
-    public short getProgress() 
+    public int getProgress() 
     {
         return progress.get();
     }

@@ -82,7 +82,7 @@ public interface WorkflowManager extends Closeable
      * @param taskId the task
      * @param current progress to be set
      */
-    public void updateTaskProgress(RunId runId, TaskId taskId, short progress);
+    public void updateTaskProgress(RunId runId, TaskId taskId, int progress);
 
     /**
      * Attempt to cancel the given run. NOTE: the cancellation is scheduled and does not
