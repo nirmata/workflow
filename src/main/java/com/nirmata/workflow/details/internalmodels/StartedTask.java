@@ -23,11 +23,13 @@ public class StartedTask implements Serializable
 {
     private final String instanceName;
     private final LocalDateTime startDateUtc;
+    private int progress;
 
     public StartedTask(String instanceName, LocalDateTime startDateUtc)
     {
         this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
+        this.progress = 0;
     }
 
     public String getInstanceName()
@@ -38,6 +40,16 @@ public class StartedTask implements Serializable
     public LocalDateTime getStartDateUtc()
     {
         return startDateUtc;
+    }
+    
+    public int getProgress()
+    {
+        return progress;
+    }
+    
+    public void setProgress(int progress)
+    {
+        this.progress = progress;
     }
 
     @Override
