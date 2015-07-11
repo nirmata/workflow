@@ -431,7 +431,6 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 {
                     try
                     {
-                        log.error("******* in getTaskInfo, add completedTask runId is " + runId + "taskId is " + taskId);
                         byte[] bytes = curator.getData().forPath(fullPath);
                         TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
                         taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress(), taskExecutionResult));
