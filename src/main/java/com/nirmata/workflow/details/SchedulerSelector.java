@@ -82,6 +82,8 @@ public class SchedulerSelector implements Closeable
         }
         finally
         {
+            log.info(workflowManager.getInstanceName() + " is no longer the scheduler");
+
             CountDownLatch latch = debugLatch.getAndSet(null);
             if ( latch != null )
             {

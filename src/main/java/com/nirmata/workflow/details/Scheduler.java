@@ -132,6 +132,7 @@ class Scheduler
             runsCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
 
             initLatch.await();
+            log.debug("initLatch completed");
 
             while ( !Thread.currentThread().isInterrupted() )
             {
@@ -180,6 +181,7 @@ class Scheduler
 
     static void completeRunnableTask(Logger log, WorkflowManagerImpl workflowManager, RunId runId, RunnableTask runnableTask, int version)
     {
+        log.info("Completing run: " + runId);
         try
         {
             RunId parentRunId = runnableTask.getParentRunId().orElse(null);
@@ -201,6 +203,8 @@ class Scheduler
 
     private void updateTasks(RunId runId)
     {
+        log.info("Updating run: " + runId);
+
         RunnableTask runnableTask = getRunnableTask(runId);
         if ( runnableTask == null )
         {
@@ -215,11 +219,13 @@ class Scheduler
         }
         if ( runnableTask.getCompletionTimeUtc().isPresent() )
         {
+            log.debug("Run is completed. Ignoring: " + runId);
             return;
         }
 
         if ( hasCanceledTasks(runId, runnableTask) )
         {
+            log.debug("Run has canceled tasks and will be marked completed: " + runId);
             completeRunnableTask(log, workflowManager, runId, runnableTask, -1);
             return; // one or more tasks has canceled the entire run
         }
