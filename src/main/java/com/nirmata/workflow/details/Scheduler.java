@@ -273,7 +273,7 @@ class Scheduler
         String path = ZooKeeperConstants.getStartedTaskPath(runId, task.getTaskId());
         try
         {
-            StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(Clock.systemUTC()));
+            StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(Clock.systemUTC()), 0);
             byte[] data = workflowManager.getSerializer().serialize(startedTask);
             workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
             Queue queue = queues.get(task.getTaskType());

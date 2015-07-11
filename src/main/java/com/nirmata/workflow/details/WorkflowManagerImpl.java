@@ -189,14 +189,14 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     public void updateTaskProgress(RunId runId, TaskId taskId, int progress)
     {   
         Preconditions.checkArgument((progress >= 0) && (progress <= 100), "progress must be between 0 and 100");
- 
+         
         String path = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
         try
         {
             byte[] bytes = curator.getData().forPath(path);
             StartedTask startedTask = serializer.deserialize(bytes, StartedTask.class);
-            startedTask.setProgress(progress);
-            byte[] data = getSerializer().serialize(startedTask);
+            StartedTask updatedStartedTask = new StartedTask(startedTask.getInstanceName(), startedTask.getStartDateUtc(), progress);
+            byte[] data = getSerializer().serialize(updatedStartedTask);
             curator.setData().forPath(path, data);
         }
         catch ( KeeperException.NoNodeException ignore )
@@ -425,11 +425,13 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             curator.getChildren().forPath(completedTaskParentPath).stream().forEach(child -> {
                 String fullPath = ZKPaths.makePath(completedTaskParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(fullPath));
+
                 StartedTask startedTask = startedTasks.remove(taskId);
                 if ( startedTask != null )  // otherwise it must have been deleted
                 {
                     try
                     {
+                        log.error("******* in getTaskInfo, add completedTask runId is " + runId + "taskId is " + taskId);
                         byte[] bytes = curator.getData().forPath(fullPath);
                         TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
                         taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress(), taskExecutionResult));
@@ -443,9 +445,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     {
                         throw new RuntimeException("Trying to read completed task info from: " + fullPath, e);
                     }
-                }
+                }               
             });
-    
+
             // remaining started tasks have not completed
             startedTasks.entrySet().forEach(entry -> {
                 StartedTask startedTask = entry.getValue();
