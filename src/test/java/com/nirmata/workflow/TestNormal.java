@@ -23,6 +23,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
+import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -33,10 +34,12 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
+
 import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Arrays;
@@ -305,6 +308,50 @@ public class TestNormal extends BaseForTests
             expected.put("one", "1");
             expected.put("two", "2");
             Assert.assertEquals(taskData.get().getResultData(), expected);
+        }
+        finally
+        {
+            CloseableUtils.closeQuietly(workflowManager);
+        }
+    }
+    
+    @Test
+    public void testTaskProgress() throws Exception
+    {
+        CountDownLatch latch = new CountDownLatch(1);
+        TaskExecutor taskExecutor = (w, t) -> () -> {
+            w.updateTaskProgress(t.getRunId(), t.getTaskId(), 50);
+            try
+            {
+                latch.await();
+            }
+            catch ( InterruptedException e )
+            {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException();
+            }
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
+        };
+        TaskType taskType = new TaskType("test", "1", true);
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+            .addingTaskExecutor(taskExecutor, 10, taskType)
+            .withCurator(curator, "test", "1")
+            .build();
+        try
+        {
+            workflowManager.start();
+
+            TaskId taskId = new TaskId();
+            RunId runId = workflowManager.submitTask(new Task(taskId, taskType));
+
+            Timing timing = new Timing();
+            timing.sleepABit();
+            
+            List<TaskInfo> tasks = workflowManager.getAdmin().getTaskInfo(runId);
+            Assert.assertTrue(tasks.size() == 1);
+            Assert.assertTrue(tasks.get(0).hasStarted() == true);
+            Assert.assertTrue(tasks.get(0).getProgress() == 50);
+            latch.countDown();
         }
         finally
         {

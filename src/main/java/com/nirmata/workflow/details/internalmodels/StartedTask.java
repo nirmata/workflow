@@ -23,13 +23,13 @@ public class StartedTask implements Serializable
 {
     private final String instanceName;
     private final LocalDateTime startDateUtc;
-    private int progress;
+    private final int progress;
 
-    public StartedTask(String instanceName, LocalDateTime startDateUtc)
+    public StartedTask(String instanceName, LocalDateTime startDateUtc, int progress)
     {
         this.instanceName = Preconditions.checkNotNull(instanceName, "instanceName cannot be null");
         this.startDateUtc = Preconditions.checkNotNull(startDateUtc, "startDateUtc cannot be null");
-        this.progress = 0;
+        this.progress = progress;
     }
 
     public String getInstanceName()
@@ -45,11 +45,6 @@ public class StartedTask implements Serializable
     public int getProgress()
     {
         return progress;
-    }
-    
-    public void setProgress(int progress)
-    {
-        this.progress = progress;
     }
 
     @Override
@@ -93,6 +88,7 @@ public class StartedTask implements Serializable
         return "StartedTaskModel{" +
             "instanceName='" + instanceName + '\'' +
             ", startDateUtc=" + startDateUtc +
+            ", progress=" + progress +
             '}';
     }
 }

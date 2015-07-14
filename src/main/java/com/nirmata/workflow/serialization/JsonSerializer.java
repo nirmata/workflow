@@ -310,6 +310,7 @@ class JsonSerializer
         ObjectNode node = newNode();
         node.put("instanceName", startedTask.getInstanceName());
         node.put("startDateUtc", startedTask.getStartDateUtc().format(DateTimeFormatter.ISO_DATE_TIME));
+        node.put("progress", startedTask.getProgress());
         return node;
     }
 
@@ -318,7 +319,8 @@ class JsonSerializer
         return new StartedTask
         (
             node.get("instanceName").asText(),
-            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME)
+            LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
+            node.get("progress").asInt()
         );
     }
 

@@ -110,7 +110,7 @@ public class TestSerializer
     @Test
     public void testStartedTask()
     {
-        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()), 0);
         JsonNode node = newStartedTask(startedTask);
         String str = nodeToString(node);
         System.out.println(str);
@@ -179,7 +179,7 @@ public class TestSerializer
     {
         JDKSerializer serializer = new JDKSerializer();
 
-        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()));
+        StartedTask startedTask = new StartedTask(Integer.toString(random.nextInt()), LocalDateTime.now(Clock.systemUTC()), 0);
         byte[] bytes = serializer.serialize(startedTask);
         StartedTask unStartedTask = serializer.deserialize(bytes, StartedTask.class);
         Assert.assertEquals(startedTask, unStartedTask);

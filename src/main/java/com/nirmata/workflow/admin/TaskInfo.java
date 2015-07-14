@@ -29,7 +29,7 @@ public class TaskInfo
     private final TaskId taskId;
     private final Optional<String> instanceName;
     private final Optional<LocalDateTime> startDateUtc;
-    private Optional<Integer> progress;
+    private final Optional<Integer> progress;
     private final Optional<TaskExecutionResult> result;
 
     public TaskInfo(TaskId taskId)
@@ -138,6 +138,7 @@ public class TaskInfo
             "taskId=" + taskId +
             ", instanceName='" + instanceName + '\'' +
             ", startDateUtc=" + startDateUtc +
+            ", progress=" + progress +
             ", result=" + result +
             '}';
     }
