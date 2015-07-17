@@ -78,9 +78,9 @@ public interface WorkflowManager extends Closeable
      * Update task progress info. This method is meant to be used inside of {@link TaskExecutor}
      * for a running task to update its execution progress(0-100).
      *
-     * @param RunId run id of the task
+     * @param runId run id of the task
      * @param taskId the task
-     * @param current progress to be set
+     * @param progress progress to be set
      */
     public void updateTaskProgress(RunId runId, TaskId taskId, int progress);
 
