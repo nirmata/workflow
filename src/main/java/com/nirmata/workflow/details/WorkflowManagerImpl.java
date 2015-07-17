@@ -28,6 +28,7 @@ import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
+import com.nirmata.workflow.events.WorkflowEvent;
 import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -40,6 +41,7 @@ import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.serialization.Serializer;
+
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ZKPaths;
@@ -47,6 +49,7 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -182,7 +185,31 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         return runId;
     }
-
+    
+    public void updateTaskProgress(RunId runId, TaskId taskId, int progress)
+    {   
+        Preconditions.checkArgument((progress >= 0) && (progress <= 100), "progress must be between 0 and 100");
+         
+        String path = ZooKeeperConstants.getStartedTaskPath(runId, taskId);
+        try
+        {
+            byte[] bytes = curator.getData().forPath(path);
+            StartedTask startedTask = serializer.deserialize(bytes, StartedTask.class);
+            StartedTask updatedStartedTask = new StartedTask(startedTask.getInstanceName(), startedTask.getStartDateUtc(), progress);
+            byte[] data = getSerializer().serialize(updatedStartedTask);
+            curator.setData().forPath(path, data);
+        }
+        catch ( KeeperException.NoNodeException ignore )
+        {
+            // ignore - must have been deleted in the interim, for example before we update 
+            // progress the task is completed
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException("Trying to read started task info from: " + path, e);
+        }
+    }
+    
     @Override
     public boolean cancelRun(RunId runId)
     {
@@ -398,6 +425,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             curator.getChildren().forPath(completedTaskParentPath).stream().forEach(child -> {
                 String fullPath = ZKPaths.makePath(completedTaskParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(fullPath));
+
                 StartedTask startedTask = startedTasks.remove(taskId);
                 if ( startedTask != null )  // otherwise it must have been deleted
                 {
@@ -405,7 +433,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     {
                         byte[] bytes = curator.getData().forPath(fullPath);
                         TaskExecutionResult taskExecutionResult = serializer.deserialize(bytes, TaskExecutionResult.class);
-                        taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), taskExecutionResult));
+                        taskInfos.add(new TaskInfo(taskId, startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress(), taskExecutionResult));
                         notStartedTasks.remove(taskId);
                     }
                     catch ( KeeperException.NoNodeException ignore )
@@ -416,13 +444,13 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                     {
                         throw new RuntimeException("Trying to read completed task info from: " + fullPath, e);
                     }
-                }
+                }               
             });
 
             // remaining started tasks have not completed
             startedTasks.entrySet().forEach(entry -> {
                 StartedTask startedTask = entry.getValue();
-                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc()));
+                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress()));
             });
 
             // finally, taskIds not added have not started

@@ -29,24 +29,26 @@ public class TaskInfo
     private final TaskId taskId;
     private final Optional<String> instanceName;
     private final Optional<LocalDateTime> startDateUtc;
+    private final Optional<Integer> progress;
     private final Optional<TaskExecutionResult> result;
 
     public TaskInfo(TaskId taskId)
     {
-        this(taskId, null, null, null);
+        this(taskId, null, null, 0, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, int progress)
     {
-        this(taskId, instanceName, startDateUtc, null);
+        this(taskId, instanceName, startDateUtc, progress, null);
     }
 
-    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, TaskExecutionResult result)
+    public TaskInfo(TaskId taskId, String instanceName, LocalDateTime startDateUtc, int progress, TaskExecutionResult result)
     {
         this.taskId = Preconditions.checkNotNull(taskId, "taskId cannot be null");
         this.instanceName = Optional.ofNullable(instanceName);
         this.startDateUtc = Optional.ofNullable(startDateUtc);
         this.result = Optional.ofNullable(result);
+        this.progress = Optional.of(progress);
     }
 
     public TaskId getTaskId()
@@ -67,6 +69,11 @@ public class TaskInfo
     public TaskExecutionResult getResult()
     {
         return result.get();
+    }
+    
+    public int getProgress() 
+    {
+        return progress.get();
     }
 
     public boolean hasStarted()
@@ -131,6 +138,7 @@ public class TaskInfo
             "taskId=" + taskId +
             ", instanceName='" + instanceName + '\'' +
             ", startDateUtc=" + startDateUtc +
+            ", progress=" + progress +
             ", result=" + result +
             '}';
     }
