@@ -320,7 +320,7 @@ class JsonSerializer
         (
             node.get("instanceName").asText(),
             LocalDateTime.parse(node.get("startDateUtc").asText(), DateTimeFormatter.ISO_DATE_TIME),
-            node.get("progress").asInt()
+            node.has("progress")?node.get("progress").asInt():0
         );
     }
 
