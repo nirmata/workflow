@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/NirmataOSS/workflow.svg?branch=master)](https://travis-ci.org/NirmataOSS/workflow)
+
 Nirmata Workflow
 ========
  
@@ -5,4 +7,3 @@ Nirmata Workflow
  
  Full details here: http://nirmataoss.github.io/workflow
 
-[![Build Status](https://travis-ci.org/NirmataOSS/workflow.svg?branch=master)](https://travis-ci.org/NirmataOSS/workflow)
