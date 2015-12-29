@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow.queue.zookeeper.standard;
+package com.nirmata.workflow.queue.zookeeper;
 
 import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.models.TaskType;
@@ -22,17 +22,23 @@ import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.queue.TaskRunner;
 
-public class ZooKeeperQueueFactory implements QueueFactory
+public class ZooKeeperSimpleQueueFactory implements QueueFactory
 {
     @Override
     public Queue createQueue(WorkflowManagerImpl workflowManager, TaskType taskType)
     {
-        return new ZooKeeperQueue(workflowManager.getSerializer(), workflowManager.getCurator(), taskType);
+        return internalCreateQueue(workflowManager, taskType, null);
     }
 
     @Override
     public QueueConsumer createQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, TaskType taskType)
     {
-        return new ZooKeeperQueueConsumer(workflowManager, taskRunner, taskType);
+        ZooKeeperSimpleQueue queue = internalCreateQueue(workflowManager, taskType, taskRunner);
+        return queue.getQueue();
+    }
+
+    private ZooKeeperSimpleQueue internalCreateQueue(WorkflowManagerImpl workflowManager, TaskType taskType, TaskRunner taskRunner)
+    {
+        return new ZooKeeperSimpleQueue(taskRunner, workflowManager.getSerializer(), workflowManager.getCurator(), taskType);
     }
 }

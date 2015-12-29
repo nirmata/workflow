@@ -24,7 +24,7 @@ import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.executor.TaskExecutor;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueFactory;
-import com.nirmata.workflow.queue.zookeeper.simple.ZooKeeperSimpleQueueFactory;
+import com.nirmata.workflow.queue.zookeeper.ZooKeeperSimpleQueueFactory;
 import com.nirmata.workflow.serialization.Serializer;
 import com.nirmata.workflow.serialization.StandardSerializer;
 import org.apache.curator.framework.CuratorFramework;

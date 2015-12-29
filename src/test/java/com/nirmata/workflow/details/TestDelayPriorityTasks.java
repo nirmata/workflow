@@ -26,7 +26,6 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
-import com.nirmata.workflow.queue.zookeeper.standard.ZooKeeperQueueFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.util.concurrent.BlockingQueue;
@@ -51,7 +50,6 @@ public class TestDelayPriorityTasks extends BaseForTests
         try ( WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
             .addingTaskExecutor(taskExecutor, 10, taskType)
             .withCurator(curator, "test", "1")
-            .withQueueFactory(new ZooKeeperQueueFactory())
             .build() )
         {
             workflowManager.start();
@@ -93,7 +91,6 @@ public class TestDelayPriorityTasks extends BaseForTests
         TaskType taskType = new TaskType("test", "1", true, TaskMode.PRIORITY);
         try ( WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
             .addingTaskExecutor(taskExecutor, 1, taskType)
-            .withQueueFactory(new ZooKeeperQueueFactory())
             .withCurator(curator, "test", "1")
             .build() )
         {
