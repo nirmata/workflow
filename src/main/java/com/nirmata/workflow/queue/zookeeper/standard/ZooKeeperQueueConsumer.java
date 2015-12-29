@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nirmata.workflow.queue.zookeeper;
+package com.nirmata.workflow.queue.zookeeper.standard;
 
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.details.WorkflowManagerImpl;

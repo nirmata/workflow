@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.nirmata.workflow.queue.zookeeper;
+package com.nirmata.workflow.queue.zookeeper.standard;
 
 import com.google.common.base.Preconditions;
 import com.nirmata.workflow.details.ZooKeeperConstants;
@@ -41,7 +41,7 @@ public class ZooKeeperQueue implements Queue
         QueueBuilder<ExecutableTask> builder = QueueBuilder.builder(curator, null, new TaskQueueSerializer(serializer), path);
         if ( taskType.isIdempotent() )
         {
-            builder = builder.lockPath(ZooKeeperConstants.getQueuePath(taskType));
+            builder = builder.lockPath(ZooKeeperConstants.getQueueLockPath(taskType));
         }
 
         queue = makeQueue(builder, taskType);

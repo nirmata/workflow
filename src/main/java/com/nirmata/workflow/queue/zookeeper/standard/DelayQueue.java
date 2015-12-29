@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow.queue.zookeeper;
+package com.nirmata.workflow.queue.zookeeper.standard;
 
-import com.google.common.base.Preconditions;
 import com.nirmata.workflow.models.ExecutableTask;
-import org.apache.curator.framework.recipes.queue.DistributedPriorityQueue;
+import org.apache.curator.framework.recipes.queue.DistributedDelayQueue;
 import java.io.IOException;
 
-class PriorityQueue implements InternalQueueBase
+class DelayQueue implements InternalQueueBase
 {
-    private final DistributedPriorityQueue<ExecutableTask> queue;
+    private final DistributedDelayQueue<ExecutableTask> queue;
 
-    PriorityQueue(DistributedPriorityQueue<ExecutableTask> queue)
+    DelayQueue(DistributedDelayQueue<ExecutableTask> queue)
     {
         this.queue = queue;
     }
@@ -38,8 +37,7 @@ class PriorityQueue implements InternalQueueBase
     @Override
     public void put(ExecutableTask item, long value) throws Exception
     {
-        Preconditions.checkArgument(value <= Integer.MAX_VALUE, "priority is too large: " + value);
-        queue.put(item, (int)value);
+        queue.put(item, Math.max(1, value));
     }
 
     @Override

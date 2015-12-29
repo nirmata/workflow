@@ -13,30 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nirmata.workflow.queue.zookeeper;
+package com.nirmata.workflow.queue.zookeeper.standard;
 
 import com.nirmata.workflow.models.ExecutableTask;
-import com.nirmata.workflow.serialization.Serializer;
-import org.apache.curator.framework.recipes.queue.QueueSerializer;
+import org.apache.curator.framework.recipes.queue.DistributedQueue;
+import java.io.IOException;
 
-public class TaskQueueSerializer implements QueueSerializer<ExecutableTask>
+class StandardQueue implements InternalQueueBase
 {
-    private final Serializer serializer;
+    private final DistributedQueue<ExecutableTask> queue;
 
-    public TaskQueueSerializer(Serializer serializer)
+    StandardQueue(DistributedQueue<ExecutableTask> queue)
     {
-        this.serializer = serializer;
+        this.queue = queue;
     }
 
     @Override
-    public byte[] serialize(ExecutableTask executableTask)
+    public void start() throws Exception
     {
-        return serializer.serialize(executableTask);
+        queue.start();
     }
 
     @Override
-    public ExecutableTask deserialize(byte[] bytes)
+    public void put(ExecutableTask item, long value) throws Exception
     {
-        return serializer.deserialize(bytes, ExecutableTask.class);
+        queue.put(item);
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        queue.close();
     }
 }

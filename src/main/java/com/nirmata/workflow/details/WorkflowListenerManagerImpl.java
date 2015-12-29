@@ -46,10 +46,6 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
     {
         try
         {
-            completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
-            startedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
-            runsCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
-
             runsCache.getListenable().addListener((client, event) -> {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
                 if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
@@ -79,6 +75,10 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
                     postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, taskId));
                 }
             });
+
+            runsCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
+            startedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
         }
         catch ( Exception e )
         {
