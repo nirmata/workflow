@@ -15,6 +15,7 @@
  */
 package com.nirmata.workflow.queue.zookeeper;
 
+import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.queue.QueueConsumer;
@@ -31,8 +32,10 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -48,14 +51,96 @@ class SimpleQueue implements Closeable, QueueConsumer
     private final Serializer serializer;
     private final String path;
     private final String lockPath;
-    private final TaskMode mode;
     private final boolean idempotent;
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("SimpleQueue");
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final EnsurePath ensurePath;
+    private final NodeFunc nodeFunc;
+    private final KeyFunc keyFunc;
 
     private static final String PREFIX = "qn-";
     private static final String SEPARATOR = "|";
+
+    @FunctionalInterface
+    private interface KeyFunc
+    {
+        String apply(String key, long value);
+    }
+    private static final Map<TaskMode, KeyFunc> keyFuncs;
+    static
+    {
+        ImmutableMap.Builder<TaskMode, KeyFunc> builder = ImmutableMap.builder();
+        builder.put(TaskMode.STANDARD, (key, value) -> key);
+        builder.put(TaskMode.PRIORITY, (key, value) -> key + priorityToString(value));
+        builder.put(TaskMode.DELAY, (key, value) -> key + epochToString(value));
+        keyFuncs = builder.build();
+    }
+
+    private static class NodeAndDelay
+    {
+        final Optional<String> node;
+        final Optional<Long> delay;
+
+        public NodeAndDelay()
+        {
+            node = Optional.empty();
+            delay = Optional.empty();
+        }
+
+        public NodeAndDelay(String node)
+        {
+            this.node = Optional.of(node);
+            delay = Optional.empty();
+        }
+
+        public NodeAndDelay(Optional<String> node)
+        {
+            this.node = node;
+            delay = Optional.empty();
+        }
+
+        public NodeAndDelay(long delay)
+        {
+            node = Optional.empty();
+            this.delay = Optional.of(delay);
+        }
+    }
+    @FunctionalInterface
+    private interface NodeFunc
+    {
+        NodeAndDelay getNode(List<String> nodes);
+    }
+    private static final Map<TaskMode, NodeFunc> nodeFuncs;
+    static
+    {
+        Random random = new Random();
+        ImmutableMap.Builder<TaskMode, NodeFunc> builder = ImmutableMap.builder();
+        builder.put(TaskMode.STANDARD, nodes -> new NodeAndDelay(nodes.get(random.nextInt(nodes.size()))));
+        builder.put(TaskMode.PRIORITY, nodes -> new NodeAndDelay(nodes.stream().sorted().findFirst()));
+        builder.put(TaskMode.DELAY, nodes -> {
+            final long sortTime = System.currentTimeMillis();
+            Optional<String> first = nodes.stream().sorted(delayComparator(sortTime)).findFirst();
+            if ( first.isPresent() )
+            {
+                long delay = getDelay(first.get(), sortTime);
+                return (delay > 0) ? new NodeAndDelay(delay) : new NodeAndDelay(first.get());
+            }
+            return new NodeAndDelay();
+        });
+        nodeFuncs = builder.build();
+    }
+    private static Comparator<String> delayComparator(long sortTime)
+    {
+        return (s1, s2) -> {
+            long        diff = getDelay(s1, sortTime) - getDelay(s2, sortTime);
+            return (diff < 0) ? -1 : ((diff > 0) ? 1 : 0);
+        };
+    }
+    private static long getDelay(String itemNode, long sortTime)
+    {
+        long epoch = getEpoch(itemNode);
+        return epoch - sortTime;
+    }
 
     SimpleQueue(CuratorFramework client, TaskRunner taskRunner, Serializer serializer, String queuePath, String lockPath, TaskMode mode, boolean idempotent)
     {
@@ -64,24 +149,17 @@ class SimpleQueue implements Closeable, QueueConsumer
         this.serializer = serializer;
         this.path = queuePath;
         this.lockPath = lockPath;
-        this.mode = mode;
         this.idempotent = idempotent;
         ensurePath = client.newNamespaceAwareEnsurePath(path);
+        nodeFunc = nodeFuncs.getOrDefault(mode, nodeFuncs.get(TaskMode.STANDARD));
+        keyFunc = keyFuncs.getOrDefault(mode, (key, v) -> key);
     }
 
     void put(byte[] data, long value) throws Exception
     {
-        String thisPath = ZKPaths.makePath(path, PREFIX);
-        if ( mode == TaskMode.PRIORITY )
-        {
-            String priorityHex = priorityToString(value);
-            thisPath += priorityHex;
-        }
-        else if ( mode == TaskMode.DELAY )
-        {
-            thisPath += epochToString(value);
-        }
-        client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(thisPath, data);
+        String basePath = ZKPaths.makePath(path, PREFIX);
+        String path = keyFunc.apply(basePath, value);
+        client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(path, data);
     }
 
     public void start()
@@ -121,37 +199,14 @@ class SimpleQueue implements Closeable, QueueConsumer
                 }
                 else
                 {
-                    switch ( mode )
+                    NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
+                    if ( nodeAndDelay.delay.isPresent() )
                     {
-                        case STANDARD:
-                        {
-                            String node = nodes.get(random.nextInt(nodes.size()));
-                            processNode(node);
-                            break;
-                        }
-
-                        case DELAY:
-                        {
-                            long sortTime = System.currentTimeMillis();
-                            String node = getDelayNode(nodes, sortTime);
-                            long delay = getDelay(node, sortTime);
-                            if ( delay > 0 )
-                            {
-                                latch.await(delay, TimeUnit.MILLISECONDS);
-                            }
-                            else
-                            {
-                                processNode(node);
-                            }
-                            break;
-                        }
-
-                        case PRIORITY:
-                        {
-                            Collections.sort(nodes);
-                            processNode(nodes.get(0));
-                            break;
-                        }
+                        latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
+                    }
+                    if ( nodeAndDelay.node.isPresent() )
+                    {
+                        processNode(nodeAndDelay.node.get());
                     }
                 }
             }
@@ -166,21 +221,6 @@ class SimpleQueue implements Closeable, QueueConsumer
             }
         }
         log.info("Exiting runLoop");
-    }
-
-    private long getDelay(String itemNode, long sortTime)
-    {
-        long epoch = getEpoch(itemNode);
-        return epoch - sortTime;
-    }
-
-    private String getDelayNode(List<String> nodes, long sortTime)
-    {
-        Collections.sort(nodes, (s1, s2) -> {
-            long        diff = getDelay(s1, sortTime) - getDelay(s2, sortTime);
-            return (diff < 0) ? -1 : ((diff > 0) ? 1 : 0);
-        });
-        return nodes.get(0);
     }
 
     private void processNode(String node) throws Exception
