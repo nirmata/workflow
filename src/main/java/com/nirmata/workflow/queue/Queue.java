@@ -20,10 +20,10 @@ import java.io.Closeable;
 
 public interface Queue extends Closeable
 {
-    public void start();
+    void start();
 
     @Override
-    public void close();
+    void close();
 
-    public void put(ExecutableTask executableTask);
+    void put(ExecutableTask executableTask);
 }

@@ -57,8 +57,13 @@ public class TestWorkflowListenerManager extends BaseForTests
             Timing timing = new Timing();
             timing.sleepABit();
 
-            Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId));
-            Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, task.getTaskId()));
+            WorkflowEvent runStarted = new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId);
+            WorkflowEvent taskStarted = new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, task.getTaskId());
+            WorkflowEvent event1 = eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            WorkflowEvent event2 = eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            // due to timing, task start might come first
+            Assert.assertTrue((event1.equals(runStarted) && event2.equals(taskStarted)) || (event2.equals(runStarted) && event1.equals(taskStarted)));
+
             Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, task.getTaskId()));
             Assert.assertEquals(eventQueue.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), new WorkflowEvent(WorkflowEvent.EventType.RUN_UPDATED, runId));
         }

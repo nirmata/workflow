@@ -116,12 +116,15 @@ public class TestDisruptedScheduler
         final int QTY = 3;
         IntStream.range(0, QTY).forEach(i -> clients.add(new Client(i, cluster, executedTasks, executedTasksLatch)));
 
-        timing.sleepABit();
-
-        Optional<Client> clientOptional = clients
-            .stream()
-            .findFirst()
-            .filter(client -> ((WorkflowManagerImpl)client.workflowManager).getSchedulerSelector().getLeaderSelector().hasLeadership());
+        Optional<Client> clientOptional = Optional.empty();
+        for ( int i = 0; !clientOptional.isPresent() && (i < 3); ++i )
+        {
+            timing.sleepABit();
+            clientOptional = clients
+                .stream()
+                .filter(client -> ((WorkflowManagerImpl)client.workflowManager).getSchedulerSelector().getLeaderSelector().hasLeadership())
+                .findFirst();
+        }
         Assert.assertTrue(clientOptional.isPresent());
         Client scheduler = clientOptional.get();
         Client nonScheduler = clients.get(0).equals(scheduler) ? clients.get(1) : clients.get(0);
