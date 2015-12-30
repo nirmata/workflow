@@ -1,8 +1,7 @@
 # Change Log
 
-## [Unreleased](https://github.com/NirmataOSS/workflow/tree/HEAD)
-
-[Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.6.0...HEAD)
+## [nirmata-workflow-0.7.0](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.7.0) (2015-12-30)
+[Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.6.0...nirmata-workflow-0.7.0)
 
 **Implemented enhancements:**
 
