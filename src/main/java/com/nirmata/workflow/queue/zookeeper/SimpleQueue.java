@@ -152,7 +152,7 @@ class SimpleQueue implements Closeable, QueueConsumer
         this.idempotent = idempotent;
         ensurePath = client.newNamespaceAwareEnsurePath(path);
         nodeFunc = nodeFuncs.getOrDefault(mode, nodeFuncs.get(TaskMode.STANDARD));
-        keyFunc = keyFuncs.getOrDefault(mode, (key, v) -> key);
+        keyFunc = keyFuncs.getOrDefault(mode, keyFuncs.get(TaskMode.STANDARD));
     }
 
     void put(byte[] data, long value) throws Exception
