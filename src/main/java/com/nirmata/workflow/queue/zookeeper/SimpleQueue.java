@@ -183,7 +183,6 @@ class SimpleQueue implements Closeable, QueueConsumer
     {
         log.info("Starting runLoop");
 
-        Random random = new Random();
         while ( started.get() && !Thread.currentThread().isInterrupted() )
         {
             try
