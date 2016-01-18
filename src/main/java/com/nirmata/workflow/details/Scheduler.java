@@ -213,9 +213,8 @@ class Scheduler
                 debugBadRunIdCount.incrementAndGet();
             }
 
-            String message = "Could not find run for RunId: " + runId;
-            log.error(message);
-            throw new RuntimeException(message);
+            log.warn("Could not find run for RunId: " + runId + " - ignoring");
+            return;
         }
         if ( runnableTask.getCompletionTimeUtc().isPresent() )
         {
