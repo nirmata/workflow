@@ -33,7 +33,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * Builds {@link WorkflowManager} instances
@@ -45,7 +45,7 @@ public class WorkflowManagerBuilder
     private CuratorFramework curator;
     private AutoCleanerHolder autoCleanerHolder = newNullHolder();
     private Serializer serializer = new StandardSerializer();
-    private ExecutorService taskRunnerService = MoreExecutors.sameThreadExecutor();
+    private Executor taskRunnerService = MoreExecutors.sameThreadExecutor();
 
     private final List<TaskExecutorSpec> specs = Lists.newArrayList();
 
@@ -194,7 +194,7 @@ public class WorkflowManagerBuilder
      * @param taskRunnerService custom executor service
      * @return this (for chaining)
      */
-    public WorkflowManagerBuilder withTaskRunnerService(ExecutorService taskRunnerService)
+    public WorkflowManagerBuilder withTaskRunnerService(Executor taskRunnerService)
     {
         this.taskRunnerService = Preconditions.checkNotNull(taskRunnerService, "taskRunnerService cannot be null");
         return this;

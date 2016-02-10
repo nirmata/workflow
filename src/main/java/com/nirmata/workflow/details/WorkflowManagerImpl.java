@@ -54,7 +54,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -68,7 +69,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     private final SchedulerSelector schedulerSelector;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
     private final Serializer serializer;
-    private final ExecutorService taskRunnerService;
+    private final Executor taskRunnerService;
 
     private static final TaskType nullTaskType = new TaskType("", "", false);
 
@@ -79,7 +80,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         CLOSED
     }
 
-    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder, Serializer serializer, ExecutorService taskRunnerService)
+    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder, Serializer serializer, Executor taskRunnerService)
     {
         this.taskRunnerService = Preconditions.checkNotNull(taskRunnerService, "taskRunnerService cannot be null");
         this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
@@ -503,7 +504,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         TaskExecutionResult result;
         try
         {
-            result = taskRunnerService.submit(taskExecution::execute).get();
+            FutureTask<TaskExecutionResult> futureTask = new FutureTask<>(taskExecution::execute);
+            taskRunnerService.execute(futureTask);
+            result = futureTask.get();
         }
         catch ( InterruptedException e )
         {
