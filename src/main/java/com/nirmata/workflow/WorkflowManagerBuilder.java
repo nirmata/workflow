@@ -17,6 +17,7 @@ package com.nirmata.workflow;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.nirmata.workflow.admin.AutoCleaner;
 import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.details.TaskExecutorSpec;
@@ -32,6 +33,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Builds {@link WorkflowManager} instances
@@ -43,6 +45,7 @@ public class WorkflowManagerBuilder
     private CuratorFramework curator;
     private AutoCleanerHolder autoCleanerHolder = newNullHolder();
     private Serializer serializer = new StandardSerializer();
+    private ExecutorService taskRunnerService = MoreExecutors.sameThreadExecutor();
 
     private final List<TaskExecutorSpec> specs = Lists.newArrayList();
 
@@ -138,7 +141,7 @@ public class WorkflowManagerBuilder
      */
     public WorkflowManager build()
     {
-        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs, autoCleanerHolder, serializer);
+        return new WorkflowManagerImpl(curator, queueFactory, instanceName, specs, autoCleanerHolder, serializer, taskRunnerService);
     }
 
     /**
@@ -179,6 +182,21 @@ public class WorkflowManagerBuilder
     public WorkflowManagerBuilder withSerializer(Serializer serializer)
     {
         this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
+        return this;
+    }
+
+    /**
+     * <em>optional</em><br>
+     * By default, tasks are run in an internal executor service. Use this to specify a custom executor service
+     * for tasks. This executor does not add any async/concurrency benefit. It's purpose is to allow you to control
+     * which thread executes your tasks.
+     *
+     * @param taskRunnerService custom executor service
+     * @return this (for chaining)
+     */
+    public WorkflowManagerBuilder withTaskRunnerService(ExecutorService taskRunnerService)
+    {
+        this.taskRunnerService = Preconditions.checkNotNull(taskRunnerService, "taskRunnerService cannot be null");
         return this;
     }
 

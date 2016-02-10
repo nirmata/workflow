@@ -28,7 +28,6 @@ import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
-import com.nirmata.workflow.events.WorkflowEvent;
 import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -41,7 +40,6 @@ import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.QueueFactory;
 import com.nirmata.workflow.serialization.Serializer;
-
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ZKPaths;
@@ -49,13 +47,14 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -69,6 +68,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     private final SchedulerSelector schedulerSelector;
     private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
     private final Serializer serializer;
+    private final ExecutorService taskRunnerService;
 
     private static final TaskType nullTaskType = new TaskType("", "", false);
 
@@ -79,8 +79,9 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         CLOSED
     }
 
-    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder, Serializer serializer)
+    public WorkflowManagerImpl(CuratorFramework curator, QueueFactory queueFactory, String instanceName, List<TaskExecutorSpec> specs, AutoCleanerHolder autoCleanerHolder, Serializer serializer, ExecutorService taskRunnerService)
     {
+        this.taskRunnerService = Preconditions.checkNotNull(taskRunnerService, "taskRunnerService cannot be null");
         this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
         autoCleanerHolder = Preconditions.checkNotNull(autoCleanerHolder, "autoCleanerHolder cannot be null");
         this.curator = Preconditions.checkNotNull(curator, "curator cannot be null");
@@ -499,7 +500,21 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         log.info("Executing task: " + executableTask);
         TaskExecution taskExecution = taskExecutor.newTaskExecution(this, executableTask);
 
-        TaskExecutionResult result = taskExecution.execute();
+        TaskExecutionResult result;
+        try
+        {
+            result = taskRunnerService.submit(taskExecution::execute).get();
+        }
+        catch ( InterruptedException e )
+        {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        catch ( ExecutionException e )
+        {
+            log.error("Could not execute task: " + executableTask, e);
+            throw new RuntimeException(e);
+        }
         if ( result == null )
         {
             throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s", executableTask.getRunId(), executableTask.getTaskId()));
