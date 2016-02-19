@@ -26,12 +26,20 @@ import java.util.Map;
 public interface WorkflowAdmin
 {
     /**
+     * Return all run IDs completed or currently executing
+     * in the workflow manager
+     *
+     * @return run infos
+     */
+    List<RunId> getRunIds();
+
+    /**
      * Return info about all runs completed or currently executing
      * in the workflow manager
      *
      * @return run infos
      */
-    public List<RunInfo> getRunInfo();
+    List<RunInfo> getRunInfo();
 
     /**
      * Return info about the given run
@@ -39,7 +47,7 @@ public interface WorkflowAdmin
      * @param runId run
      * @return info
      */
-    public RunInfo getRunInfo(RunId runId);
+    RunInfo getRunInfo(RunId runId);
 
     /**
      * Return info about all the tasks completed, started or waiting for
@@ -48,7 +56,7 @@ public interface WorkflowAdmin
      * @param runId run
      * @return task infos
      */
-    public List<TaskInfo> getTaskInfo(RunId runId);
+    List<TaskInfo> getTaskInfo(RunId runId);
 
     /**
      * Returns a map of all task details for the given run
@@ -56,7 +64,7 @@ public interface WorkflowAdmin
      * @param runId run
      * @return task details
      */
-    public Map<TaskId, TaskDetails> getTaskDetails(RunId runId);
+    Map<TaskId, TaskDetails> getTaskDetails(RunId runId);
 
     /**
      * Delete all saved data for the given run.
@@ -64,5 +72,5 @@ public interface WorkflowAdmin
      * @param runId the run
      * @return true if the run was found
      */
-    public boolean clean(RunId runId);
+    boolean clean(RunId runId);
 }

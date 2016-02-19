@@ -355,6 +355,22 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
+    public List<RunId> getRunIds()
+    {
+        try
+        {
+            String runParentPath = ZooKeeperConstants.getRunParentPath();
+            return curator.getChildren().forPath(runParentPath).stream()
+                .map(RunId::new)
+                .collect(Collectors.toList());
+        }
+        catch ( Exception e )
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public List<RunInfo> getRunInfo()
     {
         try

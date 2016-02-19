@@ -37,6 +37,7 @@ import org.apache.curator.utils.CloseableUtils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Function;
@@ -234,6 +235,11 @@ public class TestAdmin extends BaseForTests
 
             RunInfo runInfo1 = workflowManager.getAdmin().getRunInfo(runId1);
             Assert.assertTrue(runInfo1.isComplete());
+
+            List<RunId> runIds = workflowManager.getAdmin().getRunIds();
+            Assert.assertEquals(runIds.size(), 2);
+            Assert.assertTrue(runIds.contains(runId1));
+            Assert.assertTrue(runIds.contains(runId2));
 
             Map<RunId, RunInfo> runs = workflowManager.getAdmin().getRunInfo().stream().collect(Collectors.toMap(RunInfo::getRunId, Function.identity()));
             Assert.assertEquals(runs.size(), 2);

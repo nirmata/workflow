@@ -77,6 +77,12 @@ public class TestAutoCleanerHolder
             }
 
             @Override
+            public List<RunId> getRunIds()
+            {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public RunInfo getRunInfo(RunId runId)
             {
                 throw new UnsupportedOperationException();
