@@ -50,7 +50,7 @@ public interface WorkflowManager extends Closeable
      *     as needed.
      * </p>
      */
-    public void start();
+    void start();
 
     /**
      * Submit a task for execution. The task will start nearly immediately. There's no
@@ -61,7 +61,19 @@ public interface WorkflowManager extends Closeable
      * @param task task to execute
      * @return the Run ID for the task
      */
-    public RunId submitTask(Task task);
+    RunId submitTask(Task task);
+
+    /**
+     * Submit a task for execution. The task will start nearly immediately. There's no
+     * guarantee which instances will execute the various tasks. This method can be called
+     * by any instance. i.e. it's not necessary that this be called from the currently
+     * nominated scheduler instance.
+     *
+     * @param runId the RunId to use - MUST BE GLOBALLY UNIQUE
+     * @param task task to execute
+     * @return the Run ID for the task
+     */
+    RunId submitTask(RunId runId, Task task);
 
     /**
      * Same as {@link #submitTask(Task)} except that, when completed, the parent run will
@@ -72,8 +84,20 @@ public interface WorkflowManager extends Closeable
      * @param task task to execute
      * @return sub-Run ID
      */
-    public RunId submitSubTask(RunId parentRunId, Task task);
-    
+    RunId submitSubTask(RunId parentRunId, Task task);
+
+    /**
+     * Same as {@link #submitTask(Task)} except that, when completed, the parent run will
+     * be notified. This method is meant to be used inside of {@link TaskExecutor} for a task
+     * that needs to initiate a sub-run and have the parent run wait for the sub-run to complete.
+     *
+     * @param runId the RunId to use - MUST BE GLOBALLY UNIQUE
+     * @param parentRunId run id of the parent run
+     * @param task task to execute
+     * @return sub-Run ID
+     */
+    RunId submitSubTask(RunId runId, RunId parentRunId, Task task);
+
     /**
      * Update task progress info. This method is meant to be used inside of {@link TaskExecutor}
      * for a running task to update its execution progress(0-100).
@@ -82,7 +106,7 @@ public interface WorkflowManager extends Closeable
      * @param taskId the task
      * @param progress progress to be set
      */
-    public void updateTaskProgress(RunId runId, TaskId taskId, int progress);
+    void updateTaskProgress(RunId runId, TaskId taskId, int progress);
 
     /**
      * Attempt to cancel the given run. NOTE: the cancellation is scheduled and does not
@@ -92,7 +116,7 @@ public interface WorkflowManager extends Closeable
      * @param runId the run to cancel
      * @return true if the run was found and the cancellation was scheduled
      */
-    public boolean cancelRun(RunId runId);
+    boolean cancelRun(RunId runId);
 
     /**
      * Return the result for a given task of a given run
@@ -101,19 +125,19 @@ public interface WorkflowManager extends Closeable
      * @param taskId the task
      * @return if found, a loaded optional with the result. Otherwise, an empty optional.
      */
-    public Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId);
+    Optional<TaskExecutionResult> getTaskExecutionResult(RunId runId, TaskId taskId);
 
     /**
      * Return administration operations
      *
      * @return admin
      */
-    public WorkflowAdmin getAdmin();
+    WorkflowAdmin getAdmin();
 
     /**
      * Allocate a new WorkflowListenerManager
      *
      * @return new WorkflowListenerManager
      */
-    public WorkflowListenerManager newWorkflowListenerManager();
+    WorkflowListenerManager newWorkflowListenerManager();
 }

@@ -127,12 +127,6 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
-    public RunId submitTask(Task task)
-    {
-        return submitSubTask(null, task);
-    }
-
-    @Override
     public Map<TaskId, TaskDetails> getTaskDetails(RunId runId)
     {
         try
@@ -161,11 +155,28 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
+    public RunId submitTask(Task task)
+    {
+        return submitSubTask(new RunId(), null, task);
+    }
+
+    @Override
+    public RunId submitTask(RunId runId, Task task)
+    {
+        return submitSubTask(runId, null, task);
+    }
+
+    @Override
     public RunId submitSubTask(RunId parentRunId, Task task)
+    {
+        return submitSubTask(new RunId(), parentRunId, task);
+    }
+
+    @Override
+    public RunId submitSubTask(RunId runId, RunId parentRunId, Task task)
     {
         Preconditions.checkState(state.get() == State.STARTED, "Not started");
 
-        RunId runId = new RunId();
         RunnableTaskDagBuilder builder = new RunnableTaskDagBuilder(task);
         Map<TaskId, ExecutableTask> tasks = builder
             .getTasks()

@@ -28,7 +28,12 @@ public class Id implements Serializable
 
     protected Id()
     {
-        id = UUID.randomUUID().toString();
+        id = newRandomId();
+    }
+
+    static String newRandomId()
+    {
+        return UUID.randomUUID().toString();
     }
 
     protected Id(String id)
