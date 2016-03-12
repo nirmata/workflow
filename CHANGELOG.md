@@ -1,5 +1,17 @@
 # Change Log
 
+## [nirmata-workflow-0.7.1](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.7.1) (2016-03-12)
+[Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.7.0...nirmata-workflow-0.7.1)
+
+**Implemented enhancements:**
+
+- scheduling of workflow stopped working [\#21](https://github.com/NirmataOSS/workflow/issues/21)
+
+**Closed issues:**
+
+- workflowManager.getRunInfo\(\) take a long time to complete [\#23](https://github.com/NirmataOSS/workflow/issues/23)
+- New feature request - Allow custom workflow task executors [\#22](https://github.com/NirmataOSS/workflow/issues/22)
+
 ## [nirmata-workflow-0.7.0](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.7.0) (2015-12-30)
 [Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.6.0...nirmata-workflow-0.7.0)
 
