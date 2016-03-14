@@ -7,3 +7,7 @@ Nirmata Workflow
  
  Full details here: http://nirmataoss.github.io/workflow
 
+Changes
+=========
+
+ Change log here: https://github.com/NirmataOSS/workflow/blob/master/CHANGELOG.md
