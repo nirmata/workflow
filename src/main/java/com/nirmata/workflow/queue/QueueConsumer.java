@@ -15,6 +15,8 @@
  */
 package com.nirmata.workflow.queue;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import java.io.Closeable;
 
 public interface QueueConsumer extends Closeable
@@ -23,4 +25,9 @@ public interface QueueConsumer extends Closeable
 
     @Override
     void close();
+
+    WorkflowManagerState.State getState();
+
+    @VisibleForTesting
+    void debugValidateClosed();
 }

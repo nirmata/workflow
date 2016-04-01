@@ -67,7 +67,6 @@ public class TestAdmin extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             RunId runId = workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(latch));
 
             String runParentPath = ZooKeeperConstants.getRunParentPath();
@@ -132,7 +131,6 @@ public class TestAdmin extends BaseForTests
 
             RunId runId = workflowManager.submitTask(root);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(startedLatch));
 
             timing.sleepABit();
@@ -228,7 +226,6 @@ public class TestAdmin extends BaseForTests
             RunId runId1 = workflowManager.submitTask(task1);
             RunId runId2 = workflowManager.submitTask(task2);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(startedLatch));
 
             timing.sleepABit();

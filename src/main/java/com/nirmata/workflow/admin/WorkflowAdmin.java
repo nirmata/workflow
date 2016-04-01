@@ -73,4 +73,11 @@ public interface WorkflowAdmin
      * @return true if the run was found
      */
     boolean clean(RunId runId);
+
+    /**
+     * Return information about the internal run/state of the workflow manager
+     *
+     * @return state
+     */
+    WorkflowManagerState getWorkflowManagerState();
 }

@@ -15,7 +15,9 @@
  */
 package com.nirmata.workflow.queue.zookeeper;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.queue.QueueConsumer;
@@ -41,6 +43,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 // copied and modified from org.apache.curator.framework.recipes.queue.SimpleDistributedQueue
 class SimpleQueue implements Closeable, QueueConsumer
@@ -57,6 +60,7 @@ class SimpleQueue implements Closeable, QueueConsumer
     private final EnsurePath ensurePath;
     private final NodeFunc nodeFunc;
     private final KeyFunc keyFunc;
+    private final AtomicReference<WorkflowManagerState.State> state = new AtomicReference<>(WorkflowManagerState.State.LATENT);
 
     private static final String PREFIX = "qn-";
     private static final String SEPARATOR = "|";
@@ -162,6 +166,18 @@ class SimpleQueue implements Closeable, QueueConsumer
         client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(path, data);
     }
 
+    @Override
+    public WorkflowManagerState.State getState()
+    {
+        return state.get();
+    }
+
+    @Override
+    public void debugValidateClosed()
+    {
+        Preconditions.checkState(executorService.isTerminated());
+    }
+
     public void start()
     {
         if ( started.compareAndSet(false, true) )
@@ -183,43 +199,52 @@ class SimpleQueue implements Closeable, QueueConsumer
     {
         log.info("Starting runLoop");
 
-        while ( started.get() && !Thread.currentThread().isInterrupted() )
+        try
         {
-            try
+            while ( started.get() && !Thread.currentThread().isInterrupted() )
             {
-                ensurePath.ensure(client.getZookeeperClient());
+                state.set(WorkflowManagerState.State.SLEEPING);
+                try
+                {
+                    ensurePath.ensure(client.getZookeeperClient());
 
-                CountDownLatch latch = new CountDownLatch(1);
-                Watcher watcher = event -> latch.countDown();
-                List<String> nodes = client.getChildren().usingWatcher(watcher).forPath(path);
-                if ( nodes.size() == 0 )
-                {
-                    latch.await();
-                }
-                else
-                {
-                    NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
-                    if ( nodeAndDelay.delay.isPresent() )
+                    CountDownLatch latch = new CountDownLatch(1);
+                    Watcher watcher = event -> latch.countDown();
+                    List<String> nodes = client.getChildren().usingWatcher(watcher).forPath(path);
+                    if ( nodes.size() == 0 )
                     {
-                        latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
+                        latch.await();
                     }
-                    if ( nodeAndDelay.node.isPresent() )
+                    else
                     {
-                        processNode(nodeAndDelay.node.get());
+                        NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
+                        if ( nodeAndDelay.delay.isPresent() )
+                        {
+                            latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
+                        }
+                        if ( nodeAndDelay.node.isPresent() )
+                        {
+                            state.set(WorkflowManagerState.State.PROCESSING);
+                            processNode(nodeAndDelay.node.get());
+                        }
                     }
                 }
-            }
-            catch ( InterruptedException e )
-            {
-                Thread.currentThread().interrupt();
-                break;
-            }
-            catch ( Exception e )
-            {
-                log.error("Could not process queue", e);
+                catch ( InterruptedException e )
+                {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                catch ( Exception e )
+                {
+                    log.error("Could not process queue", e);
+                }
             }
         }
-        log.info("Exiting runLoop");
+        finally
+        {
+            log.info("Exiting runLoop");
+            state.set(WorkflowManagerState.State.CLOSED);
+        }
     }
 
     private void processNode(String node) throws Exception

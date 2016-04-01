@@ -21,6 +21,7 @@ import com.nirmata.workflow.admin.StandardAutoCleaner;
 import com.nirmata.workflow.admin.TaskDetails;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.details.AutoCleanerHolder;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
@@ -92,6 +93,12 @@ public class TestAutoCleanerHolder
             public List<TaskInfo> getTaskInfo(RunId runId)
             {
                 throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public WorkflowManagerState getWorkflowManagerState()
+            {
+                return new WorkflowManagerState(true, WorkflowManagerState.State.PROCESSING, Lists.newArrayList());
             }
 
             @Override

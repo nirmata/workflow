@@ -22,6 +22,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.models.ExecutableTask;
@@ -46,6 +47,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 class Scheduler
 {
@@ -59,6 +61,7 @@ class Scheduler
     private final PathChildrenCache completedTasksCache;
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
+    private final AtomicReference<WorkflowManagerState.State> state = new AtomicReference<>(WorkflowManagerState.State.LATENT);
     private final LoadingCache<TaskType, Queue> queues = CacheBuilder.newBuilder()
         .removalListener(Scheduler::remover)
         .build(new CacheLoader<TaskType, Queue>()
@@ -87,6 +90,11 @@ class Scheduler
         completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTaskParentPath(), true);
         startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
         runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunParentPath(), true);
+    }
+
+    WorkflowManagerState.State getState()
+    {
+        return state.get();
     }
 
     void run()
@@ -131,12 +139,15 @@ class Scheduler
             startedTasksCache.start(PathChildrenCache.StartMode.NORMAL);
             runsCache.start(PathChildrenCache.StartMode.POST_INITIALIZED_EVENT);
 
+            state.set(WorkflowManagerState.State.SLEEPING);
             initLatch.await();
             log.debug("initLatch completed");
 
             while ( !Thread.currentThread().isInterrupted() )
             {
+                state.set(WorkflowManagerState.State.SLEEPING);
                 RunId runId = updatedRunIds.poll(autoCleanerHolder.getRunPeriod().toMillis(), TimeUnit.MILLISECONDS);
+                state.set(WorkflowManagerState.State.PROCESSING);
                 if ( runId != null )
                 {
                     updateTasks(runId);
@@ -157,6 +168,7 @@ class Scheduler
         }
         finally
         {
+            state.set(WorkflowManagerState.State.CLOSED);
             queues.invalidateAll();
             queues.cleanUp();
             CloseableUtils.closeQuietly(completedTasksCache);

@@ -54,7 +54,6 @@ public class TestWorkflowListenerManager extends BaseForTests
 
             RunId runId = workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
             timing.sleepABit();
 
             WorkflowEvent runStarted = new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId);

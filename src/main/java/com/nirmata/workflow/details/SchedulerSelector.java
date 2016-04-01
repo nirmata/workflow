@@ -16,6 +16,8 @@
 package com.nirmata.workflow.details;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.queue.QueueFactory;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
@@ -35,6 +37,7 @@ public class SchedulerSelector implements Closeable
     private final QueueFactory queueFactory;
     private final AutoCleanerHolder autoCleanerHolder;
     private final LeaderSelector leaderSelector;
+    private final AtomicReference<Scheduler> scheduler = new AtomicReference<>();
 
     volatile AtomicReference<CountDownLatch> debugLatch = new AtomicReference<>();
 
@@ -56,6 +59,12 @@ public class SchedulerSelector implements Closeable
         leaderSelector.autoRequeue();
     }
 
+    public WorkflowManagerState.State getState()
+    {
+        Scheduler localScheduler = scheduler.get();
+        return (localScheduler != null) ? localScheduler.getState() : WorkflowManagerState.State.LATENT;
+    }
+
     public void start()
     {
         leaderSelector.start();
@@ -73,16 +82,24 @@ public class SchedulerSelector implements Closeable
         return leaderSelector;
     }
 
+    @VisibleForTesting
+    void debugValidateClosed()
+    {
+        Preconditions.checkState(!leaderSelector.hasLeadership());
+    }
+
     private void takeLeadership()
     {
         log.info(workflowManager.getInstanceName() + " is now the scheduler");
         try
         {
-            new Scheduler(workflowManager, queueFactory, autoCleanerHolder).run();
+            scheduler.set(new Scheduler(workflowManager, queueFactory, autoCleanerHolder));
+            scheduler.get().run();
         }
         finally
         {
             log.info(workflowManager.getInstanceName() + " is no longer the scheduler");
+            scheduler.set(null);
 
             CountDownLatch latch = debugLatch.getAndSet(null);
             if ( latch != null )

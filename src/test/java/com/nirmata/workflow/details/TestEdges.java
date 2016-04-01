@@ -94,7 +94,6 @@ public class TestEdges extends BaseForTests
         {
             workflowManagers.stream().forEach(WorkflowManager::start);
 
-            Timing timing = new Timing();
             for ( int i = 0; i < ITERATIONS; ++i )
             {
                 Assert.assertEquals(Scheduler.debugBadRunIdCount.get(), 0);
@@ -143,7 +142,7 @@ public class TestEdges extends BaseForTests
             workflowManager.start();
             workflowManager.submitTask(root);
 
-            new Timing().sleepABit();
+            timing.sleepABit();
 
             Assert.assertEquals(tasks.size(), 1);
             Assert.assertEquals(tasks.poll(), idempotentTask.getTaskId());

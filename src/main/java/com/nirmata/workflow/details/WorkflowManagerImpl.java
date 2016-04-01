@@ -26,6 +26,7 @@ import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.TaskDetails;
 import com.nirmata.workflow.admin.TaskInfo;
 import com.nirmata.workflow.admin.WorkflowAdmin;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.details.internalmodels.RunnableTask;
 import com.nirmata.workflow.details.internalmodels.StartedTask;
 import com.nirmata.workflow.events.WorkflowListenerManager;
@@ -273,6 +274,13 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         return instanceName;
     }
 
+    @VisibleForTesting
+    public void debugValidateClosed()
+    {
+        consumers.forEach(QueueConsumer::debugValidateClosed);
+        schedulerSelector.debugValidateClosed();
+    }
+
     @Override
     public void close() throws IOException
     {
@@ -287,6 +295,16 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     public WorkflowAdmin getAdmin()
     {
         return this;
+    }
+
+    @Override
+    public WorkflowManagerState getWorkflowManagerState()
+    {
+        return new WorkflowManagerState(
+            curator.getZookeeperClient().isConnected(),
+            schedulerSelector.getState(),
+            consumers.stream().map(QueueConsumer::getState).collect(Collectors.toList())
+        );
     }
 
     @Override

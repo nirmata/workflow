@@ -24,6 +24,7 @@ import com.google.common.io.Resources;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
 import com.nirmata.workflow.admin.TaskInfo;
+import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
 import com.nirmata.workflow.executor.TaskExecutor;
@@ -34,12 +35,11 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
-
-import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Arrays;
@@ -54,11 +54,11 @@ import java.util.concurrent.TimeUnit;
 
 public class TestNormal extends BaseForTests
 {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     @Test
     public void testFailedStop() throws Exception
     {
-        Timing timing = new Timing();
-
         TestTaskExecutor taskExecutor = new TestTaskExecutor(2)
         {
             @Override
@@ -102,14 +102,13 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
     @Test
     public void testAutoCleanRun() throws Exception
     {
-        Timing timing = new Timing();
 
         TaskExecutor taskExecutor = (w, t) -> () -> new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "");
         TaskType taskType = new TaskType("test", "1", true);
@@ -132,7 +131,7 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -167,7 +166,6 @@ public class TestNormal extends BaseForTests
             Task task1 = new Task(new TaskId(), taskType, Lists.newArrayList(task2));
             RunId runId = workflowManager.submitTask(task1);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.acquireSemaphore(executionLatch, 1));
 
             workflowManager.cancelRun(runId);
@@ -177,7 +175,7 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -193,12 +191,14 @@ public class TestNormal extends BaseForTests
         {
             workflowManager.start();
 
+            WorkflowManagerStateSampler sampler = new WorkflowManagerStateSampler(workflowManager.getAdmin(), 10, Duration.ofMillis(100));
+            sampler.start();
+
             String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
             JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
@@ -211,10 +211,13 @@ public class TestNormal extends BaseForTests
             Assert.assertEquals(sets, expectedSets);
 
             taskExecutor.getChecker().assertNoDuplicates();
+
+            sampler.close();
+            log.info("Samples {}", sampler.getSamples());
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -243,7 +246,6 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManagers.get(QTY - 1).submitTask(task);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
@@ -298,7 +300,6 @@ public class TestNormal extends BaseForTests
             TaskId taskId = new TaskId();
             RunId runId = workflowManager.submitTask(new Task(taskId, taskType));
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(latch));
             timing.sleepABit();
 
@@ -311,7 +312,7 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
     
@@ -344,18 +345,17 @@ public class TestNormal extends BaseForTests
             TaskId taskId = new TaskId();
             RunId runId = workflowManager.submitTask(new Task(taskId, taskType));
 
-            Timing timing = new Timing();
             timing.sleepABit();
             
             List<TaskInfo> tasks = workflowManager.getAdmin().getTaskInfo(runId);
             Assert.assertTrue(tasks.size() == 1);
-            Assert.assertTrue(tasks.get(0).hasStarted() == true);
+            Assert.assertTrue(tasks.get(0).hasStarted());
             Assert.assertTrue(tasks.get(0).getProgress() == 50);
             latch.countDown();
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -396,7 +396,6 @@ public class TestNormal extends BaseForTests
             workflowManager.start();
             workflowManager.submitTask(groupAParent);
 
-            Timing timing = new Timing();
             TaskId polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
             Assert.assertEquals(polledTaskId, groupAParent.getTaskId());
             polledTaskId = tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
@@ -410,7 +409,7 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -437,7 +436,6 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
             Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
 
             List<Set<TaskId>> sets = taskExecutor.getChecker().getSets();
@@ -453,7 +451,7 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
     }
 
@@ -497,7 +495,6 @@ public class TestNormal extends BaseForTests
             Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
             workflowManager.submitTask(task);
 
-            Timing timing = new Timing();
             Set<TaskId> set1 = Sets.newHashSet(queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue1.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
             Set<TaskId> set2 = Sets.newHashSet(queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue2.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
             Set<TaskId> set3 = Sets.newHashSet(queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS), queue3.poll(timing.milliseconds(), TimeUnit.MILLISECONDS));
@@ -514,7 +511,14 @@ public class TestNormal extends BaseForTests
         }
         finally
         {
-            CloseableUtils.closeQuietly(workflowManager);
+            closeWorkflow(workflowManager);
         }
+    }
+
+    private void closeWorkflow(WorkflowManager workflowManager) throws InterruptedException
+    {
+        CloseableUtils.closeQuietly(workflowManager);
+        timing.sleepABit();
+        ((WorkflowManagerImpl)workflowManager).debugValidateClosed();
     }
 }

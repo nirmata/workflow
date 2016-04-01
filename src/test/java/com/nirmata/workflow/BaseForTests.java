@@ -19,6 +19,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
+import org.apache.curator.test.Timing;
 import org.apache.curator.utils.CloseableUtils;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -27,6 +28,7 @@ public abstract class BaseForTests
 {
     protected TestingServer server;
     protected CuratorFramework curator;
+    protected final Timing timing = new Timing();
 
     @BeforeMethod
     public void setup() throws Exception
