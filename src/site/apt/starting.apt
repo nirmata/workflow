@@ -48,8 +48,8 @@ dependencies {
 
 * Tasks
 
-    You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <<<JsonSerializer.getTask()>>>. JsonSerializer
-    has methods to convert strings/bytes to JsonNodes as well. Here is an {{{./tasks.json}example tasks JSON file}}. It defines 4 tasks. The first task, "root" is a
+    You can create task objects programmatically or via a file/stream. To load via file/stream, you can use the utility <<<TaskLoader.load()>>>.
+    Here is an {{{./tasks.json}example tasks JSON file}}. It defines 4 tasks. The first task, "root" is a
     container only task - i.e. there's nothing to execute; it just has children. Container only tasks don't have a "task type". Then, there is "task1" and "task2"
     both of which have a child task, "task3". This means that "task3" will not execute until both "task1" and "task2" complete.
 

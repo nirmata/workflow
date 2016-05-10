@@ -139,7 +139,7 @@ public class TestSerializer
         String str = nodeToString(node);
         System.out.println(str);
 
-        Task unTask = getTask(fromString(str));
+        Task unTask = TaskLoader.load(str);
         Assert.assertEquals(task, unTask);
     }
 
@@ -156,7 +156,7 @@ public class TestSerializer
         Task task = new Task(new TaskId("root"), Lists.newArrayList(task1, task2));
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
-        Task unTask = getTask(fromString(json));
+        Task unTask = TaskLoader.load(json);
 
         Assert.assertEquals(task, unTask);
     }
