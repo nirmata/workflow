@@ -1,5 +1,20 @@
 # Change Log
 
+## [nirmata-workflow-0.7.2](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.7.2) (2016-05-10)
+[Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.7.1...nirmata-workflow-0.7.2)
+
+**Implemented enhancements:**
+
+- JsonSerializer.getTask\(\)  is not visible [\#26](https://github.com/NirmataOSS/workflow/issues/26)
+
+**Fixed bugs:**
+
+- JsonSerializer.getTask\\(\\)  is not visible [\#26](https://github.com/NirmataOSS/workflow/issues/26)
+
+**Closed issues:**
+
+- Potential thread leak [\#24](https://github.com/NirmataOSS/workflow/issues/24)
+
 ## [nirmata-workflow-0.7.1](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.7.1) (2016-03-12)
 [Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.7.0...nirmata-workflow-0.7.1)
 
@@ -19,10 +34,6 @@
 
 - uneven workflow distribution [\#19](https://github.com/NirmataOSS/workflow/issues/19)
 
-**Merged pull requests:**
-
-- Simple queue [\#20](https://github.com/NirmataOSS/workflow/pull/20) ([Randgalt](https://github.com/Randgalt))
-
 ## [nirmata-workflow-0.6.0](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.6.0) (2015-07-17)
 [Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.5.0...nirmata-workflow-0.6.0)
 
@@ -30,10 +41,6 @@
 
 - Providing more debugging for the scheduler [\#18](https://github.com/NirmataOSS/workflow/issues/18)
 - Feature progressinfo [\#17](https://github.com/NirmataOSS/workflow/pull/17) ([chenl23](https://github.com/chenl23))
-
-**Closed issues:**
-
-- Pluggable serialization [\#13](https://github.com/NirmataOSS/workflow/issues/13)
 
 ## [nirmata-workflow-0.5.0](https://github.com/NirmataOSS/workflow/tree/nirmata-workflow-0.5.0) (2015-04-30)
 [Full Changelog](https://github.com/NirmataOSS/workflow/compare/nirmata-workflow-0.4.1...nirmata-workflow-0.5.0)
