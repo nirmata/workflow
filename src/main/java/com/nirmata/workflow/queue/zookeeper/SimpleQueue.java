@@ -341,6 +341,7 @@ class SimpleQueue implements Closeable, QueueConsumer
 					executorService.awaitTermination(timeOut, timeUnit);
 				} catch (InterruptedException e) {
 					log.error("Exception occurred while waiting for running tasks to complete", e);
+					Thread.currentThread().interrupt();
 				}
 	        }
 		
