@@ -1,5 +1,41 @@
 # Change Log
 
+## [nirmata-workflow-0.9.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.9.0) (2017-02-08)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.8.1...nirmata-workflow-0.9.0)
+
+## [nirmata-workflow-0.8.1](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.8.1) (2017-02-08)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.8.0...nirmata-workflow-0.8.1)
+
+## [nirmata-workflow-0.8.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.8.0) (2016-07-27)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.7.2...nirmata-workflow-0.8.0)
+
+## [nirmata-workflow-0.7.2](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.7.2) (2016-05-10)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.7.1...nirmata-workflow-0.7.2)
+
+## [nirmata-workflow-0.7.1](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.7.1) (2016-03-12)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.7.0...nirmata-workflow-0.7.1)
+
+## [nirmata-workflow-0.7.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.7.0) (2015-12-30)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.6.0...nirmata-workflow-0.7.0)
+
+## [nirmata-workflow-0.6.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.6.0) (2015-07-17)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.5.0...nirmata-workflow-0.6.0)
+
+## [nirmata-workflow-0.5.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.5.0) (2015-04-30)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.4.1...nirmata-workflow-0.5.0)
+
+## [nirmata-workflow-0.4.1](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.4.1) (2015-04-27)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.4.0...nirmata-workflow-0.4.1)
+
+## [nirmata-workflow-0.4.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.4.0) (2015-04-26)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.3.0...nirmata-workflow-0.4.0)
+
+## [nirmata-workflow-0.3.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.3.0) (2015-03-18)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.2.0...nirmata-workflow-0.3.0)
+
+## [nirmata-workflow-0.2.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.2.0) (2014-12-17)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.1.1...nirmata-workflow-0.2.0)
+
 ## [nirmata-workflow-0.1.1](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.1.1) (2014-10-15)
 [Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.1.0...nirmata-workflow-0.1.1)
 
