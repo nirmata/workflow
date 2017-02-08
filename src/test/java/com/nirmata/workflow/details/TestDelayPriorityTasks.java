@@ -55,19 +55,19 @@ public class TestDelayPriorityTasks extends BaseForTests
             workflowManager.start();
 
             Task task = new Task(new TaskId(), taskType);
-            long startMs = System.currentTimeMillis();
             workflowManager.submitTask(task);
 
             Long ticksMs = queue.poll(1, TimeUnit.SECONDS);
             Assert.assertNotNull(ticksMs);
-            Assert.assertTrue((ticksMs - startMs) < 1000);  // should have executed immediately
+            Assert.assertTrue((ticksMs - ((WorkflowManagerImpl)workflowManager).debugLastSubmittedTimeMs) < 1000);  // should have executed immediately
 
             task = new Task(new TaskId(), taskType, Lists.newArrayList(), Task.makeSpecialMeta(System.currentTimeMillis() + delayMs));
-            startMs = System.currentTimeMillis();
+            long startTicks = System.currentTimeMillis();
             workflowManager.submitTask(task);
             ticksMs = queue.poll(delayMs * 2, TimeUnit.MILLISECONDS);
             Assert.assertNotNull(ticksMs);
-            Assert.assertTrue((ticksMs - startMs) >= delayMs, "Bad timing: " + (ticksMs - startMs));
+            long elapsed = ticksMs - startTicks;
+            Assert.assertTrue(elapsed >= delayMs, String.format("Bad timing. Elapsed: %d, delay: %d ", elapsed, delayMs));
         }
     }
 
@@ -80,7 +80,7 @@ public class TestDelayPriorityTasks extends BaseForTests
             queue.add(executableTask.getTaskId().getId());
             try
             {
-                Thread.sleep(10);
+                Thread.sleep(1);
             }
             catch ( InterruptedException e )
             {
@@ -99,10 +99,10 @@ public class TestDelayPriorityTasks extends BaseForTests
             workflowManager.start();
 
             Task task1 = new Task(new TaskId("1"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(1));
-            Task task2 = new Task(new TaskId("2"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(10));
-            Task task3 = new Task(new TaskId("3"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(5));
-            Task task4 = new Task(new TaskId("4"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(30));
-            Task task5 = new Task(new TaskId("5"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(20));
+            Task task2 = new Task(new TaskId("2"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(100));
+            Task task3 = new Task(new TaskId("3"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(50));
+            Task task4 = new Task(new TaskId("4"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(300));
+            Task task5 = new Task(new TaskId("5"), taskType, Lists.newArrayList(), Task.makeSpecialMeta(200));
             workflowManager.submitTask(task1);
             workflowManager.submitTask(task2);
             workflowManager.submitTask(task3);
