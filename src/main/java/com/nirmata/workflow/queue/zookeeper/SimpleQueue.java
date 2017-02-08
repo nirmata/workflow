@@ -163,7 +163,7 @@ class SimpleQueue implements Closeable, QueueConsumer
     {
         String basePath = ZKPaths.makePath(path, PREFIX);
         String path = keyFunc.apply(basePath, value);
-        client.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(path, data);
+        client.create().creatingParentContainersIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(path, data);
     }
 
     @Override
@@ -257,7 +257,7 @@ class SimpleQueue implements Closeable, QueueConsumer
             {
                 if ( idempotent )
                 {
-                    client.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(lockNodePath);
+                    client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(lockNodePath);
                     lockCreated = true;
                 }
 

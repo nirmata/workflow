@@ -173,6 +173,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         return submitSubTask(new RunId(), parentRunId, task);
     }
 
+    public volatile long debugLastSubmittedTimeMs = 0;
+
     @Override
     public RunId submitSubTask(RunId runId, RunId parentRunId, Task task)
     {
@@ -190,7 +192,8 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         {
             byte[] runnableTaskBytes = serializer.serialize(runnableTask);
             String runPath = ZooKeeperConstants.getRunPath(runId);
-            curator.create().creatingParentsIfNeeded().forPath(runPath, runnableTaskBytes);
+            debugLastSubmittedTimeMs = System.currentTimeMillis();
+            curator.create().creatingParentContainersIfNeeded().forPath(runPath, runnableTaskBytes);
         }
         catch ( Exception e )
         {
@@ -570,7 +573,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         byte[] bytes = serializer.serialize(result);
         try
         {
-            curator.create().creatingParentsIfNeeded().forPath(path, bytes);
+            curator.create().creatingParentContainersIfNeeded().forPath(path, bytes);
         }
         catch ( KeeperException.NodeExistsException ignore )
         {

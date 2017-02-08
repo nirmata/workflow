@@ -292,7 +292,7 @@ class Scheduler
         {
             StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(), LocalDateTime.now(Clock.systemUTC()), 0);
             byte[] data = workflowManager.getSerializer().serialize(startedTask);
-            workflowManager.getCurator().create().creatingParentsIfNeeded().forPath(path, data);
+            workflowManager.getCurator().create().creatingParentContainersIfNeeded().forPath(path, data);
             Queue queue = queues.get(task.getTaskType());
             queue.put(task);
             log.info("Queued task: " + task);
