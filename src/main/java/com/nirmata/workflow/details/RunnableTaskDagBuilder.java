@@ -66,7 +66,7 @@ public class RunnableTaskDagBuilder
             throw new RuntimeException("The Task DAG contains cycles: " + task);
         }
 
-        TopologicalOrderIterator<TaskId, DefaultEdge> orderIterator = new TopologicalOrderIterator(graph);
+        TopologicalOrderIterator<TaskId, DefaultEdge> orderIterator = new TopologicalOrderIterator<>(graph);
         while ( orderIterator.hasNext() )
         {
             TaskId taskId = orderIterator.next();

@@ -23,5 +23,5 @@ public interface WorkflowListener
      *
      * @param event the event
      */
-    public void receiveEvent(WorkflowEvent event);
+    void receiveEvent(WorkflowEvent event);
 }

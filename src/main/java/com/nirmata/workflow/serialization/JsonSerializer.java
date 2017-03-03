@@ -251,7 +251,7 @@ class JsonSerializer
         runnableTask.getTaskDags().forEach(taskDag -> taskDags.add(newRunnableTaskDag(taskDag)));
 
         ObjectNode tasks = newNode();
-        runnableTask.getTasks().entrySet().forEach(entry -> tasks.set(entry.getKey().getId(), newExecutableTask(entry.getValue())));
+        runnableTask.getTasks().forEach((key, value) -> tasks.set(key.getId(), newExecutableTask(value)));
 
         ObjectNode node = newNode();
         node.set("taskDags", taskDags);

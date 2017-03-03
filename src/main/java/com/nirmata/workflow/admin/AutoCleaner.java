@@ -24,5 +24,5 @@ public interface AutoCleaner
      * @param runInfo the run
      * @return true if it can be cleaned
      */
-    public boolean canBeCleaned(RunInfo runInfo);
+    boolean canBeCleaned(RunInfo runInfo);
 }

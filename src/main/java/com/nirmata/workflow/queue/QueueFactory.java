@@ -20,6 +20,6 @@ import com.nirmata.workflow.models.TaskType;
 
 public interface QueueFactory
 {
-    public Queue createQueue(WorkflowManagerImpl workflowManager, TaskType taskType);
-    public QueueConsumer createQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, TaskType taskType);
+    Queue createQueue(WorkflowManagerImpl workflowManager, TaskType taskType);
+    QueueConsumer createQueueConsumer(WorkflowManagerImpl workflowManager, TaskRunner taskRunner, TaskType taskType);
 }

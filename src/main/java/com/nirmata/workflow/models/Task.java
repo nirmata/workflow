@@ -113,7 +113,8 @@ public class Task implements Serializable
 
     public TaskType getTaskType()
     {
-        return taskType.get();
+        //noinspection ConstantConditions
+        return taskType.get();       // exception if empty is desired
     }
 
     public boolean isExecutable()

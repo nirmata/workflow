@@ -29,12 +29,12 @@ public interface WorkflowListenerManager extends Closeable
      * Start listening for events. NOTE: previous events are not reported.
      * i.e. already started runs/tasks are not reported.
      */
-    public void start();
+    void start();
 
     /**
      * Return the container to add/remove event listeners
      *
      * @return container
      */
-    public Listenable<WorkflowListener> getListenable();
+    Listenable<WorkflowListener> getListenable();
 }

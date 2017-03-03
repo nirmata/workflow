@@ -24,6 +24,7 @@ import java.util.Optional;
 /**
  * Task information
  */
+@SuppressWarnings("ConstantConditions")  // exception if empty is desired
 public class TaskInfo
 {
     private final TaskId taskId;

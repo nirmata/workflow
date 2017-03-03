@@ -452,7 +452,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             Set<TaskId> notStartedTasks = runnableTask.getTasks().values().stream().filter(ExecutableTask::isExecutable).map(ExecutableTask::getTaskId).collect(Collectors.toSet());
             Map<TaskId, StartedTask> startedTasks = Maps.newHashMap();
 
-            curator.getChildren().forPath(startedTasksParentPath).stream().forEach(child -> {
+            curator.getChildren().forPath(startedTasksParentPath).forEach(child -> {
                 String fullPath = ZKPaths.makePath(startedTasksParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(fullPath));
                 try
@@ -472,7 +472,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 }
             });
 
-            curator.getChildren().forPath(completedTaskParentPath).stream().forEach(child -> {
+            curator.getChildren().forPath(completedTaskParentPath).forEach(child -> {
                 String fullPath = ZKPaths.makePath(completedTaskParentPath, child);
                 TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(fullPath));
 
@@ -498,10 +498,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
             });
 
             // remaining started tasks have not completed
-            startedTasks.entrySet().forEach(entry -> {
-                StartedTask startedTask = entry.getValue();
-                taskInfos.add(new TaskInfo(entry.getKey(), startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress()));
-            });
+            startedTasks.forEach((key, startedTask) -> taskInfos.add(new TaskInfo(key, startedTask.getInstanceName(), startedTask.getStartDateUtc(), startedTask.getProgress())));
 
             // finally, taskIds not added have not started
             notStartedTasks.forEach(taskId -> taskInfos.add(new TaskInfo(taskId)));

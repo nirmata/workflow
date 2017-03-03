@@ -53,7 +53,8 @@ public class RunInfo
 
     public LocalDateTime getCompletionTimeUtc()
     {
-        return completionTimeUtc.get();
+        //noinspection ConstantConditions
+        return completionTimeUtc.get(); // exception if empty is desired
     }
 
     public boolean isComplete()

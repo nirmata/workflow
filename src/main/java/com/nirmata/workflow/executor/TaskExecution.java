@@ -30,5 +30,5 @@ public interface TaskExecution
      *
      * @return result
      */
-    public TaskExecutionResult execute();
+    TaskExecutionResult execute();
 }

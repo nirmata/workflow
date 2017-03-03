@@ -31,5 +31,5 @@ public interface TaskExecutor
      * @param executableTask the task
      * @return the execution
      */
-    public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask executableTask);
+    TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask executableTask);
 }

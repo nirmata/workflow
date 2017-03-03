@@ -103,7 +103,10 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
     private void postEvent(WorkflowEvent event)
     {
         listenerContainer.forEach(l -> {
-            l.receiveEvent(event);
+            if ( l != null )
+            {
+                l.receiveEvent(event);
+            }
             return null;
         });
     }
