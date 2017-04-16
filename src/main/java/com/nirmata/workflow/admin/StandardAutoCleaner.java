@@ -20,15 +20,18 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 
 /**
- * Default auto cleaner. Cleans if the run is completed and was completed past the given minimum age
+ * Default auto cleaner. Cleans after a quiet period following run completion.
  */
 public class StandardAutoCleaner implements AutoCleaner
 {
-    private final Duration minAge;
+    private final Duration quietPeriod;
 
-    public StandardAutoCleaner(Duration minAge)
+    /**
+     * @return after a run is complete, how long to wait before cleaning it.
+     */
+    public StandardAutoCleaner(Duration quietPeriod)
     {
-        this.minAge = minAge;
+        this.quietPeriod = quietPeriod;
     }
 
     @Override
@@ -38,7 +41,7 @@ public class StandardAutoCleaner implements AutoCleaner
         {
             LocalDateTime nowUtc = LocalDateTime.now(Clock.systemUTC());
             Duration durationSinceCompletion = Duration.between(runInfo.getCompletionTimeUtc(), nowUtc);
-            if ( durationSinceCompletion.compareTo(minAge) >= 0 )
+            if ( durationSinceCompletion.compareTo(quietPeriod) >= 0 )
             {
                 return true;
             }
