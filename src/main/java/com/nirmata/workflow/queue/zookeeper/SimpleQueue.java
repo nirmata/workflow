@@ -24,7 +24,7 @@ import com.nirmata.workflow.queue.QueueConsumer;
 import com.nirmata.workflow.queue.TaskRunner;
 import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.utils.EnsurePath;
+import org.apache.curator.framework.EnsureContainers;
 import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
@@ -57,7 +57,7 @@ class SimpleQueue implements Closeable, QueueConsumer
     private final boolean idempotent;
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("SimpleQueue");
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final EnsurePath ensurePath;
+    private final EnsureContainers ensurePath;
     private final NodeFunc nodeFunc;
     private final KeyFunc keyFunc;
     private final AtomicReference<WorkflowManagerState.State> state = new AtomicReference<>(WorkflowManagerState.State.LATENT);
@@ -154,7 +154,7 @@ class SimpleQueue implements Closeable, QueueConsumer
         this.path = queuePath;
         this.lockPath = lockPath;
         this.idempotent = idempotent;
-        ensurePath = client.newNamespaceAwareEnsurePath(path);
+        ensurePath = new EnsureContainers(client, path);
         nodeFunc = nodeFuncs.getOrDefault(mode, nodeFuncs.get(TaskMode.STANDARD));
         keyFunc = keyFuncs.getOrDefault(mode, keyFuncs.get(TaskMode.STANDARD));
     }
@@ -206,7 +206,7 @@ class SimpleQueue implements Closeable, QueueConsumer
                 state.set(WorkflowManagerState.State.SLEEPING);
                 try
                 {
-                    ensurePath.ensure(client.getZookeeperClient());
+                    ensurePath.ensure();
 
                     CountDownLatch latch = new CountDownLatch(1);
                     Watcher watcher = event -> latch.countDown();
@@ -233,6 +233,11 @@ class SimpleQueue implements Closeable, QueueConsumer
                 {
                     Thread.currentThread().interrupt();
                     break;
+                }
+                catch ( KeeperException.NoNodeException ignore )
+                {
+                    log.debug("Got KeeperException.NoNodeException - resetting EnsureContainers");
+                    ensurePath.reset();
                 }
                 catch ( Exception e )
                 {

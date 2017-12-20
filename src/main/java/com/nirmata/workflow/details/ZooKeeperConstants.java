@@ -78,6 +78,11 @@ public class ZooKeeperConstants
         return RUN_PATH;
     }
 
+    public static String getQueuePathBase()
+    {
+        return QUEUE_PATH_BASE;
+    }
+
     public static String getRunPath(RunId runId)
     {
         return ZKPaths.makePath(RUN_PATH, runId.getId());

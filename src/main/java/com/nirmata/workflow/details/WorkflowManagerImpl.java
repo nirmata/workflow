@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -285,7 +286,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
-    public void close() throws IOException
+    public void close()
     {
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
@@ -396,10 +397,15 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
                 .map(RunId::new)
                 .collect(Collectors.toList());
         }
+        catch ( KeeperException.NoNodeException ignore )
+        {
+            // ignore if parent node is missing
+        }
         catch ( Exception e )
         {
             throw new RuntimeException(e);
         }
+        return Collections.emptyList();
     }
 
     @Override
