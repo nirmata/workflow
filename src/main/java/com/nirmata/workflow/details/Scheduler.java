@@ -44,7 +44,6 @@ import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -210,9 +209,6 @@ class Scheduler
         }
     }
 
-    @VisibleForTesting
-    static volatile Semaphore debugQueuedTasks = null;
-
     private void updateTasks(RunId runId)
     {
         log.info("Updating run: " + runId);
@@ -296,11 +292,6 @@ class Scheduler
             Queue queue = queues.get(task.getTaskType());
             queue.put(task);
             log.info("Queued task: " + task);
-
-            if ( debugQueuedTasks != null )
-            {
-                debugQueuedTasks.release();
-            }
         }
         catch ( KeeperException.NodeExistsException ignore )
         {

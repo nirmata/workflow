@@ -15,6 +15,7 @@
  */
 package com.nirmata.workflow.queue.zookeeper;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.nirmata.workflow.admin.WorkflowManagerState;
@@ -25,6 +26,8 @@ import com.nirmata.workflow.queue.TaskRunner;
 import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.EnsureContainers;
+import org.apache.curator.framework.api.BackgroundCallback;
+import org.apache.curator.framework.api.CuratorEvent;
 import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
@@ -41,12 +44,14 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 // copied and modified from org.apache.curator.framework.recipes.queue.SimpleDistributedQueue
-class SimpleQueue implements Closeable, QueueConsumer
+@VisibleForTesting
+public class SimpleQueue implements Closeable, QueueConsumer
 {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CuratorFramework client;
@@ -159,11 +164,25 @@ class SimpleQueue implements Closeable, QueueConsumer
         keyFunc = keyFuncs.getOrDefault(mode, keyFuncs.get(TaskMode.STANDARD));
     }
 
+    @VisibleForTesting
+    public static volatile Semaphore debugQueuedTasks = null;
+
     void put(byte[] data, long value) throws Exception
     {
+        BackgroundCallback debugBackgroundCallback = null;
+        if ( debugQueuedTasks != null )
+        {
+            debugBackgroundCallback = (client, event) -> {
+                if ( debugQueuedTasks != null )
+                {
+                    debugQueuedTasks.release();
+                }
+            };
+        }
+
         String basePath = ZKPaths.makePath(path, PREFIX);
         String path = keyFunc.apply(basePath, value);
-        client.create().creatingParentContainersIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground().forPath(path, data);
+        client.create().creatingParentContainersIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL).inBackground(debugBackgroundCallback).forPath(path, data);
     }
 
     @Override

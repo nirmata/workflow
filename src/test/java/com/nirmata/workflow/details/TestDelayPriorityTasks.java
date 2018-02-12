@@ -26,6 +26,7 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskMode;
 import com.nirmata.workflow.models.TaskType;
+import com.nirmata.workflow.queue.zookeeper.SimpleQueue;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import java.util.concurrent.BlockingQueue;
@@ -94,7 +95,7 @@ public class TestDelayPriorityTasks extends BaseForTests
             .withCurator(curator, "test", "1")
             .build() )
         {
-            Scheduler.debugQueuedTasks = new Semaphore(0);
+            SimpleQueue.debugQueuedTasks = new Semaphore(0);
             ((WorkflowManagerImpl)workflowManager).debugDontStartConsumers = true; // make sure all tasks are added to ZK before they start getting consumed
             workflowManager.start();
 
@@ -109,7 +110,7 @@ public class TestDelayPriorityTasks extends BaseForTests
             workflowManager.submitTask(task4);
             workflowManager.submitTask(task5);
 
-            Assert.assertTrue(Scheduler.debugQueuedTasks.tryAcquire(5, 5, TimeUnit.SECONDS));
+            Assert.assertTrue(SimpleQueue.debugQueuedTasks.tryAcquire(5, 5, TimeUnit.SECONDS));
             ((WorkflowManagerImpl)workflowManager).startQueueConsumers();
 
             Assert.assertEquals(queue.poll(1, TimeUnit.SECONDS), "1");
@@ -120,7 +121,7 @@ public class TestDelayPriorityTasks extends BaseForTests
         }
         finally
         {
-            Scheduler.debugQueuedTasks = null;
+            SimpleQueue.debugQueuedTasks = null;
         }
     }
 }
