@@ -1,5 +1,8 @@
 # Change Log
 
+## [nirmata-workflow-0.9.1](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.9.1) (2018-02-12)
+[Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.9.0...nirmata-workflow-0.9.1)
+
 ## [nirmata-workflow-0.9.0](https://github.com/Randgalt/workflow/tree/nirmata-workflow-0.9.0) (2017-02-08)
 [Full Changelog](https://github.com/Randgalt/workflow/compare/nirmata-workflow-0.8.1...nirmata-workflow-0.9.0)
 
