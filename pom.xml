@@ -20,9 +20,9 @@
         <jgrapht-version>1.0.1</jgrapht-version>
 
         <maven-compiler-plugin-version>3.6.1</maven-compiler-plugin-version>
-        <maven-site-plugin-version>3.6</maven-site-plugin-version>
+        <maven-site-plugin-version>3.7</maven-site-plugin-version>
         <maven-project-info-reports-plugin-version>2.9</maven-project-info-reports-plugin-version>
-        <doxia-module-apt-version>1.7</doxia-module-apt-version>
+        <doxia-module-apt-version>1.8</doxia-module-apt-version>
         <maven-javadoc-plugin-version>2.10.4</maven-javadoc-plugin-version>
         <maven-license-plugin-version>1.9.0</maven-license-plugin-version>
         <maven-gpg-plugin-version>1.6</maven-gpg-plugin-version>
