@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/nirmata/workflow.svg?branch=master)](https://travis-ci.org/NirmataOSS/workflow)
+[![Build Status](https://travis-ci.org/nirmata/workflow.svg?branch=master)](https://travis-ci.org/nirmata/workflow)
 [![Maven Central](https://img.shields.io/maven-central/v/com.nirmata.workflow/nirmata-workflow.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.nirmata.workflow%22%20AND%20a%3A%22nirmata-workflow%22)
 
 Nirmata Workflow
