@@ -45,11 +45,11 @@ public class AutoCleanerHolder
     public void run(WorkflowAdmin admin)
     {
         Preconditions.checkNotNull(admin, "admin cannot be null");
-        log.info("Running");
+        log.debug("Running");
         if ( autoCleaner != null )
         {
             admin.getRunInfo().stream().filter(autoCleaner::canBeCleaned).forEach(r -> {
-                log.info("Auto cleaning: " + r);
+                log.debug("Auto cleaning: " + r);
                 admin.clean(r.getRunId());
             });
         }
