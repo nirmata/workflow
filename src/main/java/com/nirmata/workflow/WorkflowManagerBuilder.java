@@ -45,7 +45,7 @@ public class WorkflowManagerBuilder
     private CuratorFramework curator;
     private AutoCleanerHolder autoCleanerHolder = newNullHolder();
     private Serializer serializer = new StandardSerializer();
-    private Executor taskRunnerService = MoreExecutors.sameThreadExecutor();
+    private Executor taskRunnerService = MoreExecutors.newDirectExecutorService();
 
     private final List<TaskExecutorSpec> specs = Lists.newArrayList();
 
