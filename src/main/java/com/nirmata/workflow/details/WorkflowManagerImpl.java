@@ -383,6 +383,7 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
         }
         catch ( Exception e )
         {
+            log.error("Error getting RunInfo for runId: {}", runId, e);
             throw new RuntimeException("Could not read run: " + runId, e);
         }
     }
