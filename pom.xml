@@ -43,9 +43,9 @@
     </organization>
 
     <scm>
-        <url>https://github.com/NirmataOSS/workflow</url>
-        <connection>scm:git:https://github.com/NirmataOSS/workflow.git</connection>
-        <developerConnection>scm:git:git@github.com:NirmataOSS/workflow.git</developerConnection>
+        <url>https://github.com/nirmata/workflow</url>
+        <connection>scm:git:https://github.com/nirmata/workflow.git</connection>
+        <developerConnection>scm:git:https://github.com/nirmata/workflow.git</developerConnection>
         <tag>nirmata-workflow-0.9.4</tag>
     </scm>
 
