@@ -27,7 +27,6 @@ import com.nirmata.workflow.serialization.Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.EnsureContainers;
 import org.apache.curator.framework.api.BackgroundCallback;
-import org.apache.curator.framework.api.CuratorEvent;
 import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
@@ -37,6 +36,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.Closeable;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +48,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
 
 // copied and modified from org.apache.curator.framework.recipes.queue.SimpleDistributedQueue
 @VisibleForTesting
@@ -63,6 +66,7 @@ public class SimpleQueue implements Closeable, QueueConsumer
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("SimpleQueue");
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final EnsureContainers ensurePath;
+    private final EnsureContainers ensureLockPath;
     private final NodeFunc nodeFunc;
     private final KeyFunc keyFunc;
     private final AtomicReference<WorkflowManagerState.State> state = new AtomicReference<>(WorkflowManagerState.State.LATENT);
@@ -117,18 +121,56 @@ public class SimpleQueue implements Closeable, QueueConsumer
     @FunctionalInterface
     private interface NodeFunc
     {
-        NodeAndDelay getNode(List<String> nodes);
+        NodeAndDelay getNode(List<String> nodes, List<String> locked);
     }
     private static final Map<TaskMode, NodeFunc> nodeFuncs;
     static
     {
         Random random = new Random();
+        BiFunction<List<String>, List<String>, List<String>> lockedRemover = (nodes, locked) -> {
+        	if(locked == null || locked.isEmpty())
+        	{
+        		// no locked nodes or task is not idempotent.
+        		return nodes;
+        	}
+        	return nodes.stream().filter(n -> !locked.contains(n)).collect(Collectors.toList());
+        };
+        
         ImmutableMap.Builder<TaskMode, NodeFunc> builder = ImmutableMap.builder();
-        builder.put(TaskMode.STANDARD, nodes -> new NodeAndDelay(nodes.get(random.nextInt(nodes.size()))));
-        builder.put(TaskMode.PRIORITY, nodes -> new NodeAndDelay(nodes.stream().sorted().findFirst()));
-        builder.put(TaskMode.DELAY, nodes -> {
+        builder.put(TaskMode.STANDARD, (nodes, locked) -> {
+        	List<String> nodesToProcess = lockedRemover.apply(nodes, locked);
+        	
+        	if(nodesToProcess.isEmpty()) 
+    		{
+        		return new NodeAndDelay();
+    		} 
+        	else
+        	{
+        		return new NodeAndDelay(nodesToProcess.get(random.nextInt(nodesToProcess.size())));
+        	}
+        });
+        builder.put(TaskMode.PRIORITY, (nodes, locked) -> {
+        	List<String> nodesToProcess = lockedRemover.apply(nodes, locked);
+        	
+        	if(nodesToProcess.isEmpty()) 
+    		{
+        		return new NodeAndDelay();
+    		}
+        	else
+        	{
+        		return new NodeAndDelay(nodesToProcess.stream().sorted().findFirst());
+        	}
+        });
+        builder.put(TaskMode.DELAY, (nodes, locked) -> {
+        	List<String> nodesToProcess = lockedRemover.apply(nodes, locked);
+        	
+        	if(nodesToProcess.isEmpty()) 
+    		{
+        		return new NodeAndDelay();
+    		}
+        	
             final long sortTime = System.currentTimeMillis();
-            Optional<String> first = nodes.stream().sorted(delayComparator(sortTime)).findFirst();
+            Optional<String> first = nodesToProcess.stream().sorted(delayComparator(sortTime)).findFirst();
             if ( first.isPresent() )
             {
                 long delay = getDelay(first.get(), sortTime);
@@ -160,6 +202,7 @@ public class SimpleQueue implements Closeable, QueueConsumer
         this.lockPath = lockPath;
         this.idempotent = idempotent;
         ensurePath = new EnsureContainers(client, path);
+        ensureLockPath = new EnsureContainers(client, lockPath);
         nodeFunc = nodeFuncs.getOrDefault(mode, nodeFuncs.get(TaskMode.STANDARD));
         keyFunc = keyFuncs.getOrDefault(mode, keyFuncs.get(TaskMode.STANDARD));
     }
@@ -236,7 +279,18 @@ public class SimpleQueue implements Closeable, QueueConsumer
                     }
                     else
                     {
-                        NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
+                    	List<String> locked;
+                    	if(idempotent)
+                    	{
+                    		ensureLockPath.ensure();
+                    		locked = client.getChildren().forPath(lockPath);
+                    	}
+                    	else 
+                    	{
+                    		// for non idempotent we dont need to check locked as nodes are deleted when picked up to process.
+                    		locked = Collections.emptyList();
+                    	}
+                        NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes, locked);
                         if ( nodeAndDelay.delay.isPresent() )
                         {
                             latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
@@ -245,6 +299,11 @@ public class SimpleQueue implements Closeable, QueueConsumer
                         {
                             state.set(WorkflowManagerState.State.PROCESSING);
                             processNode(nodeAndDelay.node.get());
+                        }
+                        else
+                        {
+                        	// idempotent tasks await with timeout if processor of locked node dies.
+                        	latch.await(1L, TimeUnit.MINUTES);
                         }
                     }
                 }
@@ -257,6 +316,7 @@ public class SimpleQueue implements Closeable, QueueConsumer
                 {
                     log.debug("Got KeeperException.NoNodeException - resetting EnsureContainers");
                     ensurePath.reset();
+                    ensureLockPath.reset();
                 }
                 catch ( Exception e )
                 {
