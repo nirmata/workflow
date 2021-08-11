@@ -65,7 +65,7 @@ public class TestDelayPriorityTasks extends BaseForTests
             task = new Task(new TaskId(), taskType, Lists.newArrayList(), Task.makeSpecialMeta(System.currentTimeMillis() + delayMs));
             long startTicks = System.currentTimeMillis();
             workflowManager.submitTask(task);
-            ticksMs = queue.poll(delayMs * 2, TimeUnit.MILLISECONDS);
+            ticksMs = queue.poll(delayMs * 2, TimeUnit.SECONDS);
             Assert.assertNotNull(ticksMs);
             long elapsed = ticksMs - startTicks;
             Assert.assertTrue(elapsed >= delayMs, String.format("Bad timing. Elapsed: %d, delay: %d ", elapsed, delayMs));
