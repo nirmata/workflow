@@ -21,46 +21,40 @@ import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.listen.Listenable;
-import org.apache.curator.framework.listen.ListenerContainer;
+import org.apache.curator.framework.listen.StandardListenerManager;
+import org.apache.curator.framework.listen.UnaryListenerManager;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.utils.CloseableUtils;
+
 import java.io.IOException;
 
-public class WorkflowListenerManagerImpl implements WorkflowListenerManager
-{
+public class WorkflowListenerManagerImpl implements WorkflowListenerManager {
     private final PathChildrenCache completedTasksCache;
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
-    private final ListenerContainer<WorkflowListener> listenerContainer = new ListenerContainer<>();
+    private final UnaryListenerManager<WorkflowListener> listenerContainer = StandardListenerManager.standard();
 
-    public WorkflowListenerManagerImpl(WorkflowManagerImpl workflowManager)
-    {
+    public WorkflowListenerManagerImpl(WorkflowManagerImpl workflowManager) {
         completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTaskParentPath(), false);
         startedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getStartedTasksParentPath(), false);
         runsCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getRunParentPath(), false);
     }
 
     @Override
-    public void start()
-    {
-        try
-        {
+    public void start() {
+        try {
             runsCache.getListenable().addListener((client, event) -> {
                 RunId runId = new RunId(ZooKeeperConstants.getRunIdFromRunPath(event.getData().getPath()));
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-                {
+                if (event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED) {
                     postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_STARTED, runId));
-                }
-                else if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED )
-                {
+                } else if (event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED) {
                     postEvent(new WorkflowEvent(WorkflowEvent.EventType.RUN_UPDATED, runId));
                 }
             });
 
             startedTasksCache.getListenable().addListener((client, event) -> {
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-                {
+                if (event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED) {
                     RunId runId = new RunId(ZooKeeperConstants.getRunIdFromStartedTasksPath(event.getData().getPath()));
                     TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromStartedTasksPath(event.getData().getPath()));
                     postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_STARTED, runId, taskId));
@@ -68,8 +62,7 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
             });
 
             completedTasksCache.getListenable().addListener((client, event) -> {
-                if ( event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED )
-                {
+                if (event.getType() == PathChildrenCacheEvent.Type.CHILD_ADDED) {
                     RunId runId = new RunId(ZooKeeperConstants.getRunIdFromCompletedTasksPath(event.getData().getPath()));
                     TaskId taskId = new TaskId(ZooKeeperConstants.getTaskIdFromCompletedTasksPath(event.getData().getPath()));
                     postEvent(new WorkflowEvent(WorkflowEvent.EventType.TASK_COMPLETED, runId, taskId));
@@ -79,35 +72,28 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager
             runsCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             completedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
             startedTasksCache.start(PathChildrenCache.StartMode.BUILD_INITIAL_CACHE);
-        }
-        catch ( Exception e )
-        {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void close() throws IOException
-    {
+    public void close() throws IOException {
         CloseableUtils.closeQuietly(runsCache);
         CloseableUtils.closeQuietly(startedTasksCache);
         CloseableUtils.closeQuietly(completedTasksCache);
     }
 
     @Override
-    public Listenable<WorkflowListener> getListenable()
-    {
+    public Listenable<WorkflowListener> getListenable() {
         return listenerContainer;
     }
 
-    private void postEvent(WorkflowEvent event)
-    {
+    private void postEvent(WorkflowEvent event) {
         listenerContainer.forEach(l -> {
-            if ( l != null )
-            {
+            if (l != null) {
                 l.receiveEvent(event);
             }
-            return null;
         });
     }
 }
