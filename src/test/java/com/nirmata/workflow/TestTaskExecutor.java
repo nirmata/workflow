@@ -23,55 +23,57 @@ import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskExecutionResult;
 import java.util.concurrent.CountDownLatch;
 
-public class TestTaskExecutor implements TaskExecutor
-{
+public class TestTaskExecutor implements TaskExecutor {
     private final ConcurrentTaskChecker checker = new ConcurrentTaskChecker();
     private final int latchQty;
     private volatile CountDownLatch latch;
+    private final boolean checkerActive;
+    private final int sleepMillis;
 
-    public TestTaskExecutor()
-    {
-        this(1);
+    public TestTaskExecutor() {
+        this(1, true, 1000);
     }
 
-    public TestTaskExecutor(int latchQty)
-    {
+    public TestTaskExecutor(int numExecutors) {
+        this(numExecutors, true, 1000);
+    }
+
+    public TestTaskExecutor(int numExecutors, boolean checkerActive) {
+        this(numExecutors, checkerActive, 1000);
+    }
+
+    public TestTaskExecutor(int latchQty, boolean checkerActive, int sleepMillis) {
         this.latchQty = latchQty;
         latch = new CountDownLatch(latchQty);
+        this.checkerActive = checkerActive;
+        this.sleepMillis = sleepMillis;
     }
 
-    public CountDownLatch getLatch()
-    {
+    public CountDownLatch getLatch() {
         return latch;
     }
 
-    public ConcurrentTaskChecker getChecker()
-    {
+    public ConcurrentTaskChecker getChecker() {
         return checker;
     }
 
-    public void reset()
-    {
+    public void reset() {
         checker.reset();
         latch = new CountDownLatch(latchQty);
     }
 
     @Override
-    public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask task)
-    {
+    public TaskExecution newTaskExecution(WorkflowManager workflowManager, ExecutableTask task) {
         return () -> {
-            try
-            {
-                checker.add(task.getTaskId());
+            try {
+                if (checkerActive) {
+                    checker.add(task.getTaskId());
+                }
                 doRun(task);
-            }
-            catch ( InterruptedException e )
-            {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
-            }
-            finally
-            {
+            } finally {
                 checker.decrement();
                 latch.countDown();
             }
@@ -80,8 +82,9 @@ public class TestTaskExecutor implements TaskExecutor
     }
 
     @SuppressWarnings("UnusedParameters")
-    protected void doRun(ExecutableTask task) throws InterruptedException
-    {
-        Thread.sleep(1000);
+    protected void doRun(ExecutableTask task) throws InterruptedException {
+        if (this.sleepMillis > 0) {
+            Thread.sleep(this.sleepMillis);
+        }
     }
 }
