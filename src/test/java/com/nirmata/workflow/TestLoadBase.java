@@ -58,10 +58,10 @@ public abstract class TestLoadBase extends BaseForTests {
 
         String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
         JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+        Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json),
+                Task.class);
 
         for (int i = 0; i < ITERS_TEST_1; i++) {
-            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json),
-                    Task.class);
             workflowManager.submitTask(task);
         }
 
