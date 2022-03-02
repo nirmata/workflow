@@ -290,6 +290,64 @@ public class TestNormalKafka extends BaseForTests {
     }
 
     @Test(enabled = true)
+    public void testDuplicateSubmit() throws Exception {
+        // One more than 6 tasks in the DAG
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(7);
+        WorkflowManager workflowManager = createWorkflowKafkaBuilder()
+                .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true)).build();
+        try {
+
+            workflowManager.start();
+
+            timing.sleepABit();
+
+            String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
+            RunId runId = workflowManager.submitTask(task);
+            workflowManager.submitTask(runId, task);
+            Assert.assertFalse(taskExecutor.getLatch().await(10, TimeUnit.SECONDS));
+
+        } finally {
+            closeWorkflow(workflowManager);
+        }
+    }
+
+    @Test(enabled = false)
+    public void testExpiry() throws Exception {
+        // To enable this test, match the value of the equivalent constant in
+        // SchedulerKafka class with value below
+        final int MAX_SUBMITTED_CACHE_ITEMS = 2;
+        final int EXECUTOR_SLEEP_MS = 1000;
+        TestTaskExecutor taskExecutor = new TestTaskExecutor(16, false, EXECUTOR_SLEEP_MS);
+        WorkflowManager workflowManager = createWorkflowKafkaBuilder()
+                .addingTaskExecutor(taskExecutor, 10, new TaskType("test", "1", true)).build();
+        try {
+
+            workflowManager.start();
+
+            timing.sleepABit();
+
+            String json = Resources.toString(Resources.getResource("tasks.json"), Charset.defaultCharset());
+            JsonSerializerMapper jsonSerializerMapper = new JsonSerializerMapper();
+            Task task = jsonSerializerMapper.get(jsonSerializerMapper.getMapper().readTree(json), Task.class);
+
+            for (int i = 0; i < MAX_SUBMITTED_CACHE_ITEMS; i++) {
+                workflowManager.submitTask(task);
+            }
+            Thread.sleep(EXECUTOR_SLEEP_MS / 2);
+            for (int i = 0; i < MAX_SUBMITTED_CACHE_ITEMS; i++) {
+                workflowManager.submitTask(task);
+            }
+            workflowManager.submitTask(task);
+            Assert.assertTrue(timing.awaitLatch(taskExecutor.getLatch()));
+
+        } finally {
+            closeWorkflow(workflowManager);
+        }
+    }
+
+    @Test(enabled = true)
     public void testNoData() throws Exception {
         WorkflowManager workflowManager = createWorkflowKafkaBuilder()
                 .addingTaskExecutor(new TestTaskExecutor(1), 10, new TaskType("test", "1", true))

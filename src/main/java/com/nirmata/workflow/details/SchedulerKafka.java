@@ -83,7 +83,8 @@ class SchedulerKafka implements Runnable {
     // Sufficiently large LRU cache to ensure that duplicate tasks (with same runId)
     // are not scheduled even if scheduled multiple times within a time interval
     // and even if MongoDB is not used as a store.
-    // The max size is based on duplicate arrival times to be accomodated
+    // The max size is based on duplicate arrival times to be accomodated.
+    // Also expires corresponding old tasks in case they are still running.
     private final Set<String> recentlySubmittedTasks = Collections.newSetFromMap(new LinkedHashMap<String, Boolean>() {
         protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
             if (size() > MAX_SUBMITTED_CACHE_ITEMS) {
@@ -91,6 +92,8 @@ class SchedulerKafka implements Runnable {
                 if (runsCache.containsKey(runId.getId())) {
                     RunnableTask runnableTask = runsCache.get(runId.getId());
                     try {
+                        // TODO later, consider storing these in a separate retry Kafka queue, in case
+                        // Mongo storage is not active
                         completeRunnableTask(workflowManager, runId, runnableTask, -1);
                     } catch (Exception ex) {
                         log.error("Could not find any data to cancel run: {}", runId, ex);
@@ -209,8 +212,8 @@ class SchedulerKafka implements Runnable {
                                         // Someone retrying this workflow. Perhaps some old workflow run died
                                         populateCacheFromDb(runId);
                                     }
-
                                     break;
+
                                 case TASKRESULT:
                                     if (runsCache.containsKey(runId.getId())) {
                                         completedTasksCache.get(runId.getId()).put(msg.getTaskId().get().getId(),
@@ -225,6 +228,7 @@ class SchedulerKafka implements Runnable {
                                         continue;
                                     }
                                     break;
+
                                 case CANCEL:
                                     byte[] runnableBytes = storageMgr.getRunnable(runId);
                                     try {
@@ -237,6 +241,7 @@ class SchedulerKafka implements Runnable {
                                         log.error("Could not find any data to cancel run: {}", runId, ex);
                                     }
                                     continue;
+
                                 default:
                                     log.error("Workflow worker received invalid message type for runId {}, {}", runId,
                                             msg.getMsgType());
