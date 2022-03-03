@@ -211,6 +211,10 @@ class SchedulerKafka implements Runnable {
                     if (autoCleanerHolder.shouldRun()) {
                         autoCleanerHolder.run(workflowManager.getAdmin());
                     }
+                    // TODO, later check for requests for a TASKREBALANCE message type (with a small
+                    // poll timeout) and if the requested runId has been partially run, transfer it
+                    // over to the workflowtopic as a REBALANCE message and clear our 3 caches.
+
                 } catch (MongoInterruptedException | InterruptException e) {
                     log.debug("Interrupted scheduler loop", e.getMessage());
                     Thread.currentThread().interrupt();
