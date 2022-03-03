@@ -140,16 +140,19 @@ class SchedulerKafka implements Runnable {
      * The main scheduler outer run loop. Poll for messages, and depending upon
      * message type, do the needful.
      * 
-     * TODO: One workflow run thread in a client is good enough. Currently, the
-     * workflow
-     * worker partitions should be pinned to 1. With Kafka there is
-     * uncertainity with respect to partition stickiness to a consumer when
-     * consumers join a group gradually. Partition rebalancing might occur.
-     * To handle this, we could consider ideas such as avoiding partition
-     * rebalancing
-     * via some Kafka config, or resubmit in-progress runs in the workflow topic
-     * queues
-     * by detecting rebalancing events, or something better.
+     * TODO: One workflow run thread in a client is good enough for 10X
+     * or so topic type partitions. Currently, the workflow partitions should be
+     * pinned to 1. With Kafka there is uncertainity with respect to partition
+     * stickiness to a consumer when consumers join a group gradually. Partition
+     * rebalancing might occur.
+     * To handle this, we should put consider rebalances as a norm and handle
+     * via re-requesting for workflow runs from previous workers for an id via
+     * another rebalance topic. All schedulers request runIds for which they
+     * suddenly got a result, but no run, over this topic. Schedulers also
+     * subscribe to this rebalance topic and if they get a request for rebalance
+     * of an Id they had owned previously, they empty those from their caches
+     * (runs, started, completed) and send over those records over the workfklw
+     * topic as a distinct workflow message so other workflow owner can resume.
      * 
      */
     public void run() {
@@ -195,6 +198,9 @@ class SchedulerKafka implements Runnable {
                                 case CANCEL:
                                     handleTaskCancelMessage(runId, msg);
                                     break;
+                                // TODO, later have a TASKREBALANCE message type case to handle partial runs
+                                // that other scheduler had handled, but now the partition is assigned to this
+                                // scheduler
                                 default:
                                     log.error("Workflow worker received invalid message type for runId {}, {}", runId,
                                             msg.getMsgType());
@@ -262,6 +268,8 @@ class SchedulerKafka implements Runnable {
             log.warn(
                     "Got result, but no runId for {}, ignoring. Repartition due to failure or residual in Kafka due to late autocommit?",
                     runId.getId());
+            // TODO later, broadcast this taskId to a new task rebalance topic to request
+            // other schedulers to send across partial runs for this runId if they have them
         }
     }
 
