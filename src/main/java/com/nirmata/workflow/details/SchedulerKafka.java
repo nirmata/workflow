@@ -157,8 +157,6 @@ class SchedulerKafka implements Runnable {
         log.debug("Starting scheduler run loop");
         this.workflowConsumer.subscribe(Collections.singletonList(workflowManager.getKafkaConf().getWorkflowTopic()));
         try {
-            // TODO: Later, Improve this piece of code. Club statements into separate
-            // functions Ensure that break and continue logic is maintained.
             while (!exitRunLoop && !Thread.currentThread().isInterrupted()) {
                 if (runsCache.size() > MAX_SUBMITTED_CACHE_ITEMS / 2 && approxLoopCnt % 100 == 0) {
                     log.warn("Active run size increased to {}, more work than what can be consumed", runsCache.size());
@@ -189,65 +187,19 @@ class SchedulerKafka implements Runnable {
 
                             switch (msg.getMsgType()) {
                                 case TASK:
-                                    if (runsCache.size() >= MAX_SUBMITTED_CACHE_ITEMS) {
-                                        // TODO later, consider storing these in a separate retry Kafka queue, in case
-                                        // Mongo storage is not active
-                                        log.warn(
-                                                "Active run size reached threshold of {}, dropping scheduling RunId {}, resubmit later",
-                                                MAX_SUBMITTED_CACHE_ITEMS, runId);
-                                        continue;
-                                    }
-                                    if (!msg.isRetry()) {
-                                        if (!recentlySubmittedTasks.contains(runId.getId())) {
-                                            completedTasksCache.put(runId.getId(),
-                                                    new HashMap<String, TaskExecutionResult>());
-                                            startedTasksCache.put(runId.getId(), new HashSet<String>());
-                                            runsCache.put(runId.getId(), msg.getRunnableTask().get());
-                                            recentlySubmittedTasks.add(runId.getId());
-                                        } else {
-                                            log.debug("Ignoring duplicate task submitted for run {}", runId);
-                                            continue;
-                                        }
-                                    } else {
-                                        // Someone retrying this workflow. Perhaps some old workflow run died
-                                        populateCacheFromDb(runId);
-                                    }
+                                    handleTaskMessage(runId, msg);
                                     break;
-
                                 case TASKRESULT:
-                                    if (runsCache.containsKey(runId.getId())) {
-                                        completedTasksCache.get(runId.getId()).put(msg.getTaskId().get().getId(),
-                                                msg.getTaskExecResult().get());
-                                    } else {
-                                        // A task result was received for run that I don't have
-                                        // Mostly some partition reassignment, or cancelled run.
-                                        // Wait for someone to resubmit the job
-                                        log.warn(
-                                                "Got result, but no runId for {}, ignoring. Repartition due to failure or residual in Kafka due to late autocommit?",
-                                                runId.getId());
-                                        continue;
-                                    }
+                                    handleTaskResultMessage(runId, msg);
                                     break;
-
                                 case CANCEL:
-                                    byte[] runnableBytes = storageMgr.getRunnable(runId);
-                                    try {
-                                        completeRunnableTask(workflowManager, runId,
-                                                runnableBytes == null ? null
-                                                        : workflowManager.getSerializer().deserialize(
-                                                                runnableBytes, RunnableTask.class),
-                                                -1);
-                                    } catch (Exception ex) {
-                                        log.error("Could not find any data to cancel run: {}", runId, ex);
-                                    }
-                                    continue;
-
+                                    handleTaskCancelMessage(runId, msg);
+                                    break;
                                 default:
                                     log.error("Workflow worker received invalid message type for runId {}, {}", runId,
                                             msg.getMsgType());
-                                    continue;
+                                    break;
                             }
-                            updateTasks(runId);
                         }
                     }
                     if (autoCleanerHolder.shouldRun()) {
@@ -269,6 +221,61 @@ class SchedulerKafka implements Runnable {
             state.set(WorkflowManagerState.State.CLOSED);
         }
 
+    }
+
+    private void handleTaskMessage(RunId runId, WorkflowMessage msg) {
+        if (runsCache.size() >= MAX_SUBMITTED_CACHE_ITEMS) {
+            // TODO later, consider storing these in a separate retry Kafka queue, in case
+            // Mongo storage is not active
+            log.warn(
+                    "Active run size reached threshold of {}, dropping scheduling RunId {}, resubmit later",
+                    MAX_SUBMITTED_CACHE_ITEMS, runId);
+            return;
+        }
+        if (!msg.isRetry()) {
+            if (!recentlySubmittedTasks.contains(runId.getId())) {
+                completedTasksCache.put(runId.getId(),
+                        new HashMap<String, TaskExecutionResult>());
+                startedTasksCache.put(runId.getId(), new HashSet<String>());
+                runsCache.put(runId.getId(), msg.getRunnableTask().get());
+                recentlySubmittedTasks.add(runId.getId());
+            } else {
+                log.debug("Ignoring duplicate task submitted for run {}", runId);
+                return;
+            }
+        } else {
+            // Someone retrying this workflow. Perhaps some old workflow run died
+            populateCacheFromDb(runId);
+        }
+        updateTasks(runId);
+    }
+
+    private void handleTaskResultMessage(RunId runId, WorkflowMessage msg) {
+        if (runsCache.containsKey(runId.getId())) {
+            completedTasksCache.get(runId.getId()).put(msg.getTaskId().get().getId(),
+                    msg.getTaskExecResult().get());
+            updateTasks(runId);
+        } else {
+            // A task result was received for run that I don't have
+            // Mostly some partition reassignment, or cancelled run.
+            // Wait for someone to resubmit the job
+            log.warn(
+                    "Got result, but no runId for {}, ignoring. Repartition due to failure or residual in Kafka due to late autocommit?",
+                    runId.getId());
+        }
+    }
+
+    private void handleTaskCancelMessage(RunId runId, WorkflowMessage msg) {
+        byte[] runnableBytes = storageMgr.getRunnable(runId);
+        try {
+            completeRunnableTask(workflowManager, runId,
+                    runnableBytes == null ? null
+                            : workflowManager.getSerializer().deserialize(
+                                    runnableBytes, RunnableTask.class),
+                    -1);
+        } catch (Exception ex) {
+            log.error("Could not find any data to cancel run: {}", runId, ex);
+        }
     }
 
     /**

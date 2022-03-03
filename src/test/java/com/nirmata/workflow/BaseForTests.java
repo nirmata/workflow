@@ -93,7 +93,7 @@ public abstract class BaseForTests {
     // fail (or all queues need to be cleared)
     protected void sleepForRunCompletion() {
         try {
-            Thread.sleep(2000);
+            Thread.sleep(250);
         } catch (Exception e) {
             log.warn("Sleep interrupted", e);
         }
