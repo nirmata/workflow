@@ -76,6 +76,9 @@ class SchedulerKafka implements Runnable {
     private Map<TaskType, Producer<String, byte[]>> taskQueues = new HashMap<TaskType, Producer<String, byte[]>>();
     private final Consumer<String, byte[]> workflowConsumer;
 
+    // TODO Enhancement: Have these in-mem caches in persistent storage using a
+    // good library such as RocksDB, to avoid dependency on any central data store
+    // like Mongo to retry on crashes.
     private Map<String, Map<String, TaskExecutionResult>> completedTasksCache = new HashMap<String, Map<String, TaskExecutionResult>>();
     private Map<String, Set<String>> startedTasksCache = new HashMap<String, Set<String>>();
     private Map<String, RunnableTask> runsCache = new HashMap<String, RunnableTask>();
@@ -92,8 +95,8 @@ class SchedulerKafka implements Runnable {
                 if (runsCache.containsKey(runId.getId())) {
                     RunnableTask runnableTask = runsCache.get(runId.getId());
                     try {
-                        // TODO later, consider storing these in a separate retry Kafka queue, in case
-                        // Mongo storage is not active
+                        // TODO Enhancement: consider storing these in a separate retry Kafka queue, in
+                        // case Mongo storage is not active
                         completeRunnableTask(workflowManager, runId, runnableTask, -1);
                     } catch (Exception ex) {
                         log.error("Could not find any data to cancel run: {}", runId, ex);
@@ -110,7 +113,7 @@ class SchedulerKafka implements Runnable {
     private AtomicReference<WorkflowManagerState.State> state = new AtomicReference<>(
             WorkflowManagerState.State.LATENT);
 
-    // TODO: Later. Zkp implementation takes an additional queue factory.
+    // TODO Internal, TBD: Zkp implementation takes an additional queue factory.
     // Don't think that level of customization is needed. We simply queue to kafka.
     // Or maybe, evaluate benefits of queue customization later.
     SchedulerKafka(WorkflowManagerKafkaImpl workflowManager,
@@ -140,7 +143,7 @@ class SchedulerKafka implements Runnable {
      * The main scheduler outer run loop. Poll for messages, and depending upon
      * message type, do the needful.
      * 
-     * TODO: One workflow run thread in a client is good enough for 10X
+     * TODO Scale: One workflow run thread in a client is good enough for 10X
      * or so topic type partitions. Currently, the workflow partitions should be
      * pinned to 1. With Kafka there is uncertainity with respect to partition
      * stickiness to a consumer when consumers join a group gradually. Partition
@@ -172,7 +175,8 @@ class SchedulerKafka implements Runnable {
                     if (records.count() > 0) {
                         state.set(WorkflowManagerState.State.PROCESSING);
 
-                        // TODO: Later, incorporate fairness here. We can take ideas from Kubernetes
+                        // TODO Enhancement: Incorporate fairness here. We can take ideas from
+                        // Kubernetes
                         // https://kubernetes.io/docs/concepts/cluster-administration/flow-control/
 
                         for (ConsumerRecord<String, byte[]> record : records) {
@@ -198,9 +202,9 @@ class SchedulerKafka implements Runnable {
                                 case CANCEL:
                                     handleTaskCancelMessage(runId, msg);
                                     break;
-                                // TODO, later have a TASKREBALANCE message type case to handle partial runs
-                                // that other scheduler had handled, but now the partition is assigned to this
-                                // scheduler
+                                // TODO Scale: have a TASKREBALANCE message type case to handle partial
+                                // runs that other scheduler had handled, but now the partition is assigned to
+                                // this scheduler
                                 default:
                                     log.error("Workflow worker received invalid message type for runId {}, {}", runId,
                                             msg.getMsgType());
@@ -211,9 +215,10 @@ class SchedulerKafka implements Runnable {
                     if (autoCleanerHolder.shouldRun()) {
                         autoCleanerHolder.run(workflowManager.getAdmin());
                     }
-                    // TODO, later check for requests for a TASKREBALANCE message type (with a small
-                    // poll timeout) and if the requested runId has been partially run, transfer it
-                    // over to the workflowtopic as a REBALANCE message and clear our 3 caches.
+                    // TODO Scale: later check for requests for a TASKREBALANCE message type
+                    // (with a small poll timeout) and if the requested runId has been partially
+                    // run, transfer it over to the workflowtopic as a REBALANCE message and clear
+                    // our 3 caches.
 
                 } catch (MongoInterruptedException | InterruptException e) {
                     log.debug("Interrupted scheduler loop", e.getMessage());
@@ -235,8 +240,8 @@ class SchedulerKafka implements Runnable {
 
     private void handleTaskMessage(RunId runId, WorkflowMessage msg) {
         if (runsCache.size() >= MAX_SUBMITTED_CACHE_ITEMS) {
-            // TODO later, consider storing these in a separate retry Kafka queue, in case
-            // Mongo storage is not active
+            // TODO Enhancement: consider storing these in a separate retry Kafka queue, in
+            // case Mongo storage is not active and we need retries.
             log.warn(
                     "Active run size reached threshold of {}, dropping scheduling RunId {}, resubmit later",
                     MAX_SUBMITTED_CACHE_ITEMS, runId);
@@ -272,7 +277,7 @@ class SchedulerKafka implements Runnable {
             log.warn(
                     "Got result, but no runId for {}, ignoring. Repartition due to failure or residual in Kafka due to late autocommit?",
                     runId.getId());
-            // TODO later, broadcast this taskId to a new task rebalance topic to request
+            // TODO Scale: broadcast this taskId to a new task rebalance topic to request
             // other schedulers to send across partial runs for this runId if they have them
         }
     }
@@ -454,7 +459,7 @@ class SchedulerKafka implements Runnable {
      */
     private void queueTask(RunId runId, ExecutableTask task) {
         try {
-            // TODO: Later, Incorporate delayed tasks here somehow??.
+            // TODO Later: Incorporate delayed tasks here somehow??.
 
             StartedTask startedTask = new StartedTask(workflowManager.getInstanceName(),
                     LocalDateTime.now(Clock.systemUTC()), 0);

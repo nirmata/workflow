@@ -60,7 +60,7 @@ public class KafkaQueueConsumer implements Closeable, QueueConsumer {
     private final TaskType taskType;
     private final boolean idempotent;
 
-    // PNS TODO: Curator ThreadUtils dependency to be changed later
+    // PNS Enhancement: Curator ThreadUtils dependency to be changed later
     private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor("KafkaQueueConsumer");
     private final ExecutorService executorWorkerService;
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -167,7 +167,8 @@ public class KafkaQueueConsumer implements Closeable, QueueConsumer {
     public static volatile Semaphore debugQueuedTasks = null;
 
     void put(byte[] data, long value) throws Exception {
-        // TODO: Later. This queue is used only on the consumer side (executors)
+        // TODO Internal, Later: This queue is used only on the consumer side
+        // (executors)
         // Later use this queue in kafka scheduler too, for consistency of design.
         // Should not be called right now. See Zkp queue equivalent
         throw new UnsupportedOperationException("Internal error. Put side uses Kafka directly");
@@ -227,7 +228,7 @@ public class KafkaQueueConsumer implements Closeable, QueueConsumer {
                         submitToWorkerGently(task);
                         // processNode(task);
                     }
-                    // TODO: Later. Handle priority and delays to extent possible. See equivalent
+                    // TODO Later: Handle priority and delays to extent possible. See equivalent
                     // Zkp implementation. More important is handling fairness. Handle this on the
                     // workflow worker side where DAG is executed and tasks in DAG are submitted for
                     // execution.
@@ -271,8 +272,8 @@ public class KafkaQueueConsumer implements Closeable, QueueConsumer {
     }
 
     private void processNode(ExecutableTask executableTask) throws Exception {
-        // TODO: Later. Handle idempotency. With the kafka design, this issue should not
-        // arise actually. See equivalent implemention in Zkp code
+        // TODO Later: Handle idempotency. With the kafka design, duplicate task
+        // submission should not occur. See equivalent implemention in Zkp code
         try {
             taskRunner.executeTask(executableTask);
         } catch (Throwable e) {

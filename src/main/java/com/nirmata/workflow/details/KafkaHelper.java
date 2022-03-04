@@ -113,7 +113,8 @@ public class KafkaHelper {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.ByteArrayDeserializer");
 
-        // TODO: Later, when we upgrade kafka version (say, 3.1), this setting is useful
+        // TODO Enhancement, later: when we upgrade kafka version (say, 3.1), this
+        // setting is useful
         // props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
         // "org.apache.kafka.clients.consumer.CooperativeStickyAssignor");
 
