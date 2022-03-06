@@ -28,9 +28,6 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.EnsureContainers;
 import org.apache.curator.framework.api.BackgroundCallback;
 import org.apache.curator.framework.api.CuratorEvent;
-import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.watch.PersistentWatcher;
-import org.apache.curator.utils.CloseableUtils;
 import org.apache.curator.utils.ThreadUtils;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
@@ -221,12 +218,9 @@ public class SimpleQueue implements Closeable, QueueConsumer
     {
         log.info("Starting runLoop");
 
-        PersistentWatcher persistentWatcher = null;
         try
         {
-            persistentWatcher = new PersistentWatcher(client, path, false);
-            persistentWatcher.start();
-            while ( started.get() && !Thread.currentThread().isInterrupted() && (client.getState() != CuratorFrameworkState.STOPPED))
+            while ( started.get() && !Thread.currentThread().isInterrupted() )
             {
                 state.set(WorkflowManagerState.State.SLEEPING);
                 try
@@ -235,28 +229,23 @@ public class SimpleQueue implements Closeable, QueueConsumer
 
                     CountDownLatch latch = new CountDownLatch(1);
                     Watcher watcher = event -> latch.countDown();
-                    persistentWatcher.getListenable().addListener(watcher);
-                    try {
-                        List<String> nodes = client.getChildren().forPath(path);
-                        if ( nodes.size() == 0 )
+                    List<String> nodes = client.getChildren().usingWatcher(watcher).forPath(path);
+                    if ( nodes.size() == 0 )
+                    {
+                        latch.await();
+                    }
+                    else
+                    {
+                        NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
+                        if ( nodeAndDelay.delay.isPresent() )
                         {
-                            latch.await();
+                            latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
                         }
-                        else
+                        if ( nodeAndDelay.node.isPresent() )
                         {
-                            NodeAndDelay nodeAndDelay = nodeFunc.getNode(nodes);
-                            if ( nodeAndDelay.delay.isPresent() )
-                            {
-                                latch.await(nodeAndDelay.delay.get(), TimeUnit.MILLISECONDS);
-                            }
-                            if ( nodeAndDelay.node.isPresent() )
-                            {
-                                state.set(WorkflowManagerState.State.PROCESSING);
-                                processNode(nodeAndDelay.node.get());
-                            }
+                            state.set(WorkflowManagerState.State.PROCESSING);
+                            processNode(nodeAndDelay.node.get());
                         }
-                    } finally {
-                        persistentWatcher.getListenable().removeListener(watcher);
                     }
                 }
                 catch ( InterruptedException e )
@@ -278,7 +267,6 @@ public class SimpleQueue implements Closeable, QueueConsumer
         finally
         {
             log.info("Exiting runLoop");
-            CloseableUtils.closeQuietly(persistentWatcher);
             state.set(WorkflowManagerState.State.CLOSED);
         }
     }

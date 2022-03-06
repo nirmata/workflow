@@ -21,8 +21,7 @@ import com.nirmata.workflow.events.WorkflowListenerManager;
 import com.nirmata.workflow.models.RunId;
 import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.listen.Listenable;
-import org.apache.curator.framework.listen.StandardListenerManager;
-import org.apache.curator.framework.listen.UnaryListenerManager;
+import org.apache.curator.framework.listen.ListenerContainer;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.apache.curator.utils.CloseableUtils;
@@ -33,7 +32,7 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager {
     private final PathChildrenCache completedTasksCache;
     private final PathChildrenCache startedTasksCache;
     private final PathChildrenCache runsCache;
-    private final UnaryListenerManager<WorkflowListener> listenerContainer = StandardListenerManager.standard();
+    private final ListenerContainer<WorkflowListener> listenerContainer = new ListenerContainer<>();
 
     public WorkflowListenerManagerImpl(WorkflowManagerImpl workflowManager) {
         completedTasksCache = new PathChildrenCache(workflowManager.getCurator(), ZooKeeperConstants.getCompletedTaskParentPath(), false);
@@ -94,6 +93,7 @@ public class WorkflowListenerManagerImpl implements WorkflowListenerManager {
             if (l != null) {
                 l.receiveEvent(event);
             }
+            return null;
         });
     }
 }
