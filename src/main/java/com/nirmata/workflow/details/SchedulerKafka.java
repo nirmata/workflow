@@ -248,11 +248,13 @@ class SchedulerKafka implements Runnable {
             return;
         }
         if (!msg.isRetry()) {
-            if (!recentlySubmittedTasks.contains(runId.getId())) {
+            if (!runsCache.containsKey(runId.getId())) {
                 completedTasksCache.put(runId.getId(),
                         new HashMap<String, TaskExecutionResult>());
                 startedTasksCache.put(runId.getId(), new HashSet<String>());
                 runsCache.put(runId.getId(), msg.getRunnableTask().get());
+                // Adding same key does not change LRU order, hence delete and add
+                recentlySubmittedTasks.remove(runId.getId());
                 recentlySubmittedTasks.add(runId.getId());
             } else {
                 log.debug("Ignoring duplicate task submitted for run {}", runId);
