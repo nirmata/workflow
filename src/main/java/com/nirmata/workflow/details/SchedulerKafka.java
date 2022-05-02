@@ -76,6 +76,9 @@ class SchedulerKafka implements Runnable {
     private Map<TaskType, Producer<String, byte[]>> taskQueues = new HashMap<TaskType, Producer<String, byte[]>>();
     private final Consumer<String, byte[]> workflowConsumer;
 
+    private long expiredTasks = 0;
+    private long droppedTasks = 0;
+
     // TODO Enhancement: Have these in-mem caches in persistent storage using a
     // good library such as RocksDB, to avoid dependency on any central data store
     // like Mongo to retry on crashes.
@@ -102,6 +105,7 @@ class SchedulerKafka implements Runnable {
                         log.error("Could not find any data to cancel run: {}", runId, ex);
                     }
                     log.warn("Expiring long running workflow {}", runId);
+                    expiredTasks++;
                 }
 
                 return true;
@@ -166,6 +170,11 @@ class SchedulerKafka implements Runnable {
             while (!exitRunLoop && !Thread.currentThread().isInterrupted()) {
                 if (runsCache.size() > MAX_SUBMITTED_CACHE_ITEMS / 2 && approxLoopCnt % 100 == 0) {
                     log.warn("Active run size increased to {}, more work than what can be consumed", runsCache.size());
+                }
+                if (approxLoopCnt % 100 == 0) {
+                    log.info("Number of runs in progress: {} Number of started sub-tasks: {}"
+                            + " Number of dropped tasks: {} Number of expired tasks: {}",
+                            startedTasksCache.size(), runsCache.size(), droppedTasks, expiredTasks);
                 }
                 approxLoopCnt++;
                 try {
@@ -245,6 +254,7 @@ class SchedulerKafka implements Runnable {
             log.warn(
                     "Active run size reached threshold of {}, dropping scheduling RunId {}, resubmit later",
                     MAX_SUBMITTED_CACHE_ITEMS, runId);
+            droppedTasks++;
             return;
         }
         if (!msg.isRetry()) {
