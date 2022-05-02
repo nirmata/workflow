@@ -78,6 +78,7 @@ class SchedulerKafka implements Runnable {
 
     private long expiredTasks = 0;
     private long droppedTasks = 0;
+    private long duplicatesIgnored = 0;
 
     // TODO Enhancement: Have these in-mem caches in persistent storage using a
     // good library such as RocksDB, to avoid dependency on any central data store
@@ -172,9 +173,9 @@ class SchedulerKafka implements Runnable {
                     log.warn("Active run size increased to {}, more work than what can be consumed", runsCache.size());
                 }
                 if (approxLoopCnt % 100 == 0) {
-                    log.info("Number of runs in progress: {} Number of started sub-tasks: {}"
-                            + " Number of dropped tasks: {} Number of expired tasks: {}",
-                            startedTasksCache.size(), runsCache.size(), droppedTasks, expiredTasks);
+                    log.info(
+                            "Number of runs in progress: {}, Number of started sub-tasks: {}, Number of duplicates ignored: {}, Number of dropped tasks: {}, Number of expired tasks: {}",
+                            startedTasksCache.size(), runsCache.size(), duplicatesIgnored, droppedTasks, expiredTasks);
                 }
                 approxLoopCnt++;
                 try {
@@ -267,6 +268,7 @@ class SchedulerKafka implements Runnable {
                 recentlySubmittedTasks.remove(runId.getId());
                 recentlySubmittedTasks.add(runId.getId());
             } else {
+                duplicatesIgnored++;
                 log.debug("Ignoring duplicate task submitted for run {}", runId);
                 return;
             }
