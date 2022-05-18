@@ -99,6 +99,14 @@ public interface WorkflowManager extends Closeable
     RunId submitSubTask(RunId runId, RunId parentRunId, Task task);
 
     /**
+     * Submit a task directly to executor. Only the top parent is executed, not children.
+     * The executor in turn, will not attempt to send task results to the scheduler.
+     *
+     * @param task task to execute
+     */
+    void submitRootTaskDirect(Task task);
+
+    /**
      * Update task progress info. This method is meant to be used inside of {@link TaskExecutor}
      * for a running task to update its execution progress(0-100).
      *

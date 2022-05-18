@@ -601,4 +601,10 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
 
         return builder.build();
     }
+    
+    @Override
+    public void submitRootTaskDirect(Task task) 
+    {
+        throw(new UnsupportedOperationException("Direct submission to Kafka is unsupported in Zookeeper based workflow"));
+    }
 }

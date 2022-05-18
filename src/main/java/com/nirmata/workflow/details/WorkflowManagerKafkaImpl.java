@@ -53,6 +53,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -85,7 +87,11 @@ public class WorkflowManagerKafkaImpl implements WorkflowManager, WorkflowAdmin 
     private final Serializer serializer;
     private final Executor taskRunnerService;
 
+    private Map<TaskType, Producer<String, byte[]>> taskQueues = new HashMap<TaskType, Producer<String, byte[]>>();
+    private Map<String, Set<String>> startedTasksCache = new HashMap<String, Set<String>>();
+
     private static final TaskType nullTaskType = new TaskType("", "", false);
+    private static final String DIRECT_SUBMIT_RUN_ID_PREFIX = "DIRECT_SUBMIT";
 
     private enum State {
         LATENT,
@@ -463,16 +469,19 @@ public class WorkflowManagerKafkaImpl implements WorkflowManager, WorkflowAdmin 
             throw new RuntimeException(String.format("null returned from task executor for run: %s, task %s",
                     executableTask.getRunId(), executableTask.getTaskId()));
         }
-        byte[] bytes = serializer.serialize(new WorkflowMessage(executableTask.getTaskId(), result));
-        try {
-            // Send task result to scheduler to further advance the workflow
-            sendWorkflowToKafka(executableTask.getRunId(), bytes);
-            storageMgr.saveTaskResult(executableTask.getRunId(), executableTask.getTaskId(),
-                    serializer.serialize(result));
+        // No need to send task result if the RunID denotes that this is a directsubmit since scheduler does not manage it.
+        if (!executableTask.getRunId().getId().startsWith(DIRECT_SUBMIT_RUN_ID_PREFIX)) {
+            byte[] bytes = serializer.serialize(new WorkflowMessage(executableTask.getTaskId(), result));
+            try {
+                // Send task result to scheduler to further advance the workflow
+                sendWorkflowToKafka(executableTask.getRunId(), bytes);
+                storageMgr.saveTaskResult(executableTask.getRunId(), executableTask.getTaskId(),
+                        serializer.serialize(result));
 
-        } catch (Exception e) {
-            log.error("Could not set completed data for executable task: {}", executableTask, e);
-            throw e;
+            } catch (Exception e) {
+                log.error("Could not set completed data for executable task: {}", executableTask, e);
+                throw e;
+            }
         }
     }
 
@@ -497,5 +506,48 @@ public class WorkflowManagerKafkaImpl implements WorkflowManager, WorkflowAdmin 
         }));
 
         return builder.build();
+    }
+
+    @Override
+    public void submitRootTaskDirect(Task task) {
+        try {
+            RunId runId = RunId.newRandomIdWithPrefix(DIRECT_SUBMIT_RUN_ID_PREFIX);
+
+            StartedTask startedTask = new StartedTask(this.getInstanceName(),
+                    LocalDateTime.now(Clock.systemUTC()), 0);
+            storageMgr.setStartedTask(runId, task.getTaskId(), this.getSerializer().serialize(startedTask));
+
+            byte[] runnableTaskBytes = this.getSerializer().serialize(task);
+
+            Producer<String, byte[]> producer = taskQueues.get(task.getTaskType());
+            if (producer == null) {
+                this.getKafkaConf().createTaskTopicIfNeeded(task.getTaskType());
+                producer = new KafkaProducer<String, byte[]>(
+                        this.getKafkaConf().getProducerProps());
+                taskQueues.put(task.getTaskType(), producer);
+            }
+
+            producer.send(new ProducerRecord<String, byte[]>(
+                    this.getKafkaConf().getTaskExecTopic(task.getTaskType()), runnableTaskBytes),
+                    new Callback() {
+                        @Override
+                        public void onCompletion(RecordMetadata m, Exception e) {
+                            if (e != null) {
+                                log.error("Error creating record for Run {} to task type {}", runId, task.getTaskType(),
+                                        e);
+                            } else {
+                                log.debug("RunId {} produced record to topic {}, partition [{}] @ offset {}", runId,
+                                        m.topic(), m.partition(), m.offset());
+                            }
+                        }
+                    });
+            startedTasksCache.get(runId.getId()).add(task.getTaskId().getId());
+            log.debug("Sent task to queue: {}", task);
+
+        } catch (Exception e) {
+            String message = "Could not start task " + task;
+            log.error(message, e);
+            throw new RuntimeException(e);
+        }
     }
 }
