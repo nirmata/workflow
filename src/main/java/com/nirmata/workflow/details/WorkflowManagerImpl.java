@@ -129,6 +129,15 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
+    public void closeGracefully(long timeOut) {
+        if ( state.compareAndSet(State.STARTED, State.CLOSED) )
+        {
+            CloseableUtils.closeQuietly(schedulerSelector);
+            consumers.forEach(consumer -> consumer.closeGraceFully(timeOut));
+        }
+    }
+
+    @Override
     public Map<TaskId, TaskDetails> getTaskDetails(RunId runId)
     {
         try

@@ -30,4 +30,10 @@ public interface QueueConsumer extends Closeable
 
     @VisibleForTesting
     void debugValidateClosed();
+
+    /**
+     * Allowing the executorService(SimpleQueue) to finish the previously submitted tasks before shutting down
+     * @param timeOut (in seconds)
+     */
+    void closeGraceFully(long timeOut);
 }
