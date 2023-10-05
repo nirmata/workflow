@@ -579,6 +579,6 @@ public class TestNormal extends BaseForTests
 
     private void closeWorkflowGracefully(WorkflowManager workflowManager) throws InterruptedException
     {
-        workflowManager.closeGracefully(20);
+        workflowManager.closeGracefully(20, TimeUnit.SECONDS);
     }
 }

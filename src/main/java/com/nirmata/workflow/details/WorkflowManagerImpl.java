@@ -58,6 +58,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -129,11 +130,11 @@ public class WorkflowManagerImpl implements WorkflowManager, WorkflowAdmin
     }
 
     @Override
-    public void closeGracefully(long timeOut) {
+    public void closeGracefully(long timeOut, TimeUnit unit) {
         if ( state.compareAndSet(State.STARTED, State.CLOSED) )
         {
             CloseableUtils.closeQuietly(schedulerSelector);
-            consumers.forEach(consumer -> consumer.closeGraceFully(timeOut));
+            consumers.forEach(consumer -> consumer.closeGraceFully(timeOut, unit));
         }
     }
 

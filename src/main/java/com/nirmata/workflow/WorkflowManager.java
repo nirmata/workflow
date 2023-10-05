@@ -146,7 +146,8 @@ public interface WorkflowManager extends Closeable
      *  Close the workflow manager gracefully by allowing the in-progress tasks to continue till the timeout specified.
      *  This method is different from close method(Closeable) as close method will stop the in-progress tasks as well.
      *
-     * @param timeOut is the maximum time(in seconds) allocated for the in-progress tasks to complete the execution.
+     * @param timeOut is the maximum time allocated for the in-progress tasks to complete the execution.
+     * @param unit Timeunit for the timeOut quantity specified
      */
-    void closeGracefully(long timeOut);
+    void closeGracefully(long timeOut, TimeUnit unit);
 }
