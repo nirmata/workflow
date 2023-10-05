@@ -24,6 +24,7 @@ import com.google.common.io.Resources;
 import com.nirmata.workflow.admin.RunInfo;
 import com.nirmata.workflow.admin.StandardAutoCleaner;
 import com.nirmata.workflow.admin.TaskInfo;
+import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.details.WorkflowManagerImpl;
 import com.nirmata.workflow.executor.TaskExecution;
 import com.nirmata.workflow.executor.TaskExecutionStatus;
@@ -35,6 +36,7 @@ import com.nirmata.workflow.models.TaskExecutionResult;
 import com.nirmata.workflow.models.TaskId;
 import com.nirmata.workflow.models.TaskType;
 import com.nirmata.workflow.serialization.JsonSerializerMapper;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.curator.utils.CloseableUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -514,11 +516,69 @@ public class TestNormal extends BaseForTests
             closeWorkflow(workflowManager);
         }
     }
+    @Test
+    public void testWorkflowManagerGracefulClose() throws Exception
+    {
+        boolean shutdownDone = false;
+        BlockingQueue<TaskId> tasks = Queues.newLinkedBlockingQueue();
+        TaskExecutor taskExecutor = (w, t) -> () -> {
+            tasks.add(t.getTaskId());
+            StopWatch stopwatch = new StopWatch();
+            stopwatch.start();
+            try
+            {
+                Thread.sleep(5000);
+                tasks.poll(timing.milliseconds(), TimeUnit.MILLISECONDS);
+            }
+            catch ( InterruptedException e )
+            {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException();
+            }
+            return new TaskExecutionResult(TaskExecutionStatus.SUCCESS, "Completed");
+        };
+        TaskType taskType = new TaskType("test", "1", true);
+        WorkflowManager workflowManager = WorkflowManagerBuilder.builder()
+                .addingTaskExecutor(taskExecutor, 1, taskType)
+                .withCurator(curator, "test", "1")
+                .build();
+        StopWatch stopwatch = new StopWatch();
+        try
+        {
+            workflowManager.start();
+
+            TaskId taskId = new TaskId();
+            RunId runId = workflowManager.submitTask(new Task(taskId, taskType));
+
+            stopwatch.start();
+            timing.sleepABit();
+
+            List<TaskInfo> tasksPresent = workflowManager.getAdmin().getTaskInfo(runId);
+            Assert.assertTrue(tasksPresent.size() == 1); // checking via admin API whether task is present before the graceful shutdown request.
+            Assert.assertTrue(tasks.size() == 1); // checking whether task is yet to be completed before the graceful shutdown request.
+            closeWorkflowGracefully(workflowManager); // requesting a graceful shutdown while the task is in progress.
+            shutdownDone = true;
+            Assert.assertTrue(stopwatch.getTime() >= 5000); // checking if task took more than 5000 ms after the submission.
+            Assert.assertTrue(tasks.size() == 0); // checking if task is completed during graceful shutdown
+            Assert.assertTrue(workflowManager.getAdmin().getWorkflowManagerState().getExecutorsState().get(0)
+                    == WorkflowManagerState.State.CLOSED); // checking if workflow manager is in closed state at the end.
+        }
+        finally
+        {
+            stopwatch.stop();
+            if(!shutdownDone) closeWorkflow(workflowManager);//shutdown here if graceful shutdown was interrupted unexpectedly.
+        }
+    }
 
     private void closeWorkflow(WorkflowManager workflowManager) throws InterruptedException
     {
         CloseableUtils.closeQuietly(workflowManager);
         timing.sleepABit();
         ((WorkflowManagerImpl)workflowManager).debugValidateClosed();
+    }
+
+    private void closeWorkflowGracefully(WorkflowManager workflowManager) throws InterruptedException
+    {
+        workflowManager.closeGracefully(20);
     }
 }
