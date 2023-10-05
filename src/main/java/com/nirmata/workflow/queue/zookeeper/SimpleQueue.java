@@ -200,6 +200,22 @@ public class SimpleQueue implements Closeable, QueueConsumer
         Preconditions.checkState(executorService.isTerminated());
     }
 
+    @Override
+    public void closeGraceFully(long timeOut, TimeUnit unit) {
+        if ( started.compareAndSet(true, false) )
+        {
+            executorService.shutdown();
+            try {
+                log.info("Blocks until all tasks have completed execution or the timeout occurs");
+                executorService.awaitTermination(timeOut, unit);
+                log.info("Simple Queue executor service shutdown completed");
+            } catch (InterruptedException e) {
+                log.error("Error while processing of in-progress tasks, possibly due to timeout while waiting", e);
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     public void start()
     {
         if ( started.compareAndSet(false, true) )

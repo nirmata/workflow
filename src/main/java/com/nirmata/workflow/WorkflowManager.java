@@ -25,6 +25,7 @@ import com.nirmata.workflow.models.TaskId;
 import org.apache.curator.framework.CuratorFramework;
 import java.io.Closeable;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Main API - create via {@link WorkflowManagerBuilder}
@@ -140,4 +141,13 @@ public interface WorkflowManager extends Closeable
      * @return new WorkflowListenerManager
      */
     WorkflowListenerManager newWorkflowListenerManager();
+
+    /**
+     *  Close the workflow manager gracefully by allowing the in-progress tasks to continue till the timeout specified.
+     *  This method is different from close method(Closeable) as close method will stop the in-progress tasks as well.
+     *
+     * @param timeOut is the maximum time allocated for the in-progress tasks to complete the execution.
+     * @param unit Timeunit for the timeOut quantity specified
+     */
+    void closeGracefully(long timeOut, TimeUnit unit);
 }
