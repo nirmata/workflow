@@ -18,6 +18,7 @@ package com.nirmata.workflow.queue.zookeeper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.nirmata.workflow.admin.WorkflowManagerState;
 import com.nirmata.workflow.models.ExecutableTask;
 import com.nirmata.workflow.models.TaskMode;
@@ -198,6 +199,21 @@ public class SimpleQueue implements Closeable, QueueConsumer
     public void debugValidateClosed()
     {
         Preconditions.checkState(executorService.isTerminated());
+    }
+
+    @Override
+    public void closeGraceFully(long timeOut, TimeUnit unit) {
+        if ( started.compareAndSet(true, false) )
+        {
+            log.info("Blocks until all tasks have completed execution or the timeout occurs");
+            try {
+                MoreExecutors.shutdownAndAwaitTermination(executorService, timeOut, unit);
+                log.info("Simple Queue executor service shutdown completed");
+            } catch (RuntimeException e) {
+                log.error("Error while processing of in-progress tasks, possibly due to timeout while waiting", e);
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     public void start()
